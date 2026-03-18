@@ -1,4 +1,161 @@
- # (프로젝트명)
+(프로젝트명)
+## RotationHouse
+RotationHouse는 404호 팀의 React Native Expo 기반 모바일 앱 프로젝트입니다. 집안일 관리 및 공유를 위한 협업 앱입니다.
+
+## 📝 주요기능
+
+## 🔨 기술스택
+<!-- 
+(백엔드, 프론트, 협업에 사용한 툴, 라이브러리, 프레임워크)
+
+기술스택 배지 추가하는 방법 
+1. https://simpleicons.org/ 에서 기술스택명 검색
+2. 기술스택의 로고, 컬러 HEX 코드를 아래와 같이 입력
+  - https://img.shields.io/badge/<표시될 이름>-<컬러 HEX>?style=for-the-badge&logo=<로고명>
+3. 해당 URL로 마크다운 이미지 첨부
+  - ![이미지명](URL) 형식
+-->
+
+![intellij](https://img.shields.io/badge/intellij_idea-000000?style=for-the-badge&logo=intellijidea&logoColor=white)
+![vscode](https://img.shields.io/badge/vscode-000000?style=for-the-badge&logo=vscode&logoColor=white)
+![androidstudio](https://img.shields.io/badge/android_studio-3DDC84?style=for-the-badge&logo=androidstudio&logoColor=white)  
+
+![docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![nginx](https://img.shields.io/badge/nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)
+![redis](https://img.shields.io/badge/redis-FF4438?style=for-the-badge&logo=redis&logoColor=white)
+![github-action](https://img.shields.io/badge/github_actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+
+![react](https://img.shields.io/badge/react_native-61DAFB?style=for-the-badge&logo=react&logoColor=white)
+![jetpack-compose](https://img.shields.io/badge/jetpack_compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
+![spring](https://img.shields.io/badge/spring-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+
+| 스택 | 설명 | 용도 |
+|-----|-----|-----|
+| 스택1 | 스택에 대한 설명 | 프로젝트 쓰임새 |
+| ... | ... | ... |
+
+## 🖼️ 스크린샷
+
+## 🤝 개발협업
+### 🌲 Branch 전략
+- **main**: 배포/안정 브랜치
+- **develop**: 개발 통합 브랜치
+- **feat/기능명**: 개인 작업 브랜치 (예: feat/12-login-ui, feat/13-task-create)
+
+브랜치 생성 및 작업 흐름:
+1. develop 브랜치에서 개인 브랜치를 따기
+2. 작업 완료 후 PR 올리기
+3. 리뷰 후 develop에 머지
+
+### 🍪 Pull Request
+PR 제목: feat: [기능명] (#이슈번호)
+예: feat: 로그인 UI 구현 (#12)
+
+### 📝 커밋 메시지 규칙
+- feat: 새로운 기능 추가
+- fix: 버그 수정
+- docs: 문서 수정
+- style: 코드 스타일 변경
+- refactor: 코드 리팩토링
+- test: 테스트 추가
+- chore: 기타 변경
+
+예: feat: 로그인 UI 구현 (#12)
+
+## 🛠 설치방법
+### 💻 Frontend (React Native Expo)
+1. Node.js 설치 (버전 18 이상 권장)
+2. npm 또는 yarn 설치
+3. 프로젝트 클론 후 디렉토리 이동
+4. `npm install` 실행
+5. `npx expo start`로 개발 서버 시작
+6. 모바일 기기에 Expo Go 앱 설치 후 QR 코드 스캔하여 테스트
+
+### 💻 Backend
+
+## 🧑‍💻 팀원 (404호)
+| <img width="100" src="https://github.com/cotidie.png"> | <img width="100" src="https://github.com/github.png"> | 
+|:----------------------:|:----------------------:|
+| [장원석](https://github.com/cotidie) | [팀원](https://github.com/cotidie) |
+| 💻 Android | 💻 역할 |
+| 15기 | 기수 |
+
+## 📁 파일 구조
+```
+app/
+  _layout.tsx                 // 전체 앱 공통 레이아웃
+  index.tsx                   // 첫 진입 분기 (splash or login)
+  
+  auth/
+    login.tsx
+    create-or-join.tsx
+
+  home/
+    create-home.tsx
+    join-home.tsx
+    select-layout.tsx
+    custom-layout.tsx
+    cleanliness-standard.tsx
+    voting-waiting.tsx
+
+  chore/
+    add.tsx
+    detail.tsx
+    substitute-request.tsx
+
+  (tabs)/
+    _layout.tsx               // 하단 탭 레이아웃
+    schedule.tsx
+    space.tsx
+    notifications.tsx
+    settings.tsx
+
+components/
+  ui/
+    PrimaryButton.tsx
+    AppInput.tsx
+    AppCard.tsx
+    TagChip.tsx
+    SectionHeader.tsx
+
+  chore/
+    DateRangePicker.tsx
+    FrequencyModal.tsx
+    SpaceSelector.tsx
+    ChoreCard.tsx
+
+  feedback/
+    SatisfactionSelector.tsx
+    WeeklyReportCard.tsx
+
+state/
+  auth-store.ts
+  home-store.ts
+  chore-store.ts
+  notification-store.ts
+
+types/
+  auth.ts
+  chore.ts
+  home.ts
+  notification.ts
+  common.ts
+
+constants/
+  theme.ts
+  colors.ts
+  spacing.ts
+  text.ts
+
+assets/
+  images/
+  icons/
+
+hooks/
+  useAuth.ts
+  useChoreForm.ts
+  useColorScheme.ts
+```
 (개요, 프로젝트 소개)
 
  ## 📝 주요기능
