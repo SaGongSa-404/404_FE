@@ -17,17 +17,9 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
-  lib/
-  ├── models/       # 데이터 모델 (API 응답 구조체 등)
-  ├── screens/      # 화면 단위 UI
-  ├── widgets/      # 재사용 가능한 작은 UI 컴포넌트
-  ├── services/     # API 통신, 외부 서비스 연동
-  ├── utils/        # 공통 유틸 함수, 상수, 테마
-  ├── providers/    # 상태관리 (Riverpod)
-  └── main.dart     # 앱 진입점
 environment:
-  sdk: ^3.10.0
-  flutter: ">=3.38.0"
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
