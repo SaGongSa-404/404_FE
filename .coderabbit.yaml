@@ -1,25 +1,33 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ko-KR
+
 reviews:
-  review_status: true
-  request_changes_workflow: false
+  collapse_walkthrough: false
   high_level_summary: true
   poem: false
-  collapse_walkthrough: false
+  request_changes_workflow: false
+  review_status: true
+
   auto_review:
     enabled: true
     drafts: false
     base_branches:
-      - main
       - develop
+      - main
 
-path_instructions:
-  - path: "lib/features/**/views/**"
-    instructions: "UI 코드만 있어야 합니다. 비즈니스 로직이나 API 호출이 있으면 지적해주세요."
-  - path: "lib/features/**/viewmodels/**"
-    instructions: "Riverpod StateNotifier 또는 Notifier 패턴을 사용해야 합니다. Widget 관련 코드가 있으면 지적해주세요."
-  - path: "lib/core/**"
-    instructions: "핵심 인프라 코드입니다. 변경 시 다른 기능에 영향을 줄 수 있으니 꼼꼼히 리뷰해주세요."
+  path_filters:
+    - "!**/*.g.dart"
+    - "!**/*.freezed.dart"
+
+  path_instructions:
+    - path: "lib/core/**"
+      instructions: "인프라·공용 기반 코드입니다. 다른 기능에 미치는 영향을 중심으로 리뷰해주세요."
+    - path: "lib/shared/**"
+      instructions: "기능 간 공용 위젯·모델입니다. 특정 feature 전용 로직이 섞이지 않았는지, 재사용 관점에서 봐주세요."
+    - path: "lib/features/**/views/**"
+      instructions: "UI(위젯)만 두세요. 비즈니스 로직이나 직접적인 API 호출이 있으면 지적해주세요."
+    - path: "lib/features/**/viewmodels/**"
+      instructions: "상태·로직(Riverpod Notifier/Provider 등)만 두세요. Widget이 섞이면 지적해주세요."
 
 chat:
   auto_reply: true
-
-language: ko
