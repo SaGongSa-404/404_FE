@@ -29,7 +29,7 @@ final class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'fe_app',
+      title: 'WiGul',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true),
       routerConfig: _router,
