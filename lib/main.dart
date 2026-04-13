@@ -15,7 +15,7 @@ Future<void> main() async {
   }
   // kakao SDK 초기화
   KakaoSdk.init(
-    nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? '884bc843ed6df10d448832759d3c3462',
+    nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY'] ?? 'error: kakao native app key is not set',
   );
   // print('카카오 키 해시: ${await KakaoSdk.origin}');
 
