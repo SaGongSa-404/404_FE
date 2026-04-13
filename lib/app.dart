@@ -31,7 +31,7 @@ final class App extends StatelessWidget {
     return MaterialApp.router(
       title: 'WiGul',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
+      theme: ThemeData(useMaterial3: false),
       routerConfig: _router,
     );
   }
