@@ -1,3 +1,4 @@
+import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,11 +12,11 @@ final class App extends StatelessWidget {
   const App({super.key});
 
   static final GoRouter _router = GoRouter(
-    initialLocation: '/onboarding/nickname', // 테스트를 위해 온보딩 시작점으로 설정
+    initialLocation: '/', // 테스트를 위해 온보딩 시작점으로 설정
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
         path: '/login',
@@ -24,6 +25,10 @@ final class App extends StatelessWidget {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: '/onboarding/nickname',
@@ -42,8 +47,9 @@ final class App extends StatelessWidget {
       title: 'WiGul',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Pretendard', // 필요 시 폰트 설정
+        useMaterial3: false,
+        scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'Pretendard',
       ),
       routerConfig: _router,
     );
