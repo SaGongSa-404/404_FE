@@ -12,7 +12,7 @@ final class App extends StatelessWidget {
   const App({super.key});
 
   static final GoRouter _router = GoRouter(
-    initialLocation: '/', // 테스트를 위해 온보딩 시작점으로 설정
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',

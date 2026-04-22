@@ -8,8 +8,8 @@ class HomeInfoContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 350,
-      height: 160,
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 160),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFCDEBFF),
