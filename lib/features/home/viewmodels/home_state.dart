@@ -1,23 +1,23 @@
-// [예시] 홈 화면용 상태
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fe_app/features/home/models/home_placeholder.dart';
+enum HomeTab { budget, selectionRate }
 
 class HomeState {
+  final bool isLoading;
+  final HomeTab selectedTab;
+  final bool isAlarmOpen;
+
   const HomeState({
     this.isLoading = false,
-    this.placeholder,
+    this.selectedTab = HomeTab.budget,
+    this.isAlarmOpen = false,
   });
 
-  final bool isLoading;
-  final HomePlaceholder? placeholder;
-
-  HomeState copyWith({
-    bool? isLoading,
-    HomePlaceholder? placeholder,
-  }) {
+  HomeState copyWith({bool? isLoading, HomeTab? selectedTab, bool? isAlarmOpen}) {
     return HomeState(
       isLoading: isLoading ?? this.isLoading,
-      placeholder: placeholder ?? this.placeholder,
+      selectedTab: selectedTab ?? this.selectedTab,
+      isAlarmOpen: isAlarmOpen ?? this.isAlarmOpen,
     );
   }
 }
