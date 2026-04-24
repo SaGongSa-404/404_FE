@@ -17,11 +17,13 @@ class WishlistScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wishlistViewModelProvider);
     final viewModel = ref.read(wishlistViewModelProvider.notifier);
+
     final filteredItems = state.selectedCategories.contains('전체')
         ? state.items
         : state.items
-            .where((item) => state.selectedCategories.contains(item.category))
-            .toList();
+        .where((item) => state.selectedCategories.contains(item.category))
+        .toList();
+
     final editingItem = state.editingItemId == null
         ? null
         : state.items.where((item) => item.id == state.editingItemId).firstOrNull;
@@ -35,11 +37,9 @@ class WishlistScreen extends ConsumerWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // 레이어 1: 메인 UI 구성
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // [1단] 알람 버튼
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
@@ -47,59 +47,53 @@ class WishlistScreen extends ConsumerWidget {
                     child: AlarmButton(onPressed: viewModel.toggleAlarm),
                   ),
                 ),
-
-                // [2단] 타이틀 영역
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         '내 위시리스트',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         '${filteredItems.length}개',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.black54,
-                        ),
+                        style: const TextStyle(fontSize: 18, color: Colors.black54),
                       ),
                     ],
                   ),
                 ),
-
-                // [3단] 카테고리 필터
                 const CategoryFilter(),
-
-                // [4단] 나머지 위시리스트 목록 영역
                 Expanded(
                   child: filteredItems.isEmpty
                       ? const EmptyWishlistView()
                       : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-                              itemCount: filteredItems.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) => WishlistItemCard(
-                                item: filteredItems[index],
-                                onTap: () => viewModel.openEditPanel(filteredItems[index].id),
-                              ),
-                            ),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                    itemCount: filteredItems.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = filteredItems[index];
+                      return WishlistItemCard(
+                        item: item,
+                        onTap: () {},
+                        onLongPress: () => viewModel.openEditPanel(item.id),
+                        onDelete: () => {},
+                        onShare: () {},
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
-
-            // 레이어 2: 알림 패널
-            if (state.isAlarmOpen)
-              AlarmPanel(onClose: viewModel.toggleAlarm),
+            if (state.isAlarmOpen) AlarmPanel(onClose: viewModel.toggleAlarm),
             if (editingItem != null)
               WishlistEditPanel(
                 item: editingItem,
                 onClose: viewModel.closeEditPanel,
-                onSave: viewModel.updateItem,
+                onSave: (updatedItem) {
+                  viewModel.updateItem(updatedItem);
+                  viewModel.closeEditPanel();
+                },
               ),
           ],
         ),
@@ -110,10 +104,5 @@ class WishlistScreen extends ConsumerWidget {
 }
 
 extension<T> on Iterable<T> {
-  T? get firstOrNull {
-    if (isEmpty) {
-      return null;
-    }
-    return first;
-  }
+  T? get firstOrNull => isEmpty ? null : first;
 }
