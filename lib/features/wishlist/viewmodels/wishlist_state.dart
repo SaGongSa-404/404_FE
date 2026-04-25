@@ -27,8 +27,10 @@ class WishlistState {
       isLoading: isLoading ?? this.isLoading,
       isAlarmOpen: isAlarmOpen ?? this.isAlarmOpen,
       editingItemId: clearEditingItemId ? null : (editingItemId ?? this.editingItemId),
-      selectedCategories: selectedCategories ?? this.selectedCategories,
-      items: items ?? this.items,
+      selectedCategories: Set.unmodifiable(
+        selectedCategories ?? this.selectedCategories,
+      ),
+      items: List.unmodifiable(items ?? this.items),
     );
   }
 }

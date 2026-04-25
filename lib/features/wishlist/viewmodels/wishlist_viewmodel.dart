@@ -60,6 +60,9 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   void toggleCategory(String category) {
+    if (!categories.contains(category)) {
+      return;
+    }
     final nextCategories = Set<String>.from(state.selectedCategories);
 
     if (category == '전체') {
