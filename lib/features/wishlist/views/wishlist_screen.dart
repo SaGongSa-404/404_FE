@@ -5,10 +5,11 @@ import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
-import 'package:fe_app/features/wishlist/views/components/category_filter.dart';
-import 'package:fe_app/features/wishlist/views/components/empty_wishlist_view.dart';
+import 'package:fe_app/features/wishlist/views/components/wishlist_category_filter.dart';
+import 'package:fe_app/features/wishlist/views/components/wishlist_empty_view.dart';
 import 'package:fe_app/features/wishlist/views/components/wishlist_edit_panel.dart';
 import 'package:fe_app/features/wishlist/views/components/wishlist_item_card.dart';
+import 'package:go_router/go_router.dart';
 
 class WishlistScreen extends ConsumerWidget {
   const WishlistScreen({super.key});
@@ -75,7 +76,7 @@ class WishlistScreen extends ConsumerWidget {
                       final item = filteredItems[index];
                       return WishlistItemCard(
                         item: item,
-                        onTap: () {},
+                        onTap: () => context.push('/wishlist/consider'),
                         onLongPress: () => viewModel.openEditPanel(item.id),
                         onDelete: () => {},
                         onShare: () {},

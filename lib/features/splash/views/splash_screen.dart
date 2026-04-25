@@ -40,6 +40,8 @@ class SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildNavButton(context, '홈 화면', '/home'),
+              _buildNavButton(context, '위시 목록 화면', '/wishlist'),
+              _buildNavButton(context, '구매 숙려 화면', '/wishlist/consider'),
               _buildNavButton(context, '로그인 화면', '/login'),
               _buildNavButton(context, '회원가입 화면', '/signup'),
               _buildNavButton(context, '닉네임 설정 (온보딩)', '/onboarding/nickname'),
