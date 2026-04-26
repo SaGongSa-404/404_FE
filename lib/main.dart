@@ -1,9 +1,7 @@
-// 진입점. `.env`는 없어도 실행되며, API 주소는 [ApiClient]에서 빈 문자열로 둘 수 있습니다.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:fe_app/app.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/app.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 Future<void> main() async {
