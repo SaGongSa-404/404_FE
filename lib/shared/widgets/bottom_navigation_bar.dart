@@ -10,7 +10,7 @@ class AppBottomNavigationBar extends StatelessWidget {
 
     int currentIndex = 0;
     if (location.startsWith('/home')) currentIndex = 0;
-    if (location.startsWith('/search')) currentIndex = 1;
+    if (location.startsWith('/wishlist')) currentIndex = 1;
     if (location.startsWith('/profile')) currentIndex = 2;
     if (location.startsWith('/my')) currentIndex = 3;
 
@@ -20,7 +20,7 @@ class AppBottomNavigationBar extends StatelessWidget {
       onTap: (index) {
         switch (index) {
           case 0: context.go('/home');
-          case 1: context.go('/search');
+          case 1: context.go('/wishlist');
           case 2: context.go('/profile');
           case 3: context.go('/my');
         }

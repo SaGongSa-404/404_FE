@@ -1,9 +1,10 @@
 import 'package:fe_app/features/home/viewmodels/home_state.dart';
 import 'package:fe_app/features/home/viewmodels/home_viewmodel.dart';
-import 'package:fe_app/features/home/views/components/alarm_panel.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
 import 'package:fe_app/features/home/views/components/tab_button.dart';
+import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
+import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
@@ -84,9 +85,7 @@ class HomeScreen extends ConsumerWidget {
             Positioned(
               top: 8,
               right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.notifications, size: 30),
-                color: Colors.blue,
+              child: AlarmButton(
                 onPressed: () => vm.toggleAlarm(),
               ),
             ),

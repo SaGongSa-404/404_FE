@@ -1,4 +1,6 @@
 import 'package:fe_app/features/splash/views/splash_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,6 +35,16 @@ final class App extends StatelessWidget {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/wishlist',
+        builder: (context, state) => const WishlistScreen(),
+        routes:[
+          GoRoute(
+            path: 'consider',
+            builder: (context, state) => const WishlistConsiderScreen(),
+          )
+        ]
       ),
       GoRoute(
         path: '/onboarding/nickname',
