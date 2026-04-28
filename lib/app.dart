@@ -1,3 +1,4 @@
+import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fe_app/core/router/app_router.dart';
 
@@ -11,7 +12,7 @@ final class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: false,
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Pretendard',
       ),
       routerConfig: appRouter
