@@ -32,6 +32,10 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
     state = state.copyWith(surveyAnswers: updatedAnswers);
   }
 
+  void selectSurveyOption(int index, String answer) {
+    state = state.copyWith(surveyAnswers: [answer]);
+  }
+
   void resetSurvey() {
     state = state.copyWith(surveyAnswers: []);
   }

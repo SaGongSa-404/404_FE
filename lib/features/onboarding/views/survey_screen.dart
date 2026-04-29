@@ -106,6 +106,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
+                              color: const Color(0xFF7B7B7B),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -114,7 +115,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF7B7B7B),
                             ),
                           ),
                         ],
