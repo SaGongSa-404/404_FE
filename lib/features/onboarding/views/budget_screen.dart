@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -10,6 +11,16 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   final TextEditingController _controller = TextEditingController();
   final List<int> presets = [100000, 300000, 500000];
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final hasText = _controller.text.trim().isNotEmpty;
+      if (hasText != _hasText) setState(() => _hasText = hasText);
+    });
+  }
 
   @override
   void dispose() {
@@ -117,11 +128,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Handle completion
-                  },
+                  onPressed: _hasText
+                      ? () => context.push('/onboarding/survey')
+                      : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFA8DAB5),
+                    backgroundColor: _hasText
+                        ? const Color(0xFF4CAF50)
+                        : const Color(0xFFA8DAB5),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
