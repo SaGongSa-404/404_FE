@@ -10,6 +10,16 @@ class NicknameScreen extends StatefulWidget {
 
 class _NicknameScreenState extends State<NicknameScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final hasText = _controller.text.trim().isNotEmpty;
+      if (hasText != _hasText) setState(() => _hasText = hasText);
+    });
+  }
 
   @override
   void dispose() {
@@ -81,11 +91,13 @@ class _NicknameScreenState extends State<NicknameScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    context.push('/onboarding/budget');
-                  },
+                  onPressed: _hasText
+                      ? () => context.push('/onboarding/budget')
+                      : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFA8DAB5),
+                    backgroundColor: _hasText
+                        ? const Color(0xFF4CAF50)
+                        : const Color(0xFFA8DAB5),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
