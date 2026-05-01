@@ -64,7 +64,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Spacer(flex: 75),
+                            const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 3,
                               totalSteps: 6,
@@ -75,7 +75,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                             const Spacer(flex: 118),
                             const Text(
                               '최근 한 달 동안,\n물건을 사고 나서 후회한 적이\n얼마나 있었나요?',
-                              textAlign: TextAlign.center,
+                              textAlign: TextAlign.left,
                               style: TextStyle(
                                 fontSize: 25,
                                 fontWeight: FontWeight.w600,

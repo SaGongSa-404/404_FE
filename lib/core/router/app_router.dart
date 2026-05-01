@@ -14,9 +14,9 @@ import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 
-// 스플래시 최소 표시 시간: 1sec로 설정함
+// 스플래시 최소 표시 시간: 애니메이션과 동기화 (4sec)
 final _splashMinDurationProvider = FutureProvider<void>((ref) async {
-  await Future<void>.delayed(const Duration(milliseconds: 1000));
+  await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
 
 /// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
@@ -78,7 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               titleWhilePlaying: '구매하고 싶은 아이템의\n링크를 공유해주세요',
               titleAfterPlay: '위굴 아이콘을 누르면\n저장 완료!',
               videoAsset: 'assets/videos/wishlist_demo.mp4',
-              buttonLabel: '완료',
+              buttonLabel: '다음',
               onComplete: () =>
                   context.push('/onboarding/wishlist-tutorial-2'),
             ),

@@ -44,12 +44,15 @@ class _NugulVideoState extends State<NugulVideo> {
       width: widget.size,
       height: widget.size,
       child: _initialized
-          ? FittedBox(
-              fit: BoxFit.contain,
-              child: SizedBox(
-                width: _controller.value.size.width,
-                height: _controller.value.size.height,
-                child: VideoPlayer(_controller),
+          ? Align(
+              alignment: Alignment.bottomCenter,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: _controller.value.size.width,
+                  height: _controller.value.size.height,
+                  child: VideoPlayer(_controller),
+                ),
               ),
             )
           : null,

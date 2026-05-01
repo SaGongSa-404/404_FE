@@ -81,7 +81,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Spacer(flex: 75),
+                            const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 1,
                               totalSteps: 6,
@@ -97,9 +97,21 @@ class _NicknameScreenState extends State<NicknameScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                             ),
                             const Spacer(flex: 54),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: NugulVideo(size: nugulSize),
+                            TweenAnimationBuilder<double>(
+                              tween: Tween<double>(
+                                end: _errorMessage == null ? 40.0 : 0.0,
+                              ),
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              builder: (context, value, child) =>
+                                  Transform.translate(
+                                offset: Offset(0, value),
+                                child: child,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: NugulVideo(size: nugulSize),
+                              ),
                             ),
                             NicknameInputField(
                               controller: _controller,

@@ -70,7 +70,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Spacer(flex: 75),
+                            const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 2,
                               totalSteps: 6,

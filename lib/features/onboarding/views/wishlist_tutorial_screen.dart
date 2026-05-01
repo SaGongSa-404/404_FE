@@ -114,7 +114,7 @@ class _WishlistTutorialScreenState extends State<WishlistTutorialScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Spacer(flex: 75),
+                            const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: widget.currentStep,
                               totalSteps: widget.totalSteps,
@@ -149,7 +149,7 @@ class _WishlistTutorialScreenState extends State<WishlistTutorialScreen> {
                                 ),
                               ),
                             ),
-                            const Spacer(flex: 40),
+                            const Spacer(flex: 75),
                           ],
                         ),
                       ),
@@ -200,6 +200,13 @@ class _StepHeader extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) =>
               FadeTransition(opacity: animation, child: child),
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.topLeft,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          ),
           child: Text(
             title,
             key: ValueKey(title),
