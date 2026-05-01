@@ -58,37 +58,50 @@ class LoginScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F1F1),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 73),
-              SvgPicture.asset(
-                'assets/images/wigul_logo.svg',
-                width: 120,
-                height: 120,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '충동구매는 잠시 멈추고,\n더 현명한 소비를 시작해볼까요?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF555555),
-                  height: 1.45,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const designWidth = 402.0;
+            final horizontalPadding =
+                (constraints.maxWidth * (24 / designWidth)).clamp(20.0, 48.0);
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 266),
+                      SvgPicture.asset(
+                        'assets/images/wigul_logo.svg',
+                        width: 125,
+                        height: 112,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        '충동구매는 잠시 멈추고,\n더 현명한 소비를 시작해볼까요?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF555555),
+                          height: 1.34,
+                        ),
+                      ),
+                      const Spacer(flex: 171),
+                      LoginButtonSection(
+                        onKakaoPressed: () => _launchOAuth(context, 'kakao'),
+                        onGooglePressed: () => _launchOAuth(context, 'google'),
+                        isLoading: isLoading,
+                      ),
+                      const Spacer(flex: 134),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(),
-              LoginButtonSection(
-                onKakaoPressed: () => _launchOAuth(context, 'kakao'),
-                onGooglePressed: () => _launchOAuth(context, 'google'),
-                isLoading: isLoading,
-              ),
-              const SizedBox(height: 135),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
