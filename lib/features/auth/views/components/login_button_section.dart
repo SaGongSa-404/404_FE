@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:fe_app/core/theme/app_theme.dart';
+
 class LoginButtonSection extends StatelessWidget {
   const LoginButtonSection({
     super.key,
@@ -20,7 +22,7 @@ class LoginButtonSection extends StatelessWidget {
         height: 129,
         child: Center(
           child: CircularProgressIndicator(
-            color: Color(0xFFFFDB82),
+            color: AppColors.kakao,
             strokeWidth: 3,
           ),
         ),
@@ -31,7 +33,8 @@ class LoginButtonSection extends StatelessWidget {
       children: [
         _LoginButton(
           onPressed: onKakaoPressed,
-          backgroundColor: const Color(0xFFFFDB82),
+          backgroundColor: AppColors.kakao,
+          pressedColor: AppColors.kakao_clicked,
           icon: Image.asset(
             'assets/images/kakao_logo.png',
             width: 25,
@@ -43,7 +46,8 @@ class LoginButtonSection extends StatelessWidget {
         const SizedBox(height: 13),
         _LoginButton(
           onPressed: onGooglePressed,
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.google,
+          pressedColor: AppColors.google_clicked,
           icon: SvgPicture.asset(
             'assets/images/google_logo.svg',
             width: 25,
@@ -56,18 +60,27 @@ class LoginButtonSection extends StatelessWidget {
   }
 }
 
-class _LoginButton extends StatelessWidget {
+class _LoginButton extends StatefulWidget {
   const _LoginButton({
     required this.onPressed,
     required this.backgroundColor,
+    required this.pressedColor,
     required this.icon,
     required this.label,
   });
 
   final VoidCallback onPressed;
   final Color backgroundColor;
+  final Color pressedColor;
   final Widget icon;
   final String label;
+
+  @override
+  State<_LoginButton> createState() => _LoginButtonState();
+}
+
+class _LoginButtonState extends State<_LoginButton> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +88,7 @@ class _LoginButton extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: _pressed ? widget.pressedColor : widget.backgroundColor,
         borderRadius: borderRadius,
         boxShadow: const [
           BoxShadow(
@@ -88,21 +101,26 @@ class _LoginButton extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: borderRadius,
         child: InkWell(
-          onTap: onPressed,
+          onTap: widget.onPressed,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
           borderRadius: borderRadius,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 15),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                icon,
+                widget.icon,
                 const SizedBox(width: 10),
                 Text(
-                  label,
+                  widget.label,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF555555),
+                    color: AppColors.textPrimary,
                     height: 1.548,
                   ),
                 ),

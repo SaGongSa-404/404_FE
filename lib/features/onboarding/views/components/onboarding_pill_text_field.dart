@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class OnboardingPillTextField extends StatelessWidget {
   const OnboardingPillTextField({
@@ -25,8 +26,8 @@ class OnboardingPillTextField extends StatelessWidget {
   final bool hasError;
   final Widget? trailing;
 
-  static const _textColor = Color(0xFF555555);
-  static const _hintColor = Color(0xFF7B7B7B);
+  static const _textColor = AppColors.textPrimary;
+  static const _hintColor = AppColors.textSecondary;
   static const _errorColor = Color(0xFFB26D6D);
 
   @override
@@ -42,7 +43,7 @@ class OnboardingPillTextField extends StatelessWidget {
             ? null
             : const [
                 BoxShadow(
-                  color: Color(0x33000000),
+                  color: Color(0xFF7B7B7B),
                   blurRadius: 3,
                 ),
               ],
