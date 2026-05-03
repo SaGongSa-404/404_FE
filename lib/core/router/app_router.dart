@@ -8,6 +8,7 @@ import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
 import 'package:fe_app/features/onboarding/views/nickname_screen.dart';
+import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
 import 'package:fe_app/features/onboarding/views/survey_screen.dart';
 import 'package:fe_app/features/onboarding/views/wishlist_tutorial_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
@@ -92,8 +93,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               titleAfterPlay: '링크를 붙여넣으면\n저장 완료!',
               videoAsset: 'assets/videos/wishlist_demo_2.mp4',
               buttonLabel: '다음',
-              onComplete: () => context.go('/home'),
+              onComplete: () => context.go('/onboarding/nugul-intro'),
             ),
+          ),
+          GoRoute(
+            path: 'nugul-intro',
+            builder: (context, state) => const NugulIntroScreen(),
           ),
         ],
       ),
@@ -134,7 +139,7 @@ class _RouterNotifier extends ChangeNotifier {
     if (!isLoggedIn && location == '/') return '/login';
 
     // ui test용: 비로그인 상태에서도 onboarding 및 home 접근 허용
-    // ui test: 백엔드 연동 시 아래 줄 제거하면 비로그인 /home 접근이 막힘
+    // ui test: 백엔드 연동 시 아래 줄 제거하면 비로그인 /home 접근이/pl 막힘
     if (!isLoggedIn && (location.startsWith('/onboarding') || location == '/home')) return null;
 
     // 비로그인 상태 + 보호된 경로 → 로그인으로
