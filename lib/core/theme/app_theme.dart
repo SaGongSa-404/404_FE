@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 
-// 사용 예시
-// Text('환영합니다', style: AppTextStyles.welcome),
-
-// 색상 바꾸고 싶을 때 copyWith으로
-// Text('부제목', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-
 abstract class AppColors {
   static const skyBlue = Color(0xFFC1DBE8);
   static const background = Color(0xFFF1F1F1);
   static const kakao = Color(0xFFFFDC69);
   static const textPrimary = Color(0xFF555555);
   static const textSecondary = Color(0xFF7B7B7B);
+
+  static const red_100 = Color(0xFFE8C1C1);
+  static const red_200 = Color(0xFFD6A5A5);
+  static const red_300 = Color(0xFFC48989);
+  static const red_400 = Color(0xFFB26D6D);
+  static const red_500 = Color(0xFFA05151);
+
+  static const yellow = Color(0xFFF7E1AA);
+
+  static const skyBlue_100 = Color(0xFFC1D8E8);
+  static const skyBlue_200 = Color(0xFF89ADC4);
+  static const skyBlue_300 = Color(0xFF6D96B2);
+
+  static const grey = Color(0xFFF1F1F1);
+  static const white = Color(0xFFFFFFFF);
+  static const brown = Color(0xFF70534F);
 }
 
 abstract class AppTextStyles {
@@ -45,7 +55,7 @@ abstract class AppTextStyles {
 
   static const buttonContent = TextStyle(
     fontFamily: 'Pretendard',
-    fontWeight: FontWeight.w500, // Medium
+    fontWeight: FontWeight.w500,
     fontSize: 18,
     color: AppColors.textPrimary,
   );
