@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 abstract class AppColors {
-  static const skyBlue = Color(0xFFC1DBE8);
   static const background = Color(0xFFF1F1F1);
   static const kakao = Color(0xFFFFDC69);
   static const textPrimary = Color(0xFF555555);
