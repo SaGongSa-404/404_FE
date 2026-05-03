@@ -9,13 +9,14 @@ import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
 import 'package:fe_app/features/onboarding/views/nickname_screen.dart';
 import 'package:fe_app/features/onboarding/views/survey_screen.dart';
+import 'package:fe_app/features/onboarding/views/wishlist_tutorial_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 
-// 스플래시 최소 표시 시간: 1sec로 설정함
+// 스플래시 최소 표시 시간: 애니메이션과 동기화 (4sec)
 final _splashMinDurationProvider = FutureProvider<void>((ref) async {
-  await Future<void>.delayed(const Duration(milliseconds: 1000));
+  await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
 
 /// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
@@ -68,6 +69,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'survey',
             builder: (context, state) => const SurveyScreen(),
+          ),
+          GoRoute(
+            path: 'wishlist-tutorial',
+            builder: (context, state) => WishlistTutorialScreen(
+              currentStep: 4,
+              label: '위시템 담기 1',
+              titleWhilePlaying: '구매하고 싶은 아이템의\n링크를 공유해주세요',
+              titleAfterPlay: '위굴 아이콘을 누르면\n저장 완료!',
+              videoAsset: 'assets/videos/wishlist_demo.mp4',
+              buttonLabel: '다음',
+              onComplete: () =>
+                  context.push('/onboarding/wishlist-tutorial-2'),
+            ),
+          ),
+          GoRoute(
+            path: 'wishlist-tutorial-2',
+            builder: (context, state) => WishlistTutorialScreen(
+              currentStep: 5,
+              label: '위시템 담기 2',
+              titleWhilePlaying: '구매하고 싶은 아이템의\n링크를 복사해주세요',
+              titleAfterPlay: '링크를 붙여넣으면\n저장 완료!',
+              videoAsset: 'assets/videos/wishlist_demo_2.mp4',
+              buttonLabel: '다음',
+              onComplete: () => context.go('/home'),
+            ),
           ),
         ],
       ),
