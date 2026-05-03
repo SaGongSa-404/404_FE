@@ -1,9 +1,9 @@
+import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
@@ -19,6 +19,14 @@ final _splashMinDurationProvider = FutureProvider<void>((ref) async {
   await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
 
+/// 하단 탭 루트 간 이동 시 Material 기본 슬라이드 대신 전환 없음(탭 전환 느낌).
+NoTransitionPage<void> _bottomTabPage(GoRouterState state, Widget child) {
+  return NoTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+  );
+}
+
 /// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
@@ -33,7 +41,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -41,11 +50,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const HomeScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const HomeScreen()),
       ),
       GoRoute(
         path: '/wishlist',
-        builder: (context, state) => const WishlistScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const WishlistScreen()),
         routes: [
           GoRoute(
             path: 'consider',
