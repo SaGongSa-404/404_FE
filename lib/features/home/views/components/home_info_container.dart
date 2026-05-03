@@ -9,12 +9,10 @@ class HomeInfoContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 160),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       decoration: BoxDecoration(
-        color: const Color(0xFFCDEBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue, width: 2),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
       ),
       child: child,
     );

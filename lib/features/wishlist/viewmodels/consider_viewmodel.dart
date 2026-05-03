@@ -15,10 +15,15 @@ class ConsiderState {
 
   int get yesCount => answers.values.where((v) => v == true).length;
   bool get isAllAnswered => answers.length == totalQuestions && !answers.values.contains(null);
-  bool get shouldShowWarning => isAllAnswered && yesCount >= 2;
+  bool get shouldShowWarning => yesCount >= 2;
 
   ConsiderState copyWith({Map<int, bool?>? answers}) {
-    return ConsiderState(answers: answers ?? this.answers);
+    return ConsiderState(
+      answers: answers ?? this.answers,
+      totalQuestions: totalQuestions,
+      budgetPercent: budgetPercent,
+      opportunityCost: opportunityCost,
+    );
   }
 }
 
@@ -30,6 +35,11 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
     newAnswers[index] = value;
     state = state.copyWith(answers: newAnswers);
   }
+
+  void reset() {
+    state = ConsiderState(answers: {});
+  }
 }
 
-final considerViewModelProvider = StateNotifierProvider<ConsiderViewModel, ConsiderState>((ref) => ConsiderViewModel());
+final considerViewModelProvider =
+    StateNotifierProvider<ConsiderViewModel, ConsiderState>((ref) => ConsiderViewModel());

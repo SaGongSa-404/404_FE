@@ -1,51 +1,70 @@
 import 'package:flutter/material.dart';
-import 'home_info_container.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class BudgetCard extends StatelessWidget {
   const BudgetCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return HomeInfoContainer(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(60),
-          border: Border.all(color: Colors.grey.shade400, width: 2),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('예산현황', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text('50,000 / 250,000', style: TextStyle(fontSize: 14)),
-            const SizedBox(height: 8),
-            _buildGaugeBar(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGaugeBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 80, height: 22,
-          decoration: BoxDecoration(
-            color: const Color(0xFF42D2B1),
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), bottomLeft: Radius.circular(6)),
-            border: Border.all(color: const Color(0xFF2A9D8F), width: 1.5),
+        const Text(
+          '이번 달 예산 현황',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        Container(
-          width: 120, height: 22,
-          decoration: BoxDecoration(
-            color: const Color(0xFFBDE4FF),
-            borderRadius: const BorderRadius.only(topRight: Radius.circular(6), bottomRight: Radius.circular(6)),
-            border: Border.all(color: Colors.blue, width: 1.5),
+        const SizedBox(height: 8),
+        const Text(
+          '410,000원 남음',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        const SizedBox(height: 20),
+        // Progress Bar
+        Container(
+          height: 16,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: 0.18, // 90,000 / 500,000
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF8BA9C2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '90,000원',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              '500,000원',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ],
     );
