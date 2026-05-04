@@ -9,36 +9,29 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/components/login_button_section.dart';
-import 'package:go_router/go_router.dart';
-
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   static const _redirectUri = 'sagongsa404://auth/callback';
 
-  // Future<void> _launchOAuth(BuildContext context, String provider) async {
-  //   final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-  //   final url = Uri.parse(
-  //     '$baseUrl${ApiEndpoints.oauthAuthorization(provider, _redirectUri)}',
-  //   );
-
-  //   try {
-  //     if (!await canLaunchUrl(url)) throw Exception('Cannot launch $url');
-  //     await launchUrl(url, mode: LaunchMode.externalApplication);
-  //   } catch (_) {
-  //     if (context.mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.'),
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // ui test용: 로그인 버튼 -> nickname으로
   Future<void> _launchOAuth(BuildContext context, String provider) async {
-    context.go('/onboarding/nickname');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+    final url = Uri.parse(
+      '$baseUrl${ApiEndpoints.oauthAuthorization(provider, _redirectUri)}',
+    );
+
+    try {
+      if (!await canLaunchUrl(url)) throw Exception('Cannot launch $url');
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.'),
+          ),
+        );
+      }
+    }
   }
 
   @override
