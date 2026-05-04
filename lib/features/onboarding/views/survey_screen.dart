@@ -125,8 +125,8 @@ class _SurveyOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const _activeBgColor = AppColors.option_clicked;
-  static const _activeBorderColor = AppColors.skyBlue;
+  static const _activeBgColor = AppColors.skyBlue_000;
+  static const _activeBorderColor = AppColors.skyBlue_100;
   static const _textColor = AppColors.textSecondary;
 
   @override
@@ -135,7 +135,7 @@ class _SurveyOption extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: selected ? _activeBgColor : Colors.white,
+        color: selected ? _activeBgColor : AppColors.white,
         border: Border.all(
           width: 2,
           color: selected ? _activeBorderColor : Colors.transparent,

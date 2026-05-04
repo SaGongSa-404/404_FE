@@ -15,8 +15,8 @@ class OnboardingProgressIndicator extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? trailing;
 
-  static const _activeColor = AppColors.skyBlue_clicked;
-  static const _inactiveColor = AppColors.skyBlue;
+  static const _activeColor = AppColors.skyBlue_200;
+  static const _inactiveColor = AppColors.skyBlue_100;
   static const _activeWidth = 22.0;
   static const _inactiveWidth = 10.0;
   static const _dotHeight = 7.0;

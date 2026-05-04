@@ -25,7 +25,7 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _pressed ? AppColors.skyBlue_clicked : AppColors.skyBlue,
+        color: _pressed ? AppColors.skyBlue_200: AppColors.skyBlue_100,
         borderRadius: borderRadius,
       ),
       child: Material(
