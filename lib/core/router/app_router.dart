@@ -14,12 +14,18 @@ import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 
-// 스플래시 최소 표시 시간: 애니메이션과 동기화 (4sec)
 final _splashMinDurationProvider = FutureProvider<void>((ref) async {
   await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
 
-/// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
+/// 하단 탭 루트 간 이동 시 Material 기본 슬라이드 대신 전환 없음(탭 전환 느낌)
+NoTransitionPage<void> _bottomTabPage(GoRouterState state, Widget child) {
+  return NoTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+  );
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
@@ -33,7 +39,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -41,42 +48,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const HomeScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const HomeScreen()),
       ),
       GoRoute(
         path: '/wishlist',
-        builder: (context, state) => const WishlistScreen(),
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const WishlistScreen()),
         routes: [
           GoRoute(
             path: 'consider',
-            pageBuilder: (context, state) => CustomTransitionPage<void>(
-              key: state.pageKey,
-              child: const WishlistConsiderScreen(),
-              transitionDuration: const Duration(milliseconds: 320),
-              reverseTransitionDuration: const Duration(milliseconds: 280),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                final curved = CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                  reverseCurve: Curves.easeInCubic,
-                );
-                return SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(1, 0),
-                    end: Offset.zero,
-                  ).animate(curved),
-                  child: child,
-                );
-              },
-            ),
+            builder: (context, state) => const WishlistConsiderScreen(),
           ),
         ],
       ),
       GoRoute(
         path: '/onboarding',
         redirect: (context, state) =>
-            state.uri.path == '/onboarding' ? '/onboarding/nickname' : null,
+        state.uri.path == '/onboarding' ? '/onboarding/nickname' : null,
         routes: [
           GoRoute(
             path: 'nickname',
@@ -121,17 +110,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// auth 상태와 스플래시 최소 시간이 바뀔 때 GoRouter에 알림을 보내는 ChangeNotifier 어댑터
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen<AsyncValue<UserModel?>>(
       authProvider,
-      (_, __) => notifyListeners(),
+          (_, __) => notifyListeners(),
     );
-    // 스플래시 최소 시간이 완료되면 redirect를 재평가
     _ref.listen<AsyncValue<void>>(
       _splashMinDurationProvider,
-      (_, __) => notifyListeners(),
+          (_, __) => notifyListeners(),
     );
   }
 
@@ -142,7 +129,6 @@ class _RouterNotifier extends ChangeNotifier {
     final splashReady  = _ref.read(_splashMinDurationProvider);
     final location     = state.matchedLocation;
 
-    // auth 로딩 중이거나 스플래시 최소 시간 미경과 → 스플래시 유지
     if (authState.isLoading || splashReady.isLoading) {
       return location == '/' ? null : '/';
     }
@@ -150,25 +136,24 @@ class _RouterNotifier extends ChangeNotifier {
     final isLoggedIn = authState.hasValue && authState.value != null;
     final isAuthPage = location == '/login' || location == '/signup';
 
-    // 비로그인 상태 + 스플래시 → 로그인으로
     if (!isLoggedIn && location == '/') return '/login';
 
-    // ui test용: 비로그인 상태에서도 onboarding·home·wishlist 접근 허용
-    // ui test: 백엔드 연동 시 아래 줄 제거하면 비로그인 해당 경로 접근이 막힘
-    if (!isLoggedIn &&
-        (location.startsWith('/onboarding') ||
-            location == '/home' ||
-            location.startsWith('/wishlist'))) {
-      return null;
-    }
+    final allowedPaths = [
+      '/home',
+      '/wishlist',
+      '/wishlist/consider',
+      '/notifications',
+      '/onboarding'
+    ];
 
-    // 비로그인 상태 + 보호된 경로 → 로그인으로
+    final isAllowed = allowedPaths.any((path) => location.startsWith(path));
+
+    if (!isLoggedIn && isAllowed) return null;
+
     if (!isLoggedIn && !isAuthPage) return '/login';
 
-    // 로그인 완료 + 스플래시 → 홈으로 (앱 재실행 시 자동 복귀)
     if (isLoggedIn && location == '/') return '/home';
 
-    // 로그인 완료 + 로그인 페이지 → 닉네임 설정으로 (소셜 로그인 성공 직후)
     if (isLoggedIn && isAuthPage) {
       return '/onboarding/nickname';
     }
