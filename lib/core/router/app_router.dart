@@ -1,9 +1,9 @@
+import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
@@ -49,7 +49,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'consider',
-            builder: (context, state) => const WishlistConsiderScreen(),
+            pageBuilder: (context, state) => CustomTransitionPage<void>(
+              key: state.pageKey,
+              child: const WishlistConsiderScreen(),
+              transitionDuration: const Duration(milliseconds: 320),
+              reverseTransitionDuration: const Duration(milliseconds: 280),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                );
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(1, 0),
+                    end: Offset.zero,
+                  ).animate(curved),
+                  child: child,
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -133,9 +153,14 @@ class _RouterNotifier extends ChangeNotifier {
     // 비로그인 상태 + 스플래시 → 로그인으로
     if (!isLoggedIn && location == '/') return '/login';
 
-    // ui test용: 비로그인 상태에서도 onboarding 및 home 접근 허용
-    // ui test: 백엔드 연동 시 아래 줄 제거하면 비로그인 /home 접근이 막힘
-    if (!isLoggedIn && (location.startsWith('/onboarding') || location == '/home')) return null;
+    // ui test용: 비로그인 상태에서도 onboarding·home·wishlist 접근 허용
+    // ui test: 백엔드 연동 시 아래 줄 제거하면 비로그인 해당 경로 접근이 막힘
+    if (!isLoggedIn &&
+        (location.startsWith('/onboarding') ||
+            location == '/home' ||
+            location.startsWith('/wishlist'))) {
+      return null;
+    }
 
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';

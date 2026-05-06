@@ -6,38 +6,24 @@ const List<String> categories = ['전체', '패션', '뷰티', '라이프', '디
 const List<WishlistPlaceholder> mockWishlistItems = [
   WishlistPlaceholder(
     id: 'w-1',
-    title: '오프화이트 후드',
-    price: 289000,
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
     category: '패션',
     link: 'musinsa.com/app/goods/hoodie',
   ),
   WishlistPlaceholder(
     id: 'w-3',
-    title: '오버이어 헤드폰',
-    price: 349000,
-    category: '디지털',
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
+    category: '패션',
     link: 'musinsa.com/app/goods/headphone',
   ),
   WishlistPlaceholder(
     id: 'w-4',
-    title: '에스프레소 머신',
-    price: 159000,
-    category: '라이프',
-    link: 'musinsa.com/app/goods/coffee',
-  ),
-  WishlistPlaceholder(
-    id: 'w-5',
-    title: '빈티지 데님 자켓',
-    price: 129000,
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
     category: '패션',
-    link: 'musinsa.com/app/goods/jacket',
-  ),
-  WishlistPlaceholder(
-    id: 'w-7',
-    title: '무선 키보드',
-    price: 89000,
-    category: '디지털',
-    link: 'musinsa.com/app/goods/keyboard',
+    link: 'musinsa.com/app/goods/coffee',
   ),
 ];
 
@@ -98,8 +84,12 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         .map((item) => item.id == updatedItem.id ? updatedItem : item)
         .toList();
 
+    state = state.copyWith(items: nextItems);
+  }
+
+  void removeItem(String id) {
     state = state.copyWith(
-      items: nextItems,
+      items: state.items.where((item) => item.id != id).toList(),
       clearEditingItemId: true,
     );
   }
