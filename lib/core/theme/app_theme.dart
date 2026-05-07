@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
 abstract class AppColors {
+  // 로그인 관련 색상
+  static const kakao = Color(0xFFFFDB82);
+  static const kakao_clicked = Color(0xFFDBB146);
+  static const google = Color(0xFFFFFFFF);
+  static const google_clicked = Color(0xFFCACACA);
+
   static const background = Color(0xFFF1F1F1);
-  static const kakao = Color(0xFFFFDC69);
   static const textPrimary = Color(0xFF555555);
   static const textSecondary = Color(0xFF7B7B7B);
 
@@ -14,6 +19,7 @@ abstract class AppColors {
 
   static const yellow = Color(0xFFF7E1AA);
 
+  static const skyBlue_000_clicked = Color(0xFFE8F3F9); // option clicked
   static const skyBlue_100 = Color(0xFFC1D8E8);
   static const skyBlue_200 = Color(0xFF89ADC4);
   static const skyBlue_300 = Color(0xFF6D96B2);

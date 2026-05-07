@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class SurveyScreen extends ConsumerStatefulWidget {
   const SurveyScreen({super.key});
@@ -42,7 +43,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
     final hasSelection = _selectedIndex != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F1F1),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -79,7 +80,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                               style: TextStyle(
                                 fontSize: 25,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF555555),
+                                color: AppColors.textPrimary,
                                 height: 1.36,
                               ),
                             ),
@@ -124,9 +125,9 @@ class _SurveyOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const _activeBgColor = Color(0xFFE8F3F9);
-  static const _activeBorderColor = Color(0xFFC1DBE8);
-  static const _textColor = Color(0xFF7B7B7B);
+  static const _activeBgColor = AppColors.skyBlue_000_clicked;
+  static const _activeBorderColor = AppColors.skyBlue_100;
+  static const _textColor = AppColors.textSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +135,7 @@ class _SurveyOption extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: selected ? _activeBgColor : Colors.white,
+        color: selected ? _activeBgColor : AppColors.white,
         border: Border.all(
           width: 2,
           color: selected ? _activeBorderColor : Colors.transparent,

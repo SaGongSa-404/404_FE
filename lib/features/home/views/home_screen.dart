@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: index == _currentPage ? 18 : 8,
                                 height: 4,
                                 decoration: BoxDecoration(
-                                  color: index == _currentPage ? AppColors.skyBlue : const Color(0xFFE0E0E0),
+                                  color: index == _currentPage ? AppColors.skyBlue_100 : const Color(0xFFE0E0E0),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               );

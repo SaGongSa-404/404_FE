@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class OnboardingHeader extends StatelessWidget {
   const OnboardingHeader({
@@ -20,8 +21,6 @@ class OnboardingHeader extends StatelessWidget {
   final double titleHeight;
   final double gap;
 
-  static const _color = Color(0xFF555555);
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -34,7 +33,7 @@ class OnboardingHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: titleFontSize,
             fontWeight: FontWeight.w600,
-            color: _color,
+            color: AppColors.textPrimary,
             height: titleHeight,
           ),
         ),
@@ -45,7 +44,7 @@ class OnboardingHeader extends StatelessWidget {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w400,
-            color: _color,
+            color: AppColors.textPrimary,
             height: 1.45,
           ),
         ),
