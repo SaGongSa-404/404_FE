@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _currentMessage = _safeMessages[0];
 
     _videoController = VideoPlayerController.asset('assets/videos/nugul_home.mp4')
+      ..setVolume(0)
       ..initialize().then((_) {
         setState(() {});
         _videoController.setLooping(true);
