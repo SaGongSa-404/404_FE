@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/wishlist/views/components/consider_product_header.dart';
 import 'package:fe_app/features/wishlist/views/components/consider_budget_card.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_checklist.dart';
 import 'package:fe_app/features/wishlist/views/components/consider_result_card.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
