@@ -156,7 +156,7 @@ class _SpeechBubble extends StatelessWidget {
               fontFamily: 'Pretendard',
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF333333),
+              color: AppColors.textPrimary,
               height: 1.2,
             ),
           ),

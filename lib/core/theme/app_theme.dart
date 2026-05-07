@@ -19,7 +19,7 @@ abstract class AppColors {
 
   static const yellow = Color(0xFFF7E1AA);
 
-  static const skyBlue_000 = Color(0xFFE8F3F9); // option clicked
+  static const skyBlue_000_clicked = Color(0xFFE8F3F9); // option clicked
   static const skyBlue_100 = Color(0xFFC1D8E8);
   static const skyBlue_200 = Color(0xFF89ADC4);
   static const skyBlue_300 = Color(0xFF6D96B2);
@@ -30,7 +30,7 @@ abstract class AppColors {
 }
 
 abstract class AppTextStyles {
-  static const wezkzklcome = TextStyle(
+  static const welcome = TextStyle(
     fontFamily: 'Pretendard',
     fontWeight: FontWeight.w600,
     fontSize: 30,

@@ -125,7 +125,7 @@ class _SurveyOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const _activeBgColor = AppColors.skyBlue_000;
+  static const _activeBgColor = AppColors.skyBlue_000_clicked;
   static const _activeBorderColor = AppColors.skyBlue_100;
   static const _textColor = AppColors.textSecondary;
 
