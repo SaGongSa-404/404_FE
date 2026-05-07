@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class ConsiderProductHeader extends StatelessWidget {
   const ConsiderProductHeader({super.key});
@@ -6,7 +7,7 @@ class ConsiderProductHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -14,42 +15,48 @@ class ConsiderProductHeader extends StatelessWidget {
             width: double.infinity,
             height: 200,
             decoration: BoxDecoration(
-              color: const Color(0xFFCBE9FF),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF3BA2EA), width: 2),
+              color: const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Center(
               child: Text(
-                '상품\n사진',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                '상품 사진',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Expanded(
                 child: Text(
-                  '라네즈 립 슬리핑 마스크',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  'PWC RIBBED EVERYDAY\nSHORT SLEEVE TEE',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF7A7A7A), width: 2),
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-                child: const Text('뷰티', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('패션', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             ],
           ),
           const SizedBox(height: 8),
           const Text(
-            '25,000원',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            '29,000원',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
         ],
       ),
