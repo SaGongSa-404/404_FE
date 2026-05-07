@@ -12,8 +12,6 @@ class WishlistConsiderScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
