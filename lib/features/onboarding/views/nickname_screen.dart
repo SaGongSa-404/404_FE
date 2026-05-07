@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/features/onboarding/validators/nickname_validator.dart';
+import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:fe_app/features/onboarding/views/components/nickname_input_field.dart';
 import 'package:fe_app/features/onboarding/views/components/nugul_video.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_header.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
-class NicknameScreen extends StatefulWidget {
+class NicknameScreen extends ConsumerStatefulWidget {
   const NicknameScreen({super.key});
 
   @override
-  State<NicknameScreen> createState() => _NicknameScreenState();
+  ConsumerState<NicknameScreen> createState() => _NicknameScreenState();
 }
 
-class _NicknameScreenState extends State<NicknameScreen> {
+class _NicknameScreenState extends ConsumerState<NicknameScreen> {
   static const _designWidth = 402.0;
 
   final _controller = TextEditingController();
@@ -48,6 +51,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
+    ref.read(onboardingProvider.notifier).setNickname(_controller.text);
     context.push('/onboarding/budget');
   }
 
@@ -56,7 +60,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final isValid = _result is NicknameValid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F1F1),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

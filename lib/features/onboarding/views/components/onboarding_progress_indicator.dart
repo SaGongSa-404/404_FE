@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fe_app/core/theme/app_theme.dart';
 
 class OnboardingProgressIndicator extends StatelessWidget {
   const OnboardingProgressIndicator({
@@ -14,8 +15,8 @@ class OnboardingProgressIndicator extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? trailing;
 
-  static const _activeColor = Color(0xFFC1DBE8);
-  static const _inactiveColor = Color(0xFFD2D2D2);
+  static const _activeColor = AppColors.skyBlue_200;
+  static const _inactiveColor = AppColors.skyBlue_100;
   static const _activeWidth = 22.0;
   static const _inactiveWidth = 10.0;
   static const _dotHeight = 7.0;
@@ -40,7 +41,7 @@ class OnboardingProgressIndicator extends StatelessWidget {
                     iconSize: 18,
                     icon: const Icon(
                       Icons.arrow_back_ios_new,
-                      color: Color(0xFF555555),
+                      color: AppColors.textPrimary,
                     ),
                   ),
           ),

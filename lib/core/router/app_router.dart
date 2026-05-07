@@ -9,6 +9,7 @@ import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
 import 'package:fe_app/features/onboarding/views/nickname_screen.dart';
+import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
 import 'package:fe_app/features/onboarding/views/survey_screen.dart';
 import 'package:fe_app/features/onboarding/views/wishlist_tutorial_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
@@ -106,8 +107,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               titleAfterPlay: '링크를 붙여넣으면\n저장 완료!',
               videoAsset: 'assets/videos/wishlist_demo_2.mp4',
               buttonLabel: '다음',
-              onComplete: () => context.go('/home'),
+              onComplete: () => context.go('/onboarding/nugul-intro'),
             ),
+          ),
+          GoRoute(
+            path: 'nugul-intro',
+            builder: (context, state) => const NugulIntroScreen(),
           ),
         ],
       ),
@@ -150,7 +155,7 @@ class _RouterNotifier extends ChangeNotifier {
       '/notifications',
       '/onboarding'
     ];
-    
+
     final isAllowed = allowedPaths.any((path) => location.startsWith(path));
 
     if (!isLoggedIn && isAllowed) return null;
