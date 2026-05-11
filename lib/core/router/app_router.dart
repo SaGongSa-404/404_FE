@@ -1,3 +1,5 @@
+import 'package:fe_app/features/notification/views/notification_screen.dart';
+import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -76,7 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/notifications',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const NotificationScreen(),
       ),
       GoRoute(
         path: '/wishlist',
@@ -133,7 +135,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'nugul-intro',
-            builder: (context, state) => const HomeScreen(),
+            builder: (context, state) => const NugulIntroScreen(),
           ),
         ],
       ),
