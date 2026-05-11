@@ -77,8 +77,8 @@ class AuthInterceptor extends Interceptor {
         data: {'refreshToken': oldRefreshToken},
       );
 
-      final newAccessToken  = res.data!['access_token']  as String;
-      final newRefreshToken = res.data!['refresh_token'] as String;
+      final newAccessToken  = res.data!['accessToken']  as String;
+      final newRefreshToken = res.data!['refreshToken'] as String;
 
       await _storage.saveTokens(
         accessToken: newAccessToken,
