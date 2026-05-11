@@ -91,13 +91,13 @@ class WishlistConsiderScreen extends ConsumerWidget {
                         height: 56,
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F3F9),
-                          border: Border.all(color: AppColors.skyBlue, width: 2),
+                          border: Border.all(color: AppColors.skyBlue_100, width: 2),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Center(
                           child: Text(
                             '살게요',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.skyBlue),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.skyBlue_100),
                           ),
                         ),
                       ),

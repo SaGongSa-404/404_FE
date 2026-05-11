@@ -32,7 +32,7 @@ class AppBottomNavigationBar extends StatelessWidget {
   static const _paths = ['/home', '/wishlist', '/profile', '/my'];
 
   int _currentIndex(String location) {
-    if (location.startsWith('/wishlist') || location.startsWith('/login')) return 1;
+    if (location.startsWith('/wishlist')) return 1;
     if (location.startsWith('/profile')) return 2;
     if (location.startsWith('/my')) return 3;
     if (location.startsWith('/home')) return 0;

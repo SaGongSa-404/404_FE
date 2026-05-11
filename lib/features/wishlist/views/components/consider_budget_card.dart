@@ -80,7 +80,7 @@ class ConsiderBudgetCard extends StatelessWidget {
                       color: const Color(0xFFE8F3F9),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text('여유 있음', style: TextStyle(fontSize: 12, color: AppColors.skyBlue, fontWeight: FontWeight.bold)),
+                    child: const Text('여유 있음', style: TextStyle(fontSize: 12, color: AppColors.skyBlue_100, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
