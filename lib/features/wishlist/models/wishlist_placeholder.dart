@@ -6,6 +6,7 @@ class WishlistPlaceholder {
     required this.price,
     required this.category,
     required this.link,
+    this.imageUrl,
   });
 
   final String id;
@@ -13,6 +14,7 @@ class WishlistPlaceholder {
   final int price;
   final String category;
   final String link;
+  final String? imageUrl;
 
   WishlistPlaceholder copyWith({
     String? id,
@@ -20,6 +22,7 @@ class WishlistPlaceholder {
     int? price,
     String? category,
     String? link,
+    String? imageUrl,
   }) {
     return WishlistPlaceholder(
       id: id ?? this.id,
@@ -27,6 +30,7 @@ class WishlistPlaceholder {
       price: price ?? this.price,
       category: category ?? this.category,
       link: link ?? this.link,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }
