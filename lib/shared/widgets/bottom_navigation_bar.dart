@@ -29,11 +29,11 @@ abstract final class _BottomNavTokens {
 class AppBottomNavigationBar extends StatelessWidget {
   const AppBottomNavigationBar({super.key});
 
-  static const _paths = ['/home', '/wishlist', '/profile', '/my'];
+  static const _paths = ['/home', '/wishlist', '/feed', '/my'];
 
   int _currentIndex(String location) {
     if (location.startsWith('/wishlist') || location.startsWith('/login')) return 1;
-    if (location.startsWith('/profile')) return 2;
+    if (location.startsWith('/feed')) return 2;
     if (location.startsWith('/my')) return 3;
     if (location.startsWith('/home')) return 0;
     return 0;

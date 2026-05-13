@@ -10,12 +10,15 @@ abstract class AppColors {
   static const background = Color(0xFFF1F1F1);
   static const textPrimary = Color(0xFF555555);
   static const textSecondary = Color(0xFF7B7B7B);
+  static const textDark = Color(0xFF333333);
+  static const textDate = Color(0xFF969696);
 
   static const red_100 = Color(0xFFE8C1C1);
   static const red_200 = Color(0xFFD6A5A5);
   static const red_300 = Color(0xFFC48989);
   static const red_400 = Color(0xFFB26D6D);
   static const red_500 = Color(0xFFA05151);
+  static const red_600 = Color(0xFFD46868);
 
   static const yellow = Color(0xFFF7E1AA);
 
@@ -27,6 +30,10 @@ abstract class AppColors {
   static const grey = Color(0xFFF1F1F1);
   static const white = Color(0xFFFFFFFF);
   static const brown = Color(0xFF70534F);
+
+  static const greyButton = Color(0xFFECECEC);
+  static const yellowLight = Color(0xFFFFF8E8);
+  static const toastBlue = Color.fromRGBO(95, 142, 174, 1);
 }
 
 abstract class AppTextStyles {

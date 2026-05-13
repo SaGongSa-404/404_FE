@@ -1,4 +1,8 @@
 import 'package:fe_app/features/auth/views/login_screen.dart';
+import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
+import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
+import 'package:fe_app/features/feed/views/feed_screen.dart';
+import 'package:fe_app/features/feed/views/feed_write_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,6 +69,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'consider',
             builder: (context, state) => const WishlistConsiderScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/feed',
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const FeedScreen()),
+        routes: [
+          GoRoute(
+            path: 'write',
+            builder: (context, state) => const FeedWriteScreen(),
+          ),
+          GoRoute(
+            path: 'edit/:id',
+            builder: (context, state) => FeedEditScreen(
+              postId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => FeedDetailScreen(
+              postId: state.pathParameters['id']!,
+            ),
           ),
         ],
       ),
@@ -152,6 +179,7 @@ class _RouterNotifier extends ChangeNotifier {
       '/home',
       '/wishlist',
       '/wishlist/consider',
+      '/feed',
       '/notifications',
       '/onboarding'
     ];
