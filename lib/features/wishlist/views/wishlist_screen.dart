@@ -15,7 +15,6 @@ import 'package:fe_app/features/wishlist/views/components/list/wishlist_empty_vi
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_add_entry_modal.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_share_modal.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/services.dart';
 
 class WishlistScreen extends ConsumerWidget {
   const WishlistScreen({super.key});
@@ -31,24 +30,13 @@ class WishlistScreen extends ConsumerWidget {
     color: AppColors.textPrimary,
   );
 
-  Future<void> _openAddPanelFromClipboard(WidgetRef ref) async {
-    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-    final url = clipboard?.text?.trim() ?? '';
-    ref.read(wishlistViewModelProvider.notifier).openAddPanelWithLink(url);
-  }
-
   Future<void> _openAddEntryModal(BuildContext context, WidgetRef ref) async {
+    final viewModel = ref.read(wishlistViewModelProvider.notifier);
     await showWishlistAddEntryModal(
       context,
-      onPasteUrl: () {
-        _openAddPanelFromClipboard(ref);
-      },
-      onManualInput: () {
-        ref.read(wishlistViewModelProvider.notifier).openAddPanel();
-      },
-      onLearnHow: () {
-        context.push('/tutorial?restoreModal=1');
-      },
+      onPasteUrl: viewModel.openAddPanelFromClipboard,
+      onManualInput: viewModel.openAddPanel,
+      onLearnHow: () => context.push('/tutorial?restoreModal=1'),
     );
   }
 
@@ -65,6 +53,55 @@ class WishlistScreen extends ConsumerWidget {
           if (!context.mounted) return;
           viewModel.clearReopenAddEntryModal();
           _openAddEntryModal(context, ref);
+        });
+      },
+    );
+
+    ref.listen<bool>(
+      wishlistViewModelProvider.select((s) => s.showEmptyClipboardAlert),
+      (prev, next) {
+        if (next != true) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!context.mounted) return;
+          viewModel.clearEmptyClipboardAlert();
+          await showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text(
+                '링크를 붙여넣을 수 없어요',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              content: const Text(
+                '클립보드에 복사된 링크가 없어요.\n링크를 복사한 뒤 다시 시도해 주세요.',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    '확인',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.skyBlue_300,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         });
       },
     );

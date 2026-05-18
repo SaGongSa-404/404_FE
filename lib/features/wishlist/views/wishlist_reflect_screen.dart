@@ -12,10 +12,12 @@ class WishlistReflectScreen extends ConsumerStatefulWidget {
   const WishlistReflectScreen({
     super.key,
     this.item,
+    this.itemId,
     this.purchasedAtLabel = '구매일 2026.06.27',
   });
 
   final WishlistPlaceholder? item;
+  final String? itemId;
   final String purchasedAtLabel;
 
   @override
@@ -26,15 +28,16 @@ class WishlistReflectScreen extends ConsumerStatefulWidget {
 class _WishlistReflectScreenState extends ConsumerState<WishlistReflectScreen> {
   ReflectFeedback? _feedback;
 
-  WishlistPlaceholder get _item {
-    if (widget.item != null) return widget.item!;
-    final items = ref.watch(wishlistViewModelProvider).items;
-    if (items.isNotEmpty) return items.first;
-    return mockWishlistItems.first;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final displayItem = ref.watch(
+      reflectDisplayItemProvider(
+        ReflectDisplayItemRequest(
+          explicitItem: widget.item,
+          itemId: widget.itemId,
+        ),
+      ),
+    );
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: PreferredSize(
@@ -106,7 +109,7 @@ class _WishlistReflectScreenState extends ConsumerState<WishlistReflectScreen> {
               ),
               const SizedBox(height: 15),
               ReflectItemCard(
-                item: _item,
+                item: displayItem,
                 purchasedAtLabel: widget.purchasedAtLabel,
               ),
               const Padding(
@@ -118,7 +121,7 @@ class _WishlistReflectScreenState extends ConsumerState<WishlistReflectScreen> {
                 ),
               ),
               const Text(
-                '지금 돌아보아도\n구매하길 잘했다고생각하시나요?',
+                '지금 돌아보아도\n구매하길 잘했다고 생각하시나요?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Pretendard',

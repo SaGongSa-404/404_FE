@@ -7,6 +7,7 @@ class WishlistState {
   final bool isAddWishOpen;
   final bool isAddLinkReadOnly;
   final bool reopenAddEntryModal;
+  final bool showEmptyClipboardAlert;
   final String? addPrefillLink;
   final Set<String> selectedCategories;
   final List<WishlistPlaceholder> items;
@@ -18,6 +19,7 @@ class WishlistState {
     this.isAddWishOpen = false,
     this.isAddLinkReadOnly = false,
     this.reopenAddEntryModal = false,
+    this.showEmptyClipboardAlert = false,
     this.addPrefillLink,
     this.selectedCategories = const {'전체'},
     this.items = const [],
@@ -34,6 +36,8 @@ class WishlistState {
     bool clearAddLinkReadOnly = false,
     bool? reopenAddEntryModal,
     bool clearReopenAddEntryModal = false,
+    bool? showEmptyClipboardAlert,
+    bool clearEmptyClipboardAlert = false,
     String? addPrefillLink,
     bool clearAddPrefillLink = false,
     Set<String>? selectedCategories,
@@ -50,6 +54,9 @@ class WishlistState {
       reopenAddEntryModal: clearReopenAddEntryModal
           ? false
           : (reopenAddEntryModal ?? this.reopenAddEntryModal),
+      showEmptyClipboardAlert: clearEmptyClipboardAlert
+          ? false
+          : (showEmptyClipboardAlert ?? this.showEmptyClipboardAlert),
       addPrefillLink: clearAddPrefillLink ? null : (addPrefillLink ?? this.addPrefillLink),
       selectedCategories: Set.unmodifiable(
         selectedCategories ?? this.selectedCategories,

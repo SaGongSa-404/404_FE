@@ -14,6 +14,7 @@ import 'package:fe_app/features/onboarding/views/survey_screen.dart';
 import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
@@ -68,7 +69,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const LoginScreen()),
+            _bottomTabPage(state, const WishlistScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -94,11 +95,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'add-fetch-failed',
-            builder: (context, state) => const WishlistProductFetchFailedScreen(),
+            builder: (context, state) {
+              return WishlistProductFetchFailedScreen(
+                onBack: () => context.pop(),
+                onManualInput: () {
+                  context.pop();
+                  ProviderScope.containerOf(context)
+                      .read(wishlistViewModelProvider.notifier)
+                      .openAddPanel();
+                },
+              );
+            },
           ),
           GoRoute(
             path: 'reflect',
-            builder: (context, state) => const WishlistReflectScreen(),
+            builder: (context, state) => WishlistReflectScreen(
+              itemId: state.uri.queryParameters['id'],
+            ),
           ),
         ],
       ),

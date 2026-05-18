@@ -1,19 +1,24 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// 링크 파싱 실패 시 안내 (empty 위시 화면과 동일한 레이아웃 리듬).
-class WishlistProductFetchFailedScreen extends ConsumerWidget {
-  const WishlistProductFetchFailedScreen({super.key});
+class WishlistProductFetchFailedScreen extends StatelessWidget {
+  const WishlistProductFetchFailedScreen({
+    super.key,
+    required this.onManualInput,
+    this.onBack,
+  });
+
+  final VoidCallback onManualInput;
+  final VoidCallback? onBack;
 
   static const Color _titleColor = AppColors.textPrimary;
   static const Color _subtitleColor = AppColors.textSecondary;
   static const Color _buttonBorder = Color(0xFFE2E2E2);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -24,7 +29,7 @@ class WishlistProductFetchFailedScreen extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: IconButton(
                 padding: const EdgeInsets.only(left: 8, right: 8),
-                onPressed: () => context.pop(),
+                onPressed: onBack ?? () => context.pop(),
                 icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
               ),
             ),
@@ -91,10 +96,7 @@ class WishlistProductFetchFailedScreen extends ConsumerWidget {
                               ),
                               clipBehavior: Clip.antiAlias,
                               child: InkWell(
-                                onTap: () {
-                                  context.pop();
-                                  ref.read(wishlistViewModelProvider.notifier).openAddPanel();
-                                },
+                                onTap: onManualInput,
                                 borderRadius: BorderRadius.circular(34),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 22),

@@ -24,6 +24,7 @@ class WishlistPlaceholder {
     String? category,
     String? link,
     String? imageUrl,
+    bool clearImageUrl = false,
   }) {
     return WishlistPlaceholder(
       id: id ?? this.id,
@@ -31,7 +32,7 @@ class WishlistPlaceholder {
       price: price ?? this.price,
       category: category ?? this.category,
       link: link ?? this.link,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
     );
   }
 }

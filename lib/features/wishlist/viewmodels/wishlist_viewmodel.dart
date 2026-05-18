@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'wishlist_state.dart';
@@ -81,12 +82,28 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   void openAddPanelWithLink(String link) {
+    final trimmed = link.trim();
+    if (trimmed.isEmpty) {
+      state = state.copyWith(showEmptyClipboardAlert: true);
+      return;
+    }
+
     state = state.copyWith(
       isAddWishOpen: true,
       clearEditingItemId: true,
-      addPrefillLink: link.trim(),
+      addPrefillLink: trimmed,
       isAddLinkReadOnly: true,
     );
+  }
+
+  Future<void> openAddPanelFromClipboard() async {
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    final url = clipboard?.text?.trim() ?? '';
+    openAddPanelWithLink(url);
+  }
+
+  void clearEmptyClipboardAlert() {
+    state = state.copyWith(clearEmptyClipboardAlert: true);
   }
 
   void openEditPanel(String itemId) {
@@ -134,6 +151,48 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddWish: true,
     );
   }
+
+  WishlistPlaceholder resolveReflectItem({
+    WishlistPlaceholder? explicitItem,
+    String? itemId,
+  }) {
+    if (explicitItem != null) return explicitItem;
+
+    if (itemId != null) {
+      for (final item in state.items) {
+        if (item.id == itemId) return item;
+      }
+    }
+
+    if (state.items.isNotEmpty) return state.items.first;
+    return mockWishlistItems.first;
+  }
+}
+
+final reflectDisplayItemProvider = Provider.autoDispose
+    .family<WishlistPlaceholder, ReflectDisplayItemRequest>((ref, request) {
+  ref.watch(wishlistViewModelProvider.select((s) => s.items));
+  return ref.read(wishlistViewModelProvider.notifier).resolveReflectItem(
+        explicitItem: request.explicitItem,
+        itemId: request.itemId,
+      );
+});
+
+class ReflectDisplayItemRequest {
+  const ReflectDisplayItemRequest({this.explicitItem, this.itemId});
+
+  final WishlistPlaceholder? explicitItem;
+  final String? itemId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is ReflectDisplayItemRequest &&
+        other.explicitItem == explicitItem &&
+        other.itemId == itemId;
+  }
+
+  @override
+  int get hashCode => Object.hash(explicitItem, itemId);
 }
 
 final wishlistViewModelProvider =
