@@ -1,25 +1,29 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
+import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
 enum _Stage { playing, playedOnce, withButton }
 
-class WishlistTutorialScreen extends StatefulWidget {
+class WishlistTutorialScreen extends ConsumerStatefulWidget {
   const WishlistTutorialScreen({
     super.key,
     required this.currentStep,
-    this.totalSteps = 6,
+    this.totalSteps = 2,
     required this.label,
     required this.titleWhilePlaying,
     required this.titleAfterPlay,
     required this.videoAsset,
     required this.buttonLabel,
     required this.onComplete,
+    this.onBack,
+    this.restoreAddEntryModalOnExit = false,
   });
 
   final int currentStep;
@@ -30,13 +34,15 @@ class WishlistTutorialScreen extends StatefulWidget {
   final String videoAsset;
   final String buttonLabel;
   final VoidCallback onComplete;
+  final VoidCallback? onBack;
+  final bool restoreAddEntryModalOnExit;
 
   @override
-  State<WishlistTutorialScreen> createState() =>
+  ConsumerState<WishlistTutorialScreen> createState() =>
       _WishlistTutorialScreenState();
 }
 
-class _WishlistTutorialScreenState extends State<WishlistTutorialScreen> {
+class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen> {
   static const _designWidth = 412.0;
   static const _buttonAppearDelay = Duration(milliseconds: 800);
 
@@ -86,6 +92,21 @@ class _WishlistTutorialScreenState extends State<WishlistTutorialScreen> {
         _ => widget.titleAfterPlay,
       };
 
+  void _handleBack() {
+    if (widget.onBack != null) {
+      widget.onBack!();
+      return;
+    }
+    if (widget.restoreAddEntryModalOnExit && widget.currentStep == 1) {
+      ref.read(wishlistViewModelProvider.notifier).requestReopenAddEntryModal();
+    }
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/wishlist');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,9 +139,7 @@ class _WishlistTutorialScreenState extends State<WishlistTutorialScreen> {
                             OnboardingProgressIndicator(
                               currentStep: widget.currentStep,
                               totalSteps: widget.totalSteps,
-                              onBack: () => context.canPop()
-                                  ? context.pop()
-                                  : context.go('/'),
+                              onBack: _handleBack,
                             ),
                             const Spacer(flex: 108),
                             _StepHeader(

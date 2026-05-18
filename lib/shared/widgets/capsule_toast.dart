@@ -6,7 +6,7 @@ void showCapsuleToast(
   BuildContext context, {
   required Color backgroundColor,
   required String text,
-  Duration duration = const Duration(milliseconds: 2400),
+  Duration duration = const Duration(milliseconds: 2000),
 }) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
@@ -65,7 +65,7 @@ class CapsuleToast extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxW),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: backgroundColor,
+            color: backgroundColor.withOpacity(0.8),
             borderRadius: BorderRadius.circular(_stadiumRadius),
             boxShadow: _elevationShadow,
           ),

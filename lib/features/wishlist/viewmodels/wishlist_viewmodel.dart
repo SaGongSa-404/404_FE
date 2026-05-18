@@ -71,12 +71,52 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(selectedCategories: nextCategories);
   }
 
+  void openAddPanel() {
+    state = state.copyWith(
+      isAddWishOpen: true,
+      clearEditingItemId: true,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+    );
+  }
+
+  void openAddPanelWithLink(String link) {
+    state = state.copyWith(
+      isAddWishOpen: true,
+      clearEditingItemId: true,
+      addPrefillLink: link.trim(),
+      isAddLinkReadOnly: true,
+    );
+  }
+
   void openEditPanel(String itemId) {
-    state = state.copyWith(editingItemId: itemId);
+    state = state.copyWith(
+      editingItemId: itemId,
+      isAddWishOpen: false,
+    );
   }
 
   void closeEditPanel() {
-    state = state.copyWith(clearEditingItemId: true);
+    state = state.copyWith(
+      clearEditingItemId: true,
+      clearAddWish: true,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+    );
+  }
+
+  void requestReopenAddEntryModal() {
+    state = state.copyWith(reopenAddEntryModal: true);
+  }
+
+  void clearReopenAddEntryModal() {
+    state = state.copyWith(clearReopenAddEntryModal: true);
+  }
+
+  void addItem(WishlistPlaceholder item) {
+    state = state.copyWith(
+      items: [...state.items, item],
+    );
   }
 
   void updateItem(WishlistPlaceholder updatedItem) {
@@ -91,6 +131,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(
       items: state.items.where((item) => item.id != id).toList(),
       clearEditingItemId: true,
+      clearAddWish: true,
     );
   }
 }
