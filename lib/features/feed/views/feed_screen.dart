@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/comment_sheet.dart';
 import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
@@ -61,8 +62,12 @@ class FeedScreen extends ConsumerWidget {
                         vm.setActiveOption(null);
                         if (!context.mounted) return;
                         if (result == 'delete') {
-                          final confirmed =
-                              await showDeleteConfirmDialog(context);
+                          final confirmed = await showConfirmBottomSheet(
+                            context: context,
+                            title: '작성한 게시글을\n정말 삭제하실 건가요?',
+                            subtitle: '한 번 삭제된 게시글은 되돌릴 수 없어요',
+                            actionLabel: '삭제하기',
+                          );
                           if (confirmed == true && context.mounted) {
                             vm.deletePost(post.id);
                             ScaffoldMessenger.of(context).showSnackBar(

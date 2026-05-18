@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
@@ -36,10 +37,11 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   }
 
   Future<void> _onClose() async {
-    final shouldDiscard = await showDialog<bool>(
+    final shouldDiscard = await showConfirmBottomSheet(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
-      builder: (_) => const _DiscardDialog(),
+      title: '게시글 작성을\n정말 그만두실 건가요?',
+      subtitle: '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
+      actionLabel: '그만두기',
     );
     if (shouldDiscard == true && mounted) context.pop();
   }
@@ -163,129 +165,6 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
             onSubmit: _onSubmit,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DiscardDialog extends StatelessWidget {
-  const _DiscardDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalInset,
-          0,
-          horizontalInset,
-          bottomPadding,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 3,
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '게시글 작성을\n정말 그만두실 건가요?',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20,
-                          color: AppColors.textDark,
-                          height: 1.29,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                          color: Color(0xFF979797),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 27),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(false),
-                        child: Container(
-                          height: 57,
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(57),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '취소',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 20,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(true),
-                        child: Container(
-                          height: 57,
-                          decoration: BoxDecoration(
-                            color: AppColors.red_600,
-                            borderRadius: BorderRadius.circular(57),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '삭제하기',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 20,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
