@@ -1,5 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/comment_sheet.dart';
 import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
@@ -83,7 +83,7 @@ class FeedScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 backgroundColor:
-                                    AppColors.toastBlue.withValues(alpha: 0.8),
+                                    AppColors.red_600.withValues(alpha: 0.8),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(47),
@@ -116,7 +116,7 @@ class FeedScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 backgroundColor:
-                                    AppColors.toastBlue.withValues(alpha: 0.8),
+                                    AppColors.skyBlue_400.withValues(alpha: 0.8),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(47),
@@ -160,7 +160,7 @@ class FeedScreen extends ConsumerWidget {
                         ),
                       ),
                       backgroundColor:
-                          AppColors.toastBlue.withValues(alpha: 0.8),
+                          AppColors.skyBlue_400.withValues(alpha: 0.8),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(47),

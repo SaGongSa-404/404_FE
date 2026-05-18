@@ -46,8 +46,8 @@ class LoginButtonSection extends StatelessWidget {
         const SizedBox(height: 13),
         _LoginButton(
           onPressed: onGooglePressed,
-          backgroundColor: AppColors.google,
-          pressedColor: AppColors.google_clicked,
+          backgroundColor: AppColors.white,
+          pressedColor: AppColors.grey_300,
           icon: SvgPicture.asset(
             'assets/images/google_logo.svg',
             width: 25,

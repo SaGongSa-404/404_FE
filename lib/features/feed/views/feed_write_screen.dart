@@ -1,5 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
@@ -291,7 +291,7 @@ class _BottomButtonSection extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 15),
               decoration: BoxDecoration(
-                color: hasItem ? AppColors.yellowLight : AppColors.yellow,
+                color: hasItem ? AppColors.yellow_200 : AppColors.yellow,
                 borderRadius: BorderRadius.circular(40),
                 border: hasItem
                     ? Border.all(color: AppColors.yellow, width: 2)

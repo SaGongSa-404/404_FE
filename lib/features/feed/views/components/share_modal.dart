@@ -68,7 +68,7 @@ class _ShareBottomSheet extends StatelessWidget {
                       color: AppColors.white,
                     ),
                   ),
-                  backgroundColor: AppColors.toastBlue.withValues(alpha: 0.8),
+                  backgroundColor: AppColors.skyBlue_400.withValues(alpha: 0.8),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(47),

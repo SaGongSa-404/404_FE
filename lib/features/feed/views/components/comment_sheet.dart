@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:flutter/material.dart';
@@ -193,7 +193,7 @@ class _CommentItem extends StatelessWidget {
           width: 18,
           height: 18,
           decoration: BoxDecoration(
-            color: AppColors.avatarBg,
+            color: AppColors.grey_200,
             borderRadius: BorderRadius.circular(9),
           ),
           clipBehavior: Clip.antiAlias,

@@ -1,5 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_bottom_sheet.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -246,7 +246,7 @@ class _BottomButtons extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: AppColors.greyButton,
+                  color: AppColors.grey_100,
                   borderRadius: BorderRadius.circular(40),
                 ),
                 alignment: Alignment.center,

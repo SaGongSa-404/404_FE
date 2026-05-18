@@ -49,7 +49,7 @@ class _OptionModalContent extends StatelessWidget {
             const SizedBox(height: 12),
             _OptionButton(
               label: '삭제하기',
-              color: AppColors.greyButton,
+              color: AppColors.grey_100,
               onTap: () => Navigator.of(context).pop('delete'),
             ),
             const SizedBox(height: 12),
