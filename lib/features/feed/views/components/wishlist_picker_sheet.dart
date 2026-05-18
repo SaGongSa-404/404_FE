@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<WishlistPlaceholder?> showWishlistPickerSheet(BuildContext context) {
-  return showDialog<WishlistPlaceholder>(
+  return showModalBottomSheet<WishlistPlaceholder>(
     context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (_) => const _WishlistPickerDialog(),
   );
@@ -35,12 +37,16 @@ class _WishlistPickerDialogState
   Widget build(BuildContext context) {
     final items = ref.watch(wishlistViewModelProvider).items;
     final screenHeight = MediaQuery.of(context).size.height;
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
     final hasSelection = _selected != null;
 
-    return Dialog(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalInset,
+        0,
+        horizontalInset,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: screenHeight * 0.75),
         child: Container(
@@ -58,9 +64,9 @@ class _WishlistPickerDialogState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 7),
-                child: const Text(
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 7),
+                child: Text(
                   '나의 위시',
                   textAlign: TextAlign.center,
                   style: TextStyle(

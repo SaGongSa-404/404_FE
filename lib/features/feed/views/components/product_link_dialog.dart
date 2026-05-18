@@ -40,18 +40,27 @@ class _ProductLinkBottomSheetState extends State<_ProductLinkBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    return Padding(
       padding: EdgeInsets.fromLTRB(
-        24,
-        31,
-        24,
+        horizontalInset,
+        0,
+        horizontalInset,
         MediaQuery.of(context).padding.bottom + 24,
       ),
-      child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 3,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -148,6 +157,7 @@ class _ProductLinkBottomSheetState extends State<_ProductLinkBottomSheet> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

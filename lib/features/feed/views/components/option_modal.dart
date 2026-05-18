@@ -2,16 +2,20 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 Future<String?> showOptionModal(BuildContext context) {
-  return showDialog<String>(
+  return showModalBottomSheet<String>(
     context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (_) => const _OptionModalContent(),
   );
 }
 
 Future<bool?> showDeleteConfirmDialog(BuildContext context) {
-  return showDialog<bool>(
+  return showModalBottomSheet<bool>(
     context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (_) => const _DeleteConfirmDialog(),
   );
@@ -22,10 +26,16 @@ class _OptionModalContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppColors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      elevation: 0,
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 27;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalInset,
+        0,
+        horizontalInset,
+        bottomPadding,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -107,16 +117,21 @@ class _DeleteConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalInset,
+        0,
+        horizontalInset,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(37),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 3,
             ),
           ],
@@ -126,18 +141,18 @@ class _DeleteConfirmDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     '작성한 게시글을\n정말 삭제하실 건가요?',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w600,
                       fontSize: 20,
-                      color: AppColors.textDark,
+                      color: AppColors.textPrimary,
                       height: 1.29,
                     ),
                   ),
@@ -171,9 +186,9 @@ class _DeleteConfirmDialog extends StatelessWidget {
                         '취소',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           fontSize: 20,
-                          color: AppColors.textDark,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
@@ -194,7 +209,7 @@ class _DeleteConfirmDialog extends StatelessWidget {
                         '삭제하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           fontSize: 20,
                           color: AppColors.white,
                         ),

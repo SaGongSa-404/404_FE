@@ -40,8 +40,10 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
   }
 
   Future<void> _onClose() async {
-    final shouldDiscard = await showDialog<bool>(
+    final shouldDiscard = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (_) => const _CancelEditDialog(),
     );
@@ -299,16 +301,21 @@ class _CancelEditDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalInset,
+        0,
+        horizontalInset,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(37),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 3,
             ),
           ],
@@ -318,11 +325,11 @@ class _CancelEditDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     '게시글 작성을 그만두시겠나요?',
                     style: TextStyle(

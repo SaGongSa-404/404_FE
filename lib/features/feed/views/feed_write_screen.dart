@@ -38,7 +38,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   Future<void> _onClose() async {
     final shouldDiscard = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.4),
+      barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (_) => const _DiscardDialog(),
     );
     if (shouldDiscard == true && mounted) context.pop();
@@ -173,105 +173,118 @@ class _DiscardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 3,
-            ),
-          ],
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          horizontalInset,
+          0,
+          horizontalInset,
+          bottomPadding,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '게시글 작성을\n정말 그만두실 건가요?',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                      color: AppColors.textDark,
-                      height: 1.29,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: Color(0xFF979797),
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 27),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(false),
-                    child: Container(
-                      height: 57,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(57),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '취소',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(true),
-                    child: Container(
-                      height: 57,
-                      decoration: BoxDecoration(
-                        color: AppColors.red_600,
-                        borderRadius: BorderRadius.circular(57),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '삭제하기',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 3,
                 ),
               ],
             ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '게시글 작성을\n정말 그만두실 건가요?',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          color: AppColors.textDark,
+                          height: 1.29,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          color: Color(0xFF979797),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 27),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(false),
+                        child: Container(
+                          height: 57,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(57),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '취소',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 20,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(true),
+                        child: Container(
+                          height: 57,
+                          decoration: BoxDecoration(
+                            color: AppColors.red_600,
+                            borderRadius: BorderRadius.circular(57),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '삭제하기',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 20,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
