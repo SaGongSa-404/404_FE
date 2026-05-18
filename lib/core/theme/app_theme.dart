@@ -34,6 +34,7 @@ abstract class AppColors {
   static const greyButton = Color(0xFFECECEC);
   static const yellowLight = Color(0xFFFFF8E8);
   static const toastBlue = Color.fromRGBO(95, 142, 174, 1);
+  static const avatarBg = Color(0xFFDFDFDF);
 }
 
 abstract class AppTextStyles {

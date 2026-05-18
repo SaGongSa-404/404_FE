@@ -41,8 +41,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
   }
 
   Future<void> _handleDeleteComment(String commentId) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (_) => const _DeleteCommentDialog(),
     );
@@ -187,12 +189,20 @@ class _CommentItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SvgPicture.asset(
-          'assets/images/user_profile.svg',
-          width: 43,
-          height: 45,
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: AppColors.avatarBg,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SvgPicture.asset(
+            'assets/images/user_profile.svg',
+            fit: BoxFit.cover,
+          ),
         ),
-        const SizedBox(width: 11),
+        const SizedBox(width: 7),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +281,9 @@ class _CommentItem extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 3, left: 8),
             child: SvgPicture.asset(
-              'assets/images/heart.svg',
+              comment.isLiked
+                  ? 'assets/images/heart_filled.svg'
+                  : 'assets/images/heart.svg',
               width: 20,
               height: 20,
               colorFilter: ColorFilter.mode(
@@ -386,16 +398,21 @@ class _DeleteCommentDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
+    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        horizontalInset,
+        0,
+        horizontalInset,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 3,
             ),
           ],
@@ -405,87 +422,87 @@ class _DeleteCommentDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     '작성한 댓글을\n정말 삭제하실 건가요?',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                      color: AppColors.textDark,
-                      height: 1.29,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    '한 번 삭제된 댓글은 되돌릴 수 없어요',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: Color(0xFF979797),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 27),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(false),
-                    child: Container(
-                      height: 57,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F1F1),
-                        borderRadius: BorderRadius.circular(57),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '취소',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 20,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    color: AppColors.textDark,
+                    height: 1.29,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(true),
-                    child: Container(
-                      height: 57,
-                      decoration: BoxDecoration(
-                        color: AppColors.red_600,
-                        borderRadius: BorderRadius.circular(57),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '삭제하기',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 20,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
+                SizedBox(height: 12),
+                Text(
+                  '한 번 삭제된 댓글은 되돌릴 수 없어요',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    color: Color(0xFF979797),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 27),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(false),
+                  child: Container(
+                    height: 57,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F1F1),
+                      borderRadius: BorderRadius.circular(57),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '취소',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(true),
+                  child: Container(
+                    height: 57,
+                    decoration: BoxDecoration(
+                      color: AppColors.red_600,
+                      borderRadius: BorderRadius.circular(57),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '삭제하기',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
+    ),
+  );
   }
 }

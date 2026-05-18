@@ -329,7 +329,9 @@ class _DetailCommentItem extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 3, left: 8),
             child: SvgPicture.asset(
-              'assets/images/heart.svg',
+              comment.isLiked
+                  ? 'assets/images/heart_filled.svg'
+                  : 'assets/images/heart.svg',
               width: 20,
               height: 20,
               colorFilter: ColorFilter.mode(
