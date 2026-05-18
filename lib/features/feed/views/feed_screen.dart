@@ -41,115 +41,167 @@ class FeedScreen extends ConsumerWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: state.posts.isEmpty
-          ? const FeedEmptyView()
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
-              itemCount: state.posts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final post = state.posts[index];
-                return FeedPostCard(
-                  post: post,
-                  isOptionActive: state.activeOptionPostId == post.id,
-                  onVote: (vote) => vm.vote(post.id, vote),
-                  onOptionTap: () async {
-                    vm.setActiveOption(post.id);
-                    final result = await showOptionModal(context);
-                    vm.setActiveOption(null);
-                    if (!context.mounted) return;
-                    if (result == 'delete') {
-                      final confirmed = await showDeleteConfirmDialog(context);
-                      if (confirmed == true) vm.deletePost(post.id);
-                    } else if (result == 'edit') {
-                      final editResult =
-                          await context.push<String>('/feed/edit/${post.id}');
-                      if (editResult == 'edited' && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              '수정되었습니다',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 18,
-                                color: Colors.white,
+      body: Stack(
+        children: [
+          state.posts.isEmpty
+              ? const FeedEmptyView()
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+                  itemCount: state.posts.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final post = state.posts[index];
+                    return FeedPostCard(
+                      post: post,
+                      isOptionActive: state.activeOptionPostId == post.id,
+                      onVote: (vote) => vm.vote(post.id, vote),
+                      onOptionTap: () async {
+                        vm.setActiveOption(post.id);
+                        final result = await showOptionModal(context);
+                        vm.setActiveOption(null);
+                        if (!context.mounted) return;
+                        if (result == 'delete') {
+                          final confirmed =
+                              await showDeleteConfirmDialog(context);
+                          if (confirmed == true && context.mounted) {
+                            vm.deletePost(post.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  '삭제되었습니다',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor:
+                                    AppColors.toastBlue.withValues(alpha: 0.8),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(47),
+                                ),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 26, vertical: 19),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 9),
+                                elevation: 6,
+                                duration: const Duration(seconds: 2),
                               ),
-                            ),
-                            backgroundColor:
-                                AppColors.toastBlue.withValues(alpha: 0.8),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(47),
-                            ),
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 26, vertical: 16),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 9),
-                            elevation: 6,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    } else if (result == 'share') {
-                      showShareModal(context: context, post: post);
-                    }
+                            );
+                          }
+                        } else if (result == 'share') {
+                          showShareModal(context: context, post: post);
+                        } else if (result == 'edit') {
+                          final editResult = await context
+                              .push<String>('/feed/edit/${post.id}');
+                          if (editResult == 'edited' && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  '수정되었습니다',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor:
+                                    AppColors.toastBlue.withValues(alpha: 0.8),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(47),
+                                ),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 26, vertical: 19),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 9),
+                                elevation: 6,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      onCommentTap: () => showCommentSheet(
+                        context: context,
+                        postId: post.id,
+                      ),
+                      onCardTap: () => context.push('/feed/${post.id}'),
+                    );
                   },
-                  onCommentTap: () => showCommentSheet(
-                    context: context,
-                    postId: post.id,
-                  ),
-                  onCardTap: () => context.push('/feed/${post.id}'),
-                );
+                ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: _WriteFab(
+              onTap: () async {
+                final posted = await context.push<bool>('/feed/write');
+                if (posted == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        '게시글이 등록되었어요!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor:
+                          AppColors.toastBlue.withValues(alpha: 0.8),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(47),
+                      ),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 26, vertical: 19),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 9),
+                      elevation: 6,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
             ),
-      floatingActionButton: _WriteFab(
-        onTap: () async {
-          final posted = await context.push<bool>('/feed/write');
-          if (posted == true && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                  '게시글이 등록되었어요!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: AppColors.toastBlue.withValues(alpha: 0.8),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(47),
-                ),
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                elevation: 6,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
+          ),
+        ],
       ),
       bottomNavigationBar: const AppBottomNavigationBar(),
     );
   }
 }
 
-class _WriteFab extends StatelessWidget {
+class _WriteFab extends StatefulWidget {
   const _WriteFab({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_WriteFab> createState() => _WriteFabState();
+}
+
+class _WriteFabState extends State<_WriteFab> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
       child: SvgPicture.asset(
-        'assets/images/write_button.svg',
+        _pressed
+            ? 'assets/images/write_button_clicked.svg'
+            : 'assets/images/write_button.svg',
         width: 72,
         height: 72,
       ),
