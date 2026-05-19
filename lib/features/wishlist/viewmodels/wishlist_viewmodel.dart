@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'wishlist_state.dart';
@@ -6,38 +7,24 @@ const List<String> categories = ['전체', '패션', '뷰티', '라이프', '디
 const List<WishlistPlaceholder> mockWishlistItems = [
   WishlistPlaceholder(
     id: 'w-1',
-    title: '오프화이트 후드',
-    price: 289000,
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
     category: '패션',
     link: 'musinsa.com/app/goods/hoodie',
   ),
   WishlistPlaceholder(
     id: 'w-3',
-    title: '오버이어 헤드폰',
-    price: 349000,
-    category: '디지털',
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
+    category: '패션',
     link: 'musinsa.com/app/goods/headphone',
   ),
   WishlistPlaceholder(
     id: 'w-4',
-    title: '에스프레소 머신',
-    price: 159000,
-    category: '라이프',
-    link: 'musinsa.com/app/goods/coffee',
-  ),
-  WishlistPlaceholder(
-    id: 'w-5',
-    title: '빈티지 데님 자켓',
-    price: 129000,
+    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
+    price: 29000,
     category: '패션',
-    link: 'musinsa.com/app/goods/jacket',
-  ),
-  WishlistPlaceholder(
-    id: 'w-7',
-    title: '무선 키보드',
-    price: 89000,
-    category: '디지털',
-    link: 'musinsa.com/app/goods/keyboard',
+    link: 'musinsa.com/app/goods/coffee',
   ),
 ];
 
@@ -85,12 +72,68 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(selectedCategories: nextCategories);
   }
 
+  void openAddPanel() {
+    state = state.copyWith(
+      isAddWishOpen: true,
+      clearEditingItemId: true,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+    );
+  }
+
+  void openAddPanelWithLink(String link) {
+    final trimmed = link.trim();
+    if (trimmed.isEmpty) {
+      state = state.copyWith(showEmptyClipboardAlert: true);
+      return;
+    }
+
+    state = state.copyWith(
+      isAddWishOpen: true,
+      clearEditingItemId: true,
+      addPrefillLink: trimmed,
+      isAddLinkReadOnly: true,
+    );
+  }
+
+  Future<void> openAddPanelFromClipboard() async {
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    final url = clipboard?.text?.trim() ?? '';
+    openAddPanelWithLink(url);
+  }
+
+  void clearEmptyClipboardAlert() {
+    state = state.copyWith(clearEmptyClipboardAlert: true);
+  }
+
   void openEditPanel(String itemId) {
-    state = state.copyWith(editingItemId: itemId);
+    state = state.copyWith(
+      editingItemId: itemId,
+      isAddWishOpen: false,
+    );
   }
 
   void closeEditPanel() {
-    state = state.copyWith(clearEditingItemId: true);
+    state = state.copyWith(
+      clearEditingItemId: true,
+      clearAddWish: true,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+    );
+  }
+
+  void requestReopenAddEntryModal() {
+    state = state.copyWith(reopenAddEntryModal: true);
+  }
+
+  void clearReopenAddEntryModal() {
+    state = state.copyWith(clearReopenAddEntryModal: true);
+  }
+
+  void addItem(WishlistPlaceholder item) {
+    state = state.copyWith(
+      items: [...state.items, item],
+    );
   }
 
   void updateItem(WishlistPlaceholder updatedItem) {
@@ -98,11 +141,58 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         .map((item) => item.id == updatedItem.id ? updatedItem : item)
         .toList();
 
+    state = state.copyWith(items: nextItems);
+  }
+
+  void removeItem(String id) {
     state = state.copyWith(
-      items: nextItems,
+      items: state.items.where((item) => item.id != id).toList(),
       clearEditingItemId: true,
+      clearAddWish: true,
     );
   }
+
+  WishlistPlaceholder resolveReflectItem({
+    WishlistPlaceholder? explicitItem,
+    String? itemId,
+  }) {
+    if (explicitItem != null) return explicitItem;
+
+    if (itemId != null) {
+      for (final item in state.items) {
+        if (item.id == itemId) return item;
+      }
+    }
+
+    if (state.items.isNotEmpty) return state.items.first;
+    return mockWishlistItems.first;
+  }
+}
+
+final reflectDisplayItemProvider = Provider.autoDispose
+    .family<WishlistPlaceholder, ReflectDisplayItemRequest>((ref, request) {
+  ref.watch(wishlistViewModelProvider.select((s) => s.items));
+  return ref.read(wishlistViewModelProvider.notifier).resolveReflectItem(
+        explicitItem: request.explicitItem,
+        itemId: request.itemId,
+      );
+});
+
+class ReflectDisplayItemRequest {
+  const ReflectDisplayItemRequest({this.explicitItem, this.itemId});
+
+  final WishlistPlaceholder? explicitItem;
+  final String? itemId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is ReflectDisplayItemRequest &&
+        other.explicitItem == explicitItem &&
+        other.itemId == itemId;
+  }
+
+  @override
+  int get hashCode => Object.hash(explicitItem, itemId);
 }
 
 final wishlistViewModelProvider =
