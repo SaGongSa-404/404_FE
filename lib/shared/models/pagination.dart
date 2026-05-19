@@ -28,12 +28,22 @@ class CursorPage<T> {
 
 /// page 기반 목록 API 공통 필드 (mypage wishes history, comments 등).
 class OffsetPage<T> {
-  const OffsetPage({
+  OffsetPage({
     required this.items,
     required this.total,
     required this.page,
     required this.size,
-  });
+  }) {
+    if (size <= 0) {
+      throw ArgumentError.value(size, 'size', 'must be greater than 0');
+    }
+    if (page < 0) {
+      throw ArgumentError.value(page, 'page', 'must be non-negative');
+    }
+    if (total < 0) {
+      throw ArgumentError.value(total, 'total', 'must be non-negative');
+    }
+  }
 
   final List<T> items;
   final int total;
