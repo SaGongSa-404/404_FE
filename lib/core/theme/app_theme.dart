@@ -25,6 +25,7 @@ abstract class AppColors {
   static const skyBlue_300 = Color(0xFF6D96B2);
 
   static const grey = Color(0xFFF1F1F1);
+  static const grey_e6 = Color(0xFFE6E6E6);
   static const white = Color(0xFFFFFFFF);
   static const brown = Color(0xFF70534F);
 }

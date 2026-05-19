@@ -18,7 +18,7 @@ class CategoryFilter extends ConsumerWidget {
       height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 30),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         itemCount: categories.length,
         separatorBuilder: (context, index) => const SizedBox(width: 6),
         itemBuilder: (context, index) {

@@ -1,3 +1,4 @@
+import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
 import 'package:flutter/material.dart';
@@ -5,15 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
 import 'package:fe_app/features/onboarding/views/nickname_screen.dart';
 import 'package:fe_app/features/onboarding/views/survey_screen.dart';
-import 'package:fe_app/features/onboarding/views/wishlist_tutorial_screen.dart';
+import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
+import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 
 // 스플래시 최소 표시 시간: 애니메이션과 동기화 (4sec)
@@ -40,6 +43,7 @@ const Set<String> _guestAllowExactPaths = {
 const Set<String> _guestAllowPathPrefixes = {
   '/onboarding',
   '/wishlist',
+  '/tutorial',
 };
 
 bool _isAllowedPathForGuest(String location) {
@@ -89,7 +93,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'consider',
             builder: (context, state) => const WishlistConsiderScreen(),
           ),
+          GoRoute(
+            path: 'add-fetch-failed',
+            builder: (context, state) {
+              return WishlistProductFetchFailedScreen(
+                onBack: () => context.pop(),
+                onManualInput: () {
+                  context.pop();
+                  ProviderScope.containerOf(context)
+                      .read(wishlistViewModelProvider.notifier)
+                      .openAddPanel();
+                },
+              );
+            },
+          ),
+          GoRoute(
+            path: 'reflect',
+            builder: (context, state) => WishlistReflectScreen(
+              itemId: state.uri.queryParameters['id'],
+            ),
+          ),
         ],
+      ),
+      GoRoute(
+        path: '/tutorial',
+        builder: (context, state) {
+          final restoreModal =
+              state.uri.queryParameters['restoreModal'] == '1';
+          return WishlistTutorialRouteScreen(
+            restoreAddEntryModalOnExit: restoreModal,
+          );
+        },
       ),
       GoRoute(
         path: '/onboarding',
@@ -107,31 +141,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'survey',
             builder: (context, state) => const SurveyScreen(),
-          ),
-          GoRoute(
-            path: 'wishlist-tutorial',
-            builder: (context, state) => WishlistTutorialScreen(
-              currentStep: 4,
-              label: '위시템 담기 1',
-              titleWhilePlaying: '구매하고 싶은 아이템의\n링크를 공유해주세요',
-              titleAfterPlay: '위굴 아이콘을 누르면\n저장 완료!',
-              videoAsset: 'assets/videos/wishlist_demo.mp4',
-              buttonLabel: '다음',
-              onComplete: () =>
-                  context.push('/onboarding/wishlist-tutorial-2'),
-            ),
-          ),
-          GoRoute(
-            path: 'wishlist-tutorial-2',
-            builder: (context, state) => WishlistTutorialScreen(
-              currentStep: 5,
-              label: '위시템 담기 2',
-              titleWhilePlaying: '구매하고 싶은 아이템의\n링크를 복사해주세요',
-              titleAfterPlay: '링크를 붙여넣으면\n저장 완료!',
-              videoAsset: 'assets/videos/wishlist_demo_2.mp4',
-              buttonLabel: '다음',
-              onComplete: () => context.go('/home'),
-            ),
           ),
           GoRoute(
             path: 'nugul-intro',

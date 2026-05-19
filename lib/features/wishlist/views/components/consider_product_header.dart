@@ -18,10 +18,11 @@ class ConsiderProductHeader extends StatelessWidget {
               color: const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Center(
-              child: Text(
-                '상품 사진',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+            child: Center(
+              child: Icon(
+                Icons.photo_camera_outlined,
+                size: 48,
+                color: Colors.grey.shade500,
               ),
             ),
           ),

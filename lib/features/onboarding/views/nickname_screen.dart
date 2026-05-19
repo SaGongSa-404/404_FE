@@ -88,7 +88,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 1,
-                              totalSteps: 6,
+                              totalSteps: 3,
                               onBack: () => context.canPop()
                                   ? context.pop()
                                   : context.go('/'),

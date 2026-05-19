@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showWishlistItemActionModal(
@@ -11,21 +12,12 @@ Future<void> showWishlistItemActionModal(
     'onEdit 또는 onDelete 중 하나는 필요합니다.',
   );
 
-  return showDialog<void>(
-    context: context,
-    barrierColor: const Color(0x59000000),
-    builder: (dialogContext) {
-      return Dialog(
-        alignment: Alignment.center,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.fromLTRB(24, 23, 24, 23),
-        child: _WishlistItemActionModalPanel(
-          onEdit: onEdit,
-          onDelete: onDelete,
-        ),
-      );
-    },
+  return showWishlistModalBottomSheet(
+    context,
+    child: _WishlistItemActionModalPanel(
+      onEdit: onEdit,
+      onDelete: onDelete,
+    ),
   );
 }
 
@@ -47,13 +39,10 @@ class _WishlistItemActionModalPanel extends StatefulWidget {
 class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalPanel> {
   _ActionModalPage _page = _ActionModalPage.menu;
 
-  static const Color _editButtonBg = AppColors.skyBlue_100;
   static const Color _deleteMenuButtonBg = AppColors.grey;
   static const Color _cancelButtonBg = AppColors.grey;
   static const Color _confirmDeleteButtonBg = Color(0xFFD46868);
-  static const double _pillHeight = 52;
-  static const double _radius = 37;
-  static const double _buttonRadius = 999;
+  static const double _radius = 22;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +59,7 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 23, 24, 23),
+        padding: const EdgeInsets.fromLTRB(24, 31, 24, 31),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           switchInCurve: Curves.easeOut,
@@ -88,10 +77,11 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.onEdit != null)
-          _stackedPillButton(
+          WishlistModalPillButton(
             label: '수정하기',
-            background: _editButtonBg,
-            foreground: AppColors.textPrimary,
+            background: AppColors.skyBlue_100,
+            pressedBackground: AppColors.skyBlue_200,
+            padding: const EdgeInsets.all(18),
             onPressed: () {
               Navigator.of(context).pop();
               widget.onEdit!();
@@ -99,10 +89,11 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
           ),
         if (widget.onEdit != null && widget.onDelete != null) const SizedBox(height: 12),
         if (widget.onDelete != null)
-          _stackedPillButton(
+          WishlistModalPillButton(
             label: '삭제하기',
             background: _deleteMenuButtonBg,
-            foreground: AppColors.textPrimary,
+            pressedBackground: AppColors.grey_e6,
+            padding: const EdgeInsets.all(18),
             onPressed: () => setState(() => _page = _ActionModalPage.confirmDelete),
           ),
       ],
@@ -142,19 +133,22 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
         Row(
           children: [
             Expanded(
-              child: _rowPillButton(
+              child: WishlistModalPillButton(
                 label: '취소',
                 background: _cancelButtonBg,
-                foreground: AppColors.textPrimary,
+                pressedBackground: AppColors.grey_e6,
+                padding: const EdgeInsets.all(18),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _rowPillButton(
+              child: WishlistModalPillButton(
                 label: '삭제하기',
                 background: _confirmDeleteButtonBg,
+                pressedBackground: AppColors.red_500,
                 foreground: AppColors.white,
+                padding: const EdgeInsets.all(18),
                 onPressed: () {
                   Navigator.of(context).pop();
                   widget.onDelete?.call();
@@ -164,80 +158,6 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
           ],
         ),
       ],
-    );
-  }
-
-  Widget _stackedPillButton({
-    required String label,
-    required Color background,
-    required Color foreground,
-    required VoidCallback onPressed,
-  }) {
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(_buttonRadius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          width: double.infinity,
-          height: _pillHeight,
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              textHeightBehavior: const TextHeightBehavior(
-                applyHeightToFirstAscent: false,
-                applyHeightToLastDescent: false,
-              ),
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-                height: 1.0,
-                color: foreground,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _rowPillButton({
-    required String label,
-    required Color background,
-    required Color foreground,
-    required VoidCallback onPressed,
-  }) {
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(_buttonRadius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          height: _pillHeight,
-          width: double.infinity,
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              textHeightBehavior: const TextHeightBehavior(
-                applyHeightToFirstAscent: false,
-                applyHeightToLastDescent: false,
-              ),
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-                height: 1.0,
-                color: foreground,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
