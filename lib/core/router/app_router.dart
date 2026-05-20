@@ -1,4 +1,8 @@
 import 'package:fe_app/features/auth/views/login_screen.dart';
+import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
+import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
+import 'package:fe_app/features/feed/views/feed_screen.dart';
+import 'package:fe_app/features/feed/views/feed_write_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +48,7 @@ const Set<String> _guestAllowPathPrefixes = {
   '/onboarding',
   '/wishlist',
   '/tutorial',
+  '/feed',
 };
 
 bool _isAllowedPathForGuest(String location) {
@@ -111,6 +116,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'reflect',
             builder: (context, state) => WishlistReflectScreen(
               itemId: state.uri.queryParameters['id'],
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/feed',
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const FeedScreen()),
+        routes: [
+          GoRoute(
+            path: 'write',
+            builder: (context, state) => const FeedWriteScreen(),
+          ),
+          GoRoute(
+            path: 'edit/:id',
+            builder: (context, state) => FeedEditScreen(
+              postId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => FeedDetailScreen(
+              postId: state.pathParameters['id']!,
             ),
           ),
         ],

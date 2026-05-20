@@ -35,7 +35,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
-    context.go('/home');
+    context.push('/onboarding/nugul-intro');
   }
 
   @override
