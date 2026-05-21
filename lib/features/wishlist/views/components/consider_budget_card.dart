@@ -11,18 +11,24 @@ class ConsiderBudgetCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFF2F2F2)),
+            border: Border.all(color: AppColors.grey),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('다음 달 예산', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-                  Text('500,000원', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                  Text(
+                    '다음 달 예산',
+                    style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSecondary),
+                  ),
+                  Text(
+                    '500,000원',
+                    style: AppTextStyles.body.copyWith(fontSize: 14, color: AppColors.textSecondary),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -33,7 +39,7 @@ class ConsiderBudgetCard extends StatelessWidget {
                     height: 16,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F2),
+                      color: AppColors.grey,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -42,7 +48,7 @@ class ConsiderBudgetCard extends StatelessWidget {
                     child: Container(
                       height: 16,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE58D8D), // 약간 붉은 계열
+                        color: AppColors.red_200,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -55,13 +61,19 @@ class ConsiderBudgetCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.circle, size: 8, color: Color(0xFFE0E0E0)),
+                      const Icon(Icons.circle, size: 8, color: AppColors.grey),
                       const SizedBox(width: 4),
-                      const Text('현재 90,000원', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(
+                        '현재 90,000원',
+                        style: AppTextStyles.body.copyWith(fontSize: 12, color: AppColors.textSecondary),
+                      ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.circle, size: 8, color: Color(0xFFE58D8D)),
+                      const Icon(Icons.circle, size: 8, color: AppColors.red_200),
                       const SizedBox(width: 4),
-                      const Text('+25,000원', style: TextStyle(fontSize: 12, color: Color(0xFFE58D8D))),
+                      Text(
+                        '+25,000원',
+                        style: AppTextStyles.body.copyWith(fontSize: 12, color: AppColors.red_200),
+                      ),
                     ],
                   ),
                 ],
@@ -70,17 +82,24 @@ class ConsiderBudgetCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '예산의 23%',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: AppTextStyles.heading.copyWith(fontSize: 20),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F3F9),
+                      color: AppColors.skyBlue_000_clicked,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text('여유 있음', style: TextStyle(fontSize: 12, color: AppColors.skyBlue_100, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      '여유 있음',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 12,
+                        color: AppColors.skyBlue_300,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -103,17 +122,26 @@ class ConsiderBudgetCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(
+            title,
+            style: AppTextStyles.body.copyWith(fontSize: 12, color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: AppTextStyles.body.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
-          Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey, height: 1.3)),
+          Text(
+            sub,
+            style: AppTextStyles.body.copyWith(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+          ),
         ],
       ),
     );

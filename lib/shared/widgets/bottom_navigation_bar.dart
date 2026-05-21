@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -16,16 +17,6 @@ abstract final class _BottomNavBarShadow {
   ];
 }
 
-abstract final class _BottomNavTokens {
-  static const double barPaddingTop = 18;
-  static const double barPaddingBottom = 10;
-  static const double tabPaddingHorizontal = 4;
-  static const double iconLabelGap = 5;
-  static const double labelFontSize = 12;
-  static const FontWeight labelFontWeight = FontWeight.w500;
-  static const double iconSize = 24;
-}
-
 class AppBottomNavigationBar extends StatelessWidget {
   const AppBottomNavigationBar({super.key});
 
@@ -41,20 +32,21 @@ class AppBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = _currentIndex(location);
 
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.white,
         boxShadow: _BottomNavBarShadow.layers,
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.only(
-            top: _BottomNavTokens.barPaddingTop,
-            bottom: _BottomNavTokens.barPaddingBottom,
+          padding: EdgeInsets.only(
+            top: 18 * scale,
+            bottom: 10 * scale,
           ),
           child: Row(
             children: [
@@ -64,6 +56,7 @@ class AppBottomNavigationBar extends StatelessWidget {
                     selected: i == currentIndex,
                     tabIndex: i,
                     label: _labels[i],
+                    scale: scale,
                     onTap: () => context.go(_paths[i]),
                   ),
                 ),
@@ -90,34 +83,37 @@ class _BottomNavItem extends StatelessWidget {
     required this.selected,
     required this.tabIndex,
     required this.label,
+    required this.scale,
     required this.onTap,
   });
 
   final bool selected;
   final int tabIndex;
   final String label;
+  final double scale;
   final VoidCallback onTap;
 
   Widget _leadingIcon(Color color) {
+    final iconSize = 24 * scale;
     if (tabIndex == 0) {
       return SvgPicture.asset(
         AppBottomNavigationBar._homeSvgAsset,
-        width: _BottomNavTokens.iconSize,
-        height: _BottomNavTokens.iconSize,
+        width: iconSize,
+        height: iconSize,
         fit: BoxFit.contain,
         theme: SvgTheme(currentColor: color),
       );
     }
     return Icon(
       AppBottomNavigationBar._materialIcons[tabIndex - 1],
-      size: _BottomNavTokens.iconSize,
+      size: iconSize,
       color: color,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.brown : Color(0xFFADADAD);
+    final color = selected ? AppColors.brown : const Color(0xFFADADAD);
 
     return Material(
       type: MaterialType.transparency,
@@ -128,20 +124,18 @@ class _BottomNavItem extends StatelessWidget {
         highlightColor: Colors.transparent,
         hoverColor: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _BottomNavTokens.tabPaddingHorizontal,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 4 * scale),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _leadingIcon(color),
-              SizedBox(height: _BottomNavTokens.iconLabelGap),
+              SizedBox(height: 5 * scale),
               Text(
                 label,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontSize: _BottomNavTokens.labelFontSize,
-                  fontWeight: _BottomNavTokens.labelFontWeight,
+                  fontSize: 12 * scale,
+                  fontWeight: FontWeight.w500,
                   color: color,
                 ),
               ),

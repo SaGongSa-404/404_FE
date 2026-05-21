@@ -13,100 +13,52 @@ class WishlistConsiderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18),
           onPressed: () {
             ref.read(considerViewModelProvider.notifier).reset();
             context.pop();
           },
         ),
-        title: const Text(
+        title: Text(
           '살까 말까',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: AppTextStyles.heading.copyWith(fontSize: 18),
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: const SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
         child: Column(
           children: [
-            const ConsiderProductHeader(),
-            const Divider(thickness: 1, color: Color(0xFFF2F2F2), indent: 24, endIndent: 24),
-            const Padding(
+            ConsiderProductHeader(),
+            Divider(thickness: 1, color: AppColors.grey, indent: 24, endIndent: 24),
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: ConsiderBudgetCard(),
             ),
-            const SizedBox(height: 20),
-            // 체크리스트 영역 (ConsiderChecklist 내부의 Column만 가져와서 배치하거나 그대로 사용)
-            const Padding(
+            SizedBox(height: 20),
+            // 체크리스트 영역
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderChecklistBody(),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             // 결과 카드
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderResultCard(),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
             // 하단 버튼
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        ref.read(considerViewModelProvider.notifier).reset();
-                        context.pop();
-                      },
-                      child: Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '참을게요',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        ref.read(considerViewModelProvider.notifier).reset();
-                        context.pop();
-                      },
-                      child: Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F3F9),
-                          border: Border.all(color: AppColors.skyBlue_100, width: 2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '살게요',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.skyBlue_100),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: _BottomActionButtons(),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),
@@ -114,7 +66,69 @@ class WishlistConsiderScreen extends ConsumerWidget {
   }
 }
 
-// ConsiderChecklist의 내용을 자연스러운 스크롤 흐름으로 배치하기 위한 서브 위젯
+class _BottomActionButtons extends ConsumerWidget {
+  const _BottomActionButtons();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ref.read(considerViewModelProvider.notifier).reset();
+              context.pop();
+            },
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                border: Border.all(color: AppColors.grey, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(
+                  '참을게요',
+                  style: AppTextStyles.button.copyWith(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ref.read(considerViewModelProvider.notifier).reset();
+              context.pop();
+            },
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.skyBlue_000_clicked,
+                border: Border.all(color: AppColors.skyBlue_300, width: 2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(
+                  '살게요',
+                  style: AppTextStyles.button.copyWith(
+                    fontSize: 16,
+                    color: AppColors.skyBlue_300,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class ConsiderChecklistBody extends ConsumerWidget {
   const ConsiderChecklistBody({super.key});
 
@@ -143,7 +157,7 @@ class ConsiderChecklistBody extends ConsumerWidget {
               children: [
                 Text(
                   question,
-                  style: const TextStyle(fontSize: 15, color: AppColors.textPrimary, height: 1.4),
+                  style: AppTextStyles.body.copyWith(fontSize: 15, height: 1.4),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -169,20 +183,20 @@ class ConsiderChecklistBody extends ConsumerWidget {
         child: Container(
           height: 44,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFF2F2F2) : Colors.white,
+            color: isSelected ? AppColors.grey : AppColors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF555555) : const Color(0xFFF2F2F2),
+              color: isSelected ? AppColors.textPrimary : AppColors.grey,
               width: 1,
             ),
           ),
           child: Center(
             child: Text(
               label,
-              style: TextStyle(
+              style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF555555) : Colors.grey,
+                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
               ),
             ),
           ),
@@ -198,21 +212,34 @@ class ConsiderChecklistBody extends ConsumerWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFEBEB),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.red_100),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('⚠️', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 8),
-              Text('잠깐요!',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE54327))),
+              const Text('🚨', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Text(
+                '잠깐요!',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.red_400,
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 8),
-          Text('답변을 보니 지금 이 구매,\n충동적일 수 있어요.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF555555), height: 1.4)),
+          const SizedBox(height: 8),
+          Text(
+            '답변을 보니 지금 이 구매,\n충동적일 수 있어요.',
+            style: AppTextStyles.body.copyWith(
+              fontSize: 13,
+              color: AppColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );

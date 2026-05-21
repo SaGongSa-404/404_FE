@@ -15,11 +15,16 @@ import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
 import 'package:fe_app/features/onboarding/views/nickname_screen.dart';
 import 'package:fe_app/features/onboarding/views/survey_screen.dart';
-import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
+import 'package:fe_app/features/profile/views/consumption_management_screen.dart';
+import 'package:fe_app/features/profile/views/edit_profile_screen.dart';
+import 'package:fe_app/features/profile/views/my_page_screen.dart';
+import 'package:fe_app/features/profile/views/my_posts_screen.dart';
+import 'package:fe_app/features/profile/views/terms_policy_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
-import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 
@@ -117,6 +122,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => WishlistReflectScreen(
               itemId: state.uri.queryParameters['id'],
             ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/my',
+        pageBuilder: (context, state) =>
+            _bottomTabPage(state, const MyPageScreen()),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => const EditProfileScreen(),
+          ),
+          GoRoute(
+            path: 'consumption',
+            builder: (context, state) => const ConsumptionManagementScreen(),
+          ),
+          GoRoute(
+            path: 'posts',
+            builder: (context, state) => const MyPostsScreen(),
+          ),
+          GoRoute(
+            path: 'terms',
+            builder: (context, state) => const TermsPolicyScreen(),
           ),
         ],
       ),

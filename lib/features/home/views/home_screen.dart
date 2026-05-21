@@ -1,23 +1,26 @@
 import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
-import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
+import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final PageController _pageController = PageController();
   late VideoPlayerController _videoController;
   int _currentPage = 0;
@@ -36,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   late String _currentMessage;
-  bool _isBudgetExceeded = false;
 
   @override
   void initState() {
@@ -52,21 +54,17 @@ class _HomeScreenState extends State<HomeScreen> {
       });
   }
 
-  // 너구리나 배경 클릭 시 실행될 함수
-  void _onNugulTap() {
-    // 1. 메시지 랜덤 변경
-    _changeMessage();
-
-    // 2. 영상 처음부터 다시 재생
+  void _onNugulTap(bool isExceeded) {
+    _changeMessage(isExceeded);
     if (_videoController.value.isInitialized) {
       _videoController.seekTo(Duration.zero);
       _videoController.play();
     }
   }
 
-  void _changeMessage() {
+  void _changeMessage(bool isExceeded) {
     final random = Random();
-    final messageList = _isBudgetExceeded ? _warningMessages : _safeMessages;
+    final messageList = isExceeded ? _warningMessages : _safeMessages;
     setState(() {
       _currentMessage = messageList[random.nextInt(messageList.length)];
     });
@@ -81,97 +79,77 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final profile = ref.watch(profileNotifierProvider);
+    final isExceeded = profile.currentMonthRecord.isExceeded;
+
     return Scaffold(
       body: Stack(
         children: [
-          // 1. 배경 영상 레이어 + 클릭 감지
           GestureDetector(
-            onTap: _onNugulTap, // 화면 배경(너구리) 클릭 시 작동
-            behavior: HitTestBehavior.opaque, // 빈 공간 클릭도 감지
+            onTap: () => _onNugulTap(isExceeded),
+            behavior: HitTestBehavior.opaque,
             child: _videoController.value.isInitialized
                 ? SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
-                ),
-              ),
-            )
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _videoController.value.size.width,
+                        height: _videoController.value.size.height,
+                        child: VideoPlayer(_videoController),
+                      ),
+                    ),
+                  )
                 : Container(color: const Color(0xFFD9E9F2)),
           ),
-
-          // 2. UI 레이어 (영상 위에 배치)
           SafeArea(
+            top: false,
             child: Column(
               children: [
-                // Custom AppBar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16.0),
-                        child: SvgPicture.asset(
-                          'assets/images/wigul_logo.svg',
-                          height: 32,
-                          colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0), // 패딩을 약간 조정
-                        child: AlarmButton(
-                          onPressed: () => context.push('/notifications'),
-                        ),
-                      ),
-                    ],
+                MainTabHeader(
+                  leading: SvgPicture.asset(
+                    'assets/images/wigul_logo.svg',
+                    height: 32 * scale,
+                    colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
                   ),
+                  onAlarmPressed: () => context.push('/notifications'),
                 ),
-
-                const SizedBox(height: 20),
-
-                // 말풍선 영역 (클릭 가능)
+                SizedBox(height: 20 * scale),
                 GestureDetector(
-                  onTap: _onNugulTap,
+                  onTap: () => _onNugulTap(isExceeded),
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                        padding: EdgeInsets.symmetric(horizontal: 40 * scale, vertical: 16 * scale),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(40),
+                          color: Colors.white.withAlpha(217),
+                          borderRadius: BorderRadius.circular(40 * scale),
                         ),
                         child: Text(
                           _currentMessage,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontSize: 16,
+                            fontSize: 16 * scale,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                       CustomPaint(
-                        size: const Size(20, 10),
+                        size: Size(20 * scale, 10 * scale),
                         painter: TrianglePainter(),
                       ),
                     ],
                   ),
                 ),
-
-                // 중간 공간 (여기 덕분에 너구리가 보임)
                 const Spacer(),
-
-                // 하단 카드 영역
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40),
+                  padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 40 * scale),
                   child: HomeInfoContainer(
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
                         SizedBox(
-                          height: 160,
+                          height: 160 * scale,
                           child: PageView(
                             controller: _pageController,
                             onPageChanged: (index) => setState(() => _currentPage = index),
@@ -181,21 +159,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // 인디케이터
                         Positioned(
-                          top: -12,
+                          top: -12 * scale,
                           left: 0,
                           right: 0,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(2, (index) {
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                width: index == _currentPage ? 18 : 8,
-                                height: 4,
+                                margin: EdgeInsets.symmetric(horizontal: 3 * scale),
+                                width: (index == _currentPage ? 18 : 8) * scale,
+                                height: 4 * scale,
                                 decoration: BoxDecoration(
                                   color: index == _currentPage ? AppColors.skyBlue_100 : const Color(0xFFE0E0E0),
-                                  borderRadius: BorderRadius.circular(2),
+                                  borderRadius: BorderRadius.circular(2 * scale),
                                 ),
                               );
                             }),
@@ -218,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class TrianglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    var paint = Paint()..color = Colors.white.withOpacity(0.85);
+    var paint = Paint()..color = Colors.white.withAlpha(217);
     var path = Path();
     path.moveTo(0, 0);
     path.lineTo(size.width, 0);
