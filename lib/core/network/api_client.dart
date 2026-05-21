@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
+import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -17,7 +18,7 @@ class ApiClient {
   Dio get dio => _dio;
 
   static Dio _buildDio(SecureStorageService storage) {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+    final baseUrl = EnvConfig.apiBaseUrl;
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
@@ -26,13 +27,23 @@ class ApiClient {
         headers: {'Content-Type': 'application/json'},
       ),
     );
+    dio.interceptors.add(ApiErrorInterceptor());
     dio.interceptors.add(AuthInterceptor(storage, baseUrl));
     return dio;
   }
 }
 
-/// 모든 API 요청에 Bearer 토큰을 첨부하고,
-/// 401 응답 시 토큰을 갱신한 뒤 원래 요청을 재시도합니다.
+/// [DioException]을 [ApiException]으로 변환해 feature에서 일관되게 처리할 수 있게 합니다.
+class ApiErrorInterceptor extends Interceptor {
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    handler.next(
+      err.copyWith(error: ApiException.fromDioException(err)),
+    );
+  }
+}
+
+/// Bearer 토큰 첨부, 로컬 개발 시 `X-User-Id`, 401 시 refresh 후 재시도.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._storage, this._baseUrl);
 
@@ -40,15 +51,37 @@ class AuthInterceptor extends Interceptor {
   final String _baseUrl;
   bool _isRefreshing = false;
 
+  static bool _usesDevUserIdHeader(String path) {
+    return path.startsWith(ApiEndpoints.v1) ||
+        path.startsWith(ApiEndpoints.dev);
+  }
+
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final useDevUserIdOnly =
+        EnvConfig.devAuthMode == DevAuthMode.xUserId &&
+        _usesDevUserIdHeader(options.path);
+
+    if (useDevUserIdOnly) {
+      final devUserId = EnvConfig.devUserId;
+      if (devUserId != null) {
+        options.headers['X-User-Id'] = devUserId;
+      }
+    } else {
+      final token = await _storage.getAccessToken();
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      } else {
+        final devUserId = EnvConfig.devUserId;
+        if (devUserId != null && _usesDevUserIdHeader(options.path)) {
+          options.headers['X-User-Id'] = devUserId;
+        }
+      }
     }
+
     handler.next(options);
   }
 
@@ -67,17 +100,20 @@ class AuthInterceptor extends Interceptor {
       final oldRefreshToken = await _storage.getRefreshToken();
       if (oldRefreshToken == null) throw Exception('저장된 refresh token 없음');
 
-      // 인터셉터 루프 방지를 위해 별도 Dio 인스턴스로 갱신 호출
-      final refreshDio = Dio(BaseOptions(
-        baseUrl: _baseUrl,
-        headers: {'Content-Type': 'application/json'},
-      ));
+      final refreshDio = Dio(
+        BaseOptions(
+          baseUrl: _baseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
       final res = await refreshDio.post<Map<String, dynamic>>(
         ApiEndpoints.tokenRefresh,
         data: {'refreshToken': oldRefreshToken},
       );
 
-      final newAccessToken  = res.data!['accessToken']  as String;
+      final newAccessToken = res.data!['accessToken'] as String;
       final newRefreshToken = res.data!['refreshToken'] as String;
 
       await _storage.saveTokens(
@@ -85,13 +121,11 @@ class AuthInterceptor extends Interceptor {
         refreshToken: newRefreshToken,
       );
 
-      // 원래 요청 재시도 (별도 Dio로 인터셉터 재진입 방지)
       final retryOptions = err.requestOptions
         ..headers['Authorization'] = 'Bearer $newAccessToken';
       final retryResponse = await Dio().fetch<dynamic>(retryOptions);
       handler.resolve(retryResponse);
     } catch (_) {
-      // 갱신 실패 시 토큰 삭제 → 라우터 리다이렉트로 로그인 화면 이동
       await _storage.clearTokens();
       handler.next(err);
     } finally {

@@ -102,6 +102,23 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
   }
 
   Widget _thumbnail() {
+    final url = widget.item.imageUrl?.trim();
+    if (url != null && url.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          url,
+          width: _thumbSize,
+          height: _thumbSize,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _thumbnailPlaceholder(),
+        ),
+      );
+    }
+    return _thumbnailPlaceholder();
+  }
+
+  Widget _thumbnailPlaceholder() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Container(
@@ -109,14 +126,10 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
         height: _thumbSize,
         alignment: Alignment.center,
         color: const Color(0xFFE8E8E8),
-        child: const Text(
-          '상품\n사진',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
+        child: const Icon(
+          Icons.photo_camera,
+          size: 45,
+          color: AppColors.textSecondary,
         ),
       ),
     );

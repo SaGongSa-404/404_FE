@@ -35,7 +35,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
-    context.push('/onboarding/wishlist-tutorial');
+    context.push('/onboarding/nugul-intro');
   }
 
   @override
@@ -68,7 +68,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 3,
-                              totalSteps: 6,
+                              totalSteps: 3,
                               onBack: () => context.canPop()
                                   ? context.pop()
                                   : context.go('/'),
