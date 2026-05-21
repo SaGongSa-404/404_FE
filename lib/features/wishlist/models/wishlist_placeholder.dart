@@ -6,6 +6,7 @@ class WishlistPlaceholder {
     required this.price,
     required this.category,
     required this.link,
+    this.imageUrl,
   });
 
   final String id;
@@ -13,6 +14,8 @@ class WishlistPlaceholder {
   final int price;
   final String category;
   final String link;
+  /// 비어 있거나 null이면 썸네일 자리에 카메라 placeholder.
+  final String? imageUrl;
 
   WishlistPlaceholder copyWith({
     String? id,
@@ -20,6 +23,8 @@ class WishlistPlaceholder {
     int? price,
     String? category,
     String? link,
+    String? imageUrl,
+    bool clearImageUrl = false,
   }) {
     return WishlistPlaceholder(
       id: id ?? this.id,
@@ -27,6 +32,7 @@ class WishlistPlaceholder {
       price: price ?? this.price,
       category: category ?? this.category,
       link: link ?? this.link,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
     );
   }
 }

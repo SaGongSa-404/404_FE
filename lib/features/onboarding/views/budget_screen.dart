@@ -73,7 +73,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 2,
-                              totalSteps: 6,
+                              totalSteps: 3,
                               onBack: () => context.canPop()
                                   ? context.pop()
                                   : context.go('/'),
