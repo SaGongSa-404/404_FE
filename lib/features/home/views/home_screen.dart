@@ -5,8 +5,8 @@ import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
-import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -103,30 +103,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : Container(color: const Color(0xFFD9E9F2)),
           ),
           SafeArea(
+            top: false,
             child: Column(
               children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(left: 16 * scale),
-                        child: SvgPicture.asset(
-                          'assets/images/wigul_logo.svg',
-                          height: 32 * scale,
-                          colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(right: 8 * scale),
-                        child: AlarmButton(
-                          size: 30 * scale,
-                          onPressed: () => context.push('/notifications'),
-                        ),
-                      ),
-                    ],
+                MainTabHeader(
+                  leading: SvgPicture.asset(
+                    'assets/images/wigul_logo.svg',
+                    height: 32 * scale,
+                    colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
                   ),
+                  onAlarmPressed: () => context.push('/notifications'),
                 ),
                 SizedBox(height: 20 * scale),
                 GestureDetector(

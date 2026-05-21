@@ -1,8 +1,8 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
-import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -38,26 +38,10 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
         top: false,
         child: Column(
           children: [
-            Container(
-              height: 126 * scale,
-              width: double.infinity,
-              color: Colors.white,
-              padding: EdgeInsets.only(left: 30 * scale, right: 30 * scale, bottom: 16 * scale),
-              alignment: Alignment.bottomCenter,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '마이페이지',
-                    style: TextStyle(
-                      fontSize: 20 * scale,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  AlarmButton(onPressed: () => context.push('/notifications')),
-                ],
-              ),
+            MainTabHeader(
+              backgroundColor: Colors.white,
+              leading: MainTabHeader.tabTitle('마이페이지', scale),
+              onAlarmPressed: () => context.push('/notifications'),
             ),
             Expanded(
               child: Container(
