@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
@@ -78,6 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
     final profile = ref.watch(profileNotifierProvider);
     final isExceeded = profile.currentMonthRecord.isExceeded;
 
@@ -104,49 +106,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                  padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 16.0),
+                        padding: EdgeInsets.only(left: 16 * scale),
                         child: SvgPicture.asset(
                           'assets/images/wigul_logo.svg',
-                          height: 32,
+                          height: 32 * scale,
                           colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
+                        padding: EdgeInsets.only(right: 8 * scale),
                         child: AlarmButton(
+                          size: 30 * scale,
                           onPressed: () => context.push('/notifications'),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20 * scale),
                 GestureDetector(
                   onTap: () => _onNugulTap(isExceeded),
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                        padding: EdgeInsets.symmetric(horizontal: 40 * scale, vertical: 16 * scale),
                         decoration: BoxDecoration(
                           color: Colors.white.withAlpha(217),
-                          borderRadius: BorderRadius.circular(40),
+                          borderRadius: BorderRadius.circular(40 * scale),
                         ),
                         child: Text(
                           _currentMessage,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontSize: 16,
+                            fontSize: 16 * scale,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                       CustomPaint(
-                        size: const Size(20, 10),
+                        size: Size(20 * scale, 10 * scale),
                         painter: TrianglePainter(),
                       ),
                     ],
@@ -154,13 +157,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const Spacer(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40),
+                  padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 40 * scale),
                   child: HomeInfoContainer(
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
                         SizedBox(
-                          height: 160,
+                          height: 160 * scale,
                           child: PageView(
                             controller: _pageController,
                             onPageChanged: (index) => setState(() => _currentPage = index),
@@ -171,19 +174,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                         Positioned(
-                          top: -12,
+                          top: -12 * scale,
                           left: 0,
                           right: 0,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(2, (index) {
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                width: index == _currentPage ? 18 : 8,
-                                height: 4,
+                                margin: EdgeInsets.symmetric(horizontal: 3 * scale),
+                                width: (index == _currentPage ? 18 : 8) * scale,
+                                height: 4 * scale,
                                 decoration: BoxDecoration(
                                   color: index == _currentPage ? AppColors.skyBlue_100 : const Color(0xFFE0E0E0),
-                                  borderRadius: BorderRadius.circular(2),
+                                  borderRadius: BorderRadius.circular(2 * scale),
                                 ),
                               );
                             }),

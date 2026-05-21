@@ -1,6 +1,8 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,224 +44,136 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  void _showNicknameConfirmDialog() {
+  Future<void> _showNicknameConfirmDialog() async {
     final newName = _nicknameController.text.trim();
     if (newName.isEmpty) return;
 
-    _showCustomActionDialog(
+    final confirmed = await showConfirmBottomSheet(
+      context,
       title: '닉네임을 변경하시겠습니까?',
       subtitle: '($newName)으로 수정됩니다.',
-      confirmText: '수정하기',
-      onConfirm: () {
-        ref.read(profileNotifierProvider.notifier).updateNickname(newName);
-        setState(() => _isEditing = false);
-        context.pop();
-      },
+      actionLabel: '수정하기',
+      destructive: false,
     );
+    if (confirmed == true && mounted) {
+      ref.read(profileNotifierProvider.notifier).updateNickname(newName);
+      setState(() => _isEditing = false);
+    }
   }
 
-  void _showCustomActionDialog({
-    required String title,
-    String? subtitle,
-    required String confirmText,
-    required VoidCallback onConfirm,
-  }) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF8E8E8E),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () => context.pop(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF2F2F2),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(26),
-                          ),
-                        ),
-                        child: const Text(
-                          '취소',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: onConfirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.red_400,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(26),
-                          ),
-                        ),
-                        child: Text(
-                          confirmText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog() {
-    _showCustomActionDialog(
+  Future<void> _showLogoutDialog() async {
+    final confirmed = await showConfirmBottomSheet(
+      context,
       title: '로그아웃 하시겠습니까?',
-      confirmText: '로그아웃',
-      onConfirm: () {
-        ref.read(authProvider.notifier).logout();
-        context.go('/login');
-      },
+      actionLabel: '로그아웃',
     );
+    if (confirmed == true && mounted) {
+      ref.read(authProvider.notifier).logout();
+      context.go('/login');
+    }
   }
 
-  void _showWithdrawDialog() {
-    _showCustomActionDialog(
+  Future<void> _showWithdrawDialog() async {
+    final confirmed = await showConfirmBottomSheet(
+      context,
       title: '계정을 정말 탈퇴하실 건가요?',
       subtitle: '한 번 탈퇴한 계정은 되돌릴 수 없어요',
-      confirmText: '탈퇴하기',
-      onConfirm: () async {
-        context.pop();
-
-        final snackBar = SnackBar(
-          content: const Text('계정이 삭제되었습니다', textAlign: TextAlign.center),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.red_200,
-          margin: const EdgeInsets.only(bottom: 50, left: 40, right: 40),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          duration: const Duration(seconds: 2),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-        await Future.delayed(const Duration(seconds: 2));
-        ref.read(authProvider.notifier).logout();
-        if (mounted) context.go('/login');
-      },
+      actionLabel: '탈퇴하기',
     );
+    if (confirmed != true || !mounted) return;
+
+    final scale = responsiveScale(context);
+    final snackBar = SnackBar(
+      content: Text(
+        '계정이 삭제되었습니다',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 14 * scale),
+      ),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: AppColors.red_200,
+      margin: EdgeInsets.only(bottom: 50 * scale, left: 40 * scale, right: 40 * scale),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30 * scale)),
+      duration: const Duration(seconds: 2),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+    await Future.delayed(const Duration(seconds: 2));
+    ref.read(authProvider.notifier).logout();
+    if (mounted) context.go('/login');
   }
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: _backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18 * scale),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           '프로필 편집',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 18,
+            fontSize: 18 * scale,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
+            Padding(
+              padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
               child: Text(
                 '로그인 계정',
                 style: TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 15,
+                  fontSize: 15 * scale,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              padding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 18 * scale),
               decoration: BoxDecoration(
                 color: const Color(0xFFE2E2E2),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30 * scale),
                 boxShadow: _cardShadow,
               ),
-              child: const Text(
+              child: Text(
                 'sjrnfl97@gmail.com',
                 style: TextStyle(
-                  color: Color(0xFF555555),
-                  fontSize: 16,
+                  color: const Color(0xFF555555),
+                  fontSize: 16 * scale,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.only(left: 8),
+            SizedBox(height: 8 * scale),
+            Padding(
+              padding: EdgeInsets.only(left: 8 * scale),
               child: Text(
                 '카카오와 연동됨',
-                style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
+                style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 13 * scale),
               ),
             ),
-            const SizedBox(height: 36),
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
+            SizedBox(height: 36 * scale),
+            Padding(
+              padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
               child: Text(
                 '닉네임',
                 style: TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 15,
+                  fontSize: 15 * scale,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -267,13 +181,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30 * scale),
                 boxShadow: _cardShadow,
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(30 * scale),
                   onTap: () {
                     if (!_isEditing) {
                       setState(() => _isEditing = true);
@@ -288,22 +202,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     readOnly: !_isEditing,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _showNicknameConfirmDialog(),
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: 16 * scale,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 18 * scale),
                       suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
+                        padding: EdgeInsets.only(right: 8 * scale),
                         child: IconButton(
                           icon: Icon(
                             _isEditing ? Icons.check : Icons.edit_outlined,
                             color: AppColors.textPrimary,
-                            size: 22,
+                            size: 22 * scale,
                           ),
                           onPressed: () {
                             if (_isEditing) {
@@ -318,19 +232,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         ),
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(30 * scale),
                         borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(30 * scale),
                         borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: AppColors.textPrimary, width: 1.5),
+                        borderRadius: BorderRadius.circular(30 * scale),
+                        borderSide: BorderSide(color: AppColors.textPrimary, width: 1.5 * scale),
                       ),
                       disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(30 * scale),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -338,12 +252,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.only(left: 8),
+            SizedBox(height: 8 * scale),
+            Padding(
+              padding: EdgeInsets.only(left: 8 * scale),
               child: Text(
                 '카카오와 연동됨',
-                style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
+                style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 13 * scale),
               ),
             ),
             const Spacer(),
@@ -352,31 +266,34 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               children: [
                 GestureDetector(
                   onTap: _showLogoutDialog,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8 * scale),
                     child: Text(
                       '로그아웃',
                       style: TextStyle(
-                        color: Color(0xFF8E8E8E),
-                        fontSize: 14,
+                        color: const Color(0xFF8E8E8E),
+                        fontSize: 14 * scale,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14),
-                  child: Text('|', style: TextStyle(color: Color(0xFFD9D9D9), fontSize: 14)),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 14 * scale),
+                  child: Text(
+                    '|',
+                    style: TextStyle(color: const Color(0xFFD9D9D9), fontSize: 14 * scale),
+                  ),
                 ),
                 GestureDetector(
                   onTap: _showWithdrawDialog,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8 * scale),
                     child: Text(
                       '탈퇴하기',
                       style: TextStyle(
-                        color: Color(0xFF8E8E8E),
-                        fontSize: 14,
+                        color: const Color(0xFF8E8E8E),
+                        fontSize: 14 * scale,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -384,7 +301,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16 * scale),
           ],
         ),
       ),
