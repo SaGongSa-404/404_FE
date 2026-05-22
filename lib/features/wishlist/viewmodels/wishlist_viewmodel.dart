@@ -1,8 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/wishlist/models/item_import/item_import_link_request.dart';
+import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_mapper.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
+import 'package:fe_app/features/wishlist/services/item_import_service.dart';
 import 'package:fe_app/features/wishlist/services/wishlist_service.dart';
 import 'package:fe_app/shared/enums/api_enums.dart';
 import 'wishlist_state.dart';
@@ -38,6 +43,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   final Ref _ref;
 
   WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
+
+  ItemImportService get _itemImportService => _ref.read(itemImportServiceProvider);
 
   Future<void> initialize() async {
     state = state.copyWith(isLoading: true);
@@ -86,6 +93,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearEditingItemId: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
+      clearAddFormPrefill: true,
+      clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
     );
   }
@@ -102,8 +111,64 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearEditingItemId: true,
       addPrefillLink: trimmed,
       isAddLinkReadOnly: true,
+      isImportingLink: true,
+      clearAddFormPrefill: true,
+      clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
     );
+    _importShareLink(trimmed);
+  }
+
+  Future<void> _importShareLink(String url) async {
+    try {
+      final response = await _itemImportService.importLink(
+        ItemImportLinkRequest.share(url),
+      );
+      final prefill = response.toFormPrefill();
+      final saveRequest = response.enrichedSaveRequest();
+
+      if (prefill == null || saveRequest == null) {
+        _handleImportFailure();
+        return;
+      }
+
+      state = state.copyWith(
+        isImportingLink: false,
+        addFormPrefill: prefill,
+        addImportSaveRequest: saveRequest,
+        addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode == 422 || e.statusCode == 502) {
+        _handleImportFailure();
+        return;
+      }
+      state = state.copyWith(
+        isImportingLink: false,
+        submitErrorMessage: e.message,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isImportingLink: false,
+        submitErrorMessage: '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  void _handleImportFailure() {
+    state = state.copyWith(
+      clearAddWish: true,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+      clearAddFormPrefill: true,
+      clearAddImportSaveRequest: true,
+      isImportingLink: false,
+      pendingImportFailedNavigation: true,
+    );
+  }
+
+  void clearPendingImportFailedNavigation() {
+    state = state.copyWith(clearPendingImportFailedNavigation: true);
   }
 
   Future<void> openAddPanelFromClipboard() async {
@@ -129,6 +194,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddWish: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
+      clearAddFormPrefill: true,
+      clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
     );
   }
@@ -152,7 +219,31 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     return ItemInputSource.share;
   }
 
-  /// POST /api/v1/wishlist/items — 추가 성공 시 true.
+  WishlistItemSaveRequest _buildSaveRequestForAdd(WishlistPlaceholder draft) {
+    final imported = state.addImportSaveRequest;
+    if (imported != null) {
+      return imported.copyWith(
+        title: draft.title.trim(),
+        listedPrice: draft.price > 0 ? draft.price : null,
+        currencyCode: draft.price > 0 ? (imported.currencyCode ?? 'KRW') : null,
+        category: WishlistCategoryUi.toApiValue(draft.category),
+        categoryLockedByUser: true,
+        imageUrl: draft.imageUrl ?? imported.imageUrl,
+        originalUrl: draft.link.trim().isNotEmpty
+            ? draft.link.trim()
+            : imported.originalUrl,
+        normalizedUrl: draft.link.trim().isNotEmpty
+            ? draft.link.trim()
+            : imported.normalizedUrl,
+      );
+    }
+
+    return draft.toSaveRequest(
+      inputSource: _resolveInputSourceForAdd(draft),
+      categoryLockedByUser: true,
+    );
+  }
+
   Future<bool> addItem(WishlistPlaceholder draft) async {
     state = state.copyWith(
       isSubmitting: true,
@@ -160,10 +251,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     );
 
     try {
-      final request = draft.toSaveRequest(
-        inputSource: _resolveInputSourceForAdd(draft),
-        categoryLockedByUser: true,
-      );
+      final request = _buildSaveRequestForAdd(draft);
       final created = await _wishlistService.createItem(request);
       final item = created.toPlaceholder();
 
@@ -173,6 +261,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         clearAddWish: true,
         clearAddPrefillLink: true,
         clearAddLinkReadOnly: true,
+        clearAddFormPrefill: true,
+        clearAddImportSaveRequest: true,
       );
       return true;
     } on ApiException catch (e) {
@@ -188,6 +278,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
             clearAddWish: true,
             clearAddPrefillLink: true,
             clearAddLinkReadOnly: true,
+            clearAddFormPrefill: true,
+            clearAddImportSaveRequest: true,
           );
           return false;
         }

@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'wishlist_item.freezed.dart';
 part 'wishlist_item.g.dart';
 
-/// POST /api/v1/wishlist/items 응답 및 목록 항목
 @freezed
 class WishlistItem with _$WishlistItem {
   const factory WishlistItem({

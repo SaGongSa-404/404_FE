@@ -74,6 +74,36 @@ class WishlistScreen extends ConsumerWidget {
     );
 
     ref.listen<bool>(
+      wishlistViewModelProvider.select((s) => s.isImportingLink),
+      (prev, next) {
+        if (prev != true || next != false) return;
+        final hasPrefill =
+            ref.read(wishlistViewModelProvider).addFormPrefill != null;
+        if (!hasPrefill) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFF5F8EAE),
+            text: '성공적으로 불러왔습니다.',
+          );
+        });
+      },
+    );
+
+    ref.listen<bool>(
+      wishlistViewModelProvider.select((s) => s.pendingImportFailedNavigation),
+      (prev, next) {
+        if (next != true) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearPendingImportFailedNavigation();
+          context.push('/wishlist/add-fetch-failed');
+        });
+      },
+    );
+
+    ref.listen<bool>(
       wishlistViewModelProvider.select((s) => s.showEmptyClipboardAlert),
       (prev, next) {
         if (next != true) return;
@@ -304,9 +334,21 @@ class WishlistScreen extends ConsumerWidget {
         else if (state.isAddWishOpen)
           WishlistItemFormPanel.add(
             onClose: viewModel.closeEditPanel,
-            onSubmit: viewModel.addItem,
+            onSubmit: (item) async {
+              final ok = await viewModel.addItem(item);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFF5F8EAE),
+                  text: '솜사탕이 생겼어요!',
+                );
+              }
+              return ok;
+            },
             initialLink: state.addPrefillLink,
+            formPrefill: state.addFormPrefill,
             linkReadOnly: state.isAddLinkReadOnly,
+            isImporting: state.isImportingLink,
             isSubmitting: state.isSubmitting,
           ),
       ],
