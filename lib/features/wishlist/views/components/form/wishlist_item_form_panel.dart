@@ -512,7 +512,10 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                       right: j == 2 ? 0 : _categoryChipGap / 2,
                     ),
                     child: j < chunk.length
-                        ? _categoryChipFilterStyle(chunk[j])
+                        ? _categoryChipFilterStyle(
+                            chunk[j],
+                            showErrorBorder: _categoryShowsError,
+                          )
                         : const SizedBox.shrink(),
                   ),
                 ),
@@ -527,8 +530,14 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
-  Widget _categoryChipFilterStyle(String category) {
+  Widget _categoryChipFilterStyle(
+    String category, {
+    required bool showErrorBorder,
+  }) {
     final isSelected = _selectedCategory == category;
+    final borderColor = showErrorBorder && !isSelected
+        ? _fieldErrorBorder
+        : (isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0));
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = category),
       child: Container(
@@ -538,10 +547,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFE8F3F9) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0),
-            width: 1,
-          ),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Text(
           category,
@@ -565,15 +571,6 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           ),
         ),
       ),
-    );
-  }
-
-  OutlineInputBorder _fieldOutlineBorder({required bool showErrorBorder}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(_fieldPillRadius),
-      borderSide: showErrorBorder
-          ? const BorderSide(color: _fieldErrorBorder, width: 1)
-          : BorderSide.none,
     );
   }
 
@@ -609,63 +606,69 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           ],
         ),
         const SizedBox(height: 10),
-        DecoratedBox(
+        Container(
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(_fieldPillRadius),
             border: showErrorBorder
                 ? Border.all(color: _fieldErrorBorder, width: 1)
                 : null,
-            boxShadow: const [
-              BoxShadow(
-                color: _wishlistCardShadowColor,
-                blurRadius: _wishlistCardShadowBlur,
-                spreadRadius: 0,
-                offset: Offset.zero,
-              ),
-            ],
+            boxShadow: showErrorBorder
+                ? null
+                : const [
+                    BoxShadow(
+                      color: _wishlistCardShadowColor,
+                      blurRadius: _wishlistCardShadowBlur,
+                      spreadRadius: 0,
+                      offset: Offset.zero,
+                    ),
+                  ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(_fieldPillRadius),
-            child: TextField(
-              controller: controller,
-              readOnly: readOnly,
-              keyboardType: keyboardType,
-              inputFormatters: keyboardType == TextInputType.number
-                  ? <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                      _PriceTextInputFormatter(),
-                    ]
-                  : null,
-              style: const TextStyle(
+          child: TextField(
+            controller: controller,
+            readOnly: readOnly,
+            keyboardType: keyboardType,
+            inputFormatters: keyboardType == TextInputType.number
+                ? <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    _PriceTextInputFormatter(),
+                  ]
+                : null,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              color: AppColors.textPrimary,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: AppColors.white,
+              hintText: hintText.isEmpty ? null : hintText,
+              hintStyle: const TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textSecondary,
+              ),
+              suffixText: suffix,
+              suffixStyle: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: AppColors.white,
-                hintText: hintText.isEmpty ? null : hintText,
-                hintStyle: const TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
-                ),
-                suffixText: suffix,
-                suffixStyle: const TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                border: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
-                enabledBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
-                focusedBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
-                errorBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
-                focusedErrorBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
