@@ -17,7 +17,6 @@ class WishlistService {
   const WishlistService(this._dio);
   final Dio _dio;
 
-  /// POST /api/v1/wishlist/items
   Future<WishlistItem> createItem(WishlistItemSaveRequest request) async {
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.wishlistItems,

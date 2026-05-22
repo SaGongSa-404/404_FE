@@ -2,7 +2,6 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// 링크 파싱 실패 시 안내 (empty 위시 화면과 동일한 레이아웃 리듬).
 class WishlistProductFetchFailedScreen extends StatelessWidget {
   const WishlistProductFetchFailedScreen({
     super.key,

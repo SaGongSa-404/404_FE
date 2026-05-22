@@ -5,7 +5,6 @@ import 'package:fe_app/shared/enums/api_enums.dart';
 part 'wishlist_item_save_request.freezed.dart';
 part 'wishlist_item_save_request.g.dart';
 
-/// POST /api/v1/wishlist/items 요청
 @freezed
 class WishlistItemSaveRequest with _$WishlistItemSaveRequest {
   const factory WishlistItemSaveRequest({

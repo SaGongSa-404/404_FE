@@ -62,7 +62,7 @@ class ConsiderChecklist extends ConsumerWidget {
             }),
 
             if (state.shouldShowWarning) ...[
-              const Divider(thickness: 2, color: Color(0xFFE0E0E0), height: 24), // height 줄임
+              const Divider(thickness: 2, color: Color(0xFFE0E0E0), height: 24),
               _buildWarningBanner(),
             ],
 
@@ -91,7 +91,7 @@ class ConsiderChecklist extends ConsumerWidget {
       child: GestureDetector(
         onTap: () => vm.setAnswer(index, value),
         child: Container(
-          height: 40, // 네 디자인 높이 30 유지
+          height: 40,
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFCBE9FF) : Colors.white,
             borderRadius: BorderRadius.circular(8),

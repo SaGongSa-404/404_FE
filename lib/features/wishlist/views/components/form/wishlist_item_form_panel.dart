@@ -2,9 +2,11 @@ import 'dart:math' as math;
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
+import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,7 +26,9 @@ class WishlistItemFormPanel extends StatefulWidget {
     required this.onClose,
     required this.onSubmit,
     this.initialLink,
+    this.formPrefill,
     this.linkReadOnly = false,
+    this.isImporting = false,
     this.isSubmitting = false,
   })  : mode = WishlistFormMode.add,
         item = null,
@@ -40,7 +44,9 @@ class WishlistItemFormPanel extends StatefulWidget {
   })  : mode = WishlistFormMode.edit,
         item = item,
         initialLink = null,
-        linkReadOnly = false;
+        formPrefill = null,
+        linkReadOnly = false,
+        isImporting = false;
 
   final WishlistFormMode mode;
   final WishlistPlaceholder? item;
@@ -48,7 +54,9 @@ class WishlistItemFormPanel extends StatefulWidget {
   final Future<bool> Function(WishlistPlaceholder item) onSubmit;
   final VoidCallback? onDelete;
   final String? initialLink;
+  final WishlistAddFormPrefill? formPrefill;
   final bool linkReadOnly;
+  final bool isImporting;
   final bool isSubmitting;
 
   @override
@@ -110,6 +118,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       _nameController = TextEditingController();
       _priceController = TextEditingController();
       _selectedCategory = null;
+      _applyFormPrefill(widget.formPrefill);
     } else {
       final i = widget.item!;
       _linkController = TextEditingController(text: i.link);
@@ -130,6 +139,31 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.forward();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant WishlistItemFormPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isAdd) return;
+    if (widget.formPrefill == oldWidget.formPrefill) return;
+    _applyFormPrefill(widget.formPrefill);
+  }
+
+  void _applyFormPrefill(WishlistAddFormPrefill? prefill) {
+    if (prefill == null) return;
+
+    if (prefill.link.isNotEmpty) {
+      _linkController.text = prefill.link;
+    }
+    if (prefill.title.isNotEmpty) {
+      _nameController.text = prefill.title;
+    }
+    if (prefill.price > 0) {
+      _priceController.text = _formatPrice(prefill.price);
+    }
+    if (_categories.contains(prefill.category)) {
+      _selectedCategory = prefill.category;
+    }
   }
 
   @override
@@ -172,7 +206,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   }
 
   Future<void> _save() async {
-    if (widget.isSubmitting) return;
+    if (widget.isSubmitting || widget.isImporting) return;
     if (!_formIsValid) {
       await _shakeController.forward(from: 0);
       return;
@@ -189,6 +223,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       price: parsedPrice,
       category: _selectedCategory!,
       link: _linkController.text.trim(),
+      imageUrl: widget.formPrefill?.imageUrl,
     );
     final ok = await widget.onSubmit(updated);
     if (!mounted) return;
@@ -196,11 +231,11 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
     await _playDismiss();
     if (!mounted) return;
-    if (context.mounted) {
+    if (!_isAdd && context.mounted) {
       showCapsuleToast(
         context,
         backgroundColor: const Color(0xFF5F8EAE),
-        text: _isAdd ? '솜사탕이 생겼어요' : '수정되었습니다',
+        text: '수정되었습니다',
       );
     }
     widget.onClose();
@@ -313,6 +348,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               ),
             ),
           ),
+          if (widget.isImporting)
+            Positioned.fill(
+              child: ColoredBox(
+                color: const Color(0x66FFFFFF),
+                child: const LoadingIndicator(),
+              ),
+            ),
         ],
       ),
     );
@@ -437,7 +479,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       label: widget.isSubmitting ? '담는 중...' : label,
       background: AppColors.skyBlue_100,
       pressedBackground: AppColors.skyBlue_200,
-      onPressed: widget.isSubmitting ? null : _save,
+      onPressed: (widget.isSubmitting || widget.isImporting) ? null : _save,
       fixedHeight: 54,
       padding: EdgeInsets.zero,
     );
