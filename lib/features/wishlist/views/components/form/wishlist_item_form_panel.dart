@@ -76,6 +76,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   String? _selectedCategory;
+  bool _showFieldErrors = false;
 
   static const double _sheetTopRadius = 22;
   static const Color _wishlistCardShadowColor = Color(0x22000000);
@@ -189,6 +190,11 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       _priceEmpty || int.tryParse(_priceController.text.replaceAll(',', '').trim()) == null;
   bool get _categoryInvalid => _categoryEmpty;
 
+  bool get _linkShowsError => _showFieldErrors && _linkInvalid;
+  bool get _titleShowsError => _showFieldErrors && _titleInvalid;
+  bool get _priceShowsError => _showFieldErrors && _priceInvalid;
+  bool get _categoryShowsError => _showFieldErrors && _categoryInvalid;
+
   bool get _formIsValid {
     final linkOk = !_linkRequired || !_linkEmpty;
     return linkOk &&
@@ -208,6 +214,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   Future<void> _save() async {
     if (widget.isSubmitting || widget.isImporting) return;
     if (!_formIsValid) {
+      setState(() => _showFieldErrors = true);
       await _shakeController.forward(from: 0);
       return;
     }
@@ -309,8 +316,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                   label: '링크',
                                   controller: _linkController,
                                   hintText: WishlistItemFormHints.link,
-                                  showError: _linkInvalid,
-                                  showErrorBorder: _linkInvalid,
+                                  showError: _linkShowsError,
+                                  showErrorBorder: _linkShowsError,
                                   readOnly: widget.linkReadOnly,
                                 ),
                                 const SizedBox(height: 24),
@@ -318,8 +325,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                   label: '상품명',
                                   controller: _nameController,
                                   hintText: WishlistItemFormHints.productName,
-                                  showError: _titleInvalid,
-                                  showErrorBorder: _titleInvalid,
+                                  showError: _titleShowsError,
+                                  showErrorBorder: _titleShowsError,
                                 ),
                                 const SizedBox(height: 24),
                                 _buildField(
@@ -328,8 +335,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                   keyboardType: TextInputType.number,
                                   suffix: '원',
                                   hintText: WishlistItemFormHints.price,
-                                  showError: _priceInvalid,
-                                  showErrorBorder: _priceInvalid,
+                                  showError: _priceShowsError,
+                                  showErrorBorder: _priceShowsError,
                                 ),
                                 const SizedBox(height: 32),
                                 _categoryLabelRow(),
@@ -445,7 +452,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             height: 1.25,
           ),
         ),
-        _errorIconTrailing(visible: _categoryInvalid),
+        _errorIconTrailing(visible: _categoryShowsError),
       ],
     );
   }
@@ -561,6 +568,15 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
+  OutlineInputBorder _fieldOutlineBorder({required bool showErrorBorder}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(_fieldPillRadius),
+      borderSide: showErrorBorder
+          ? const BorderSide(color: _fieldErrorBorder, width: 1)
+          : BorderSide.none,
+    );
+  }
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -598,7 +614,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             color: AppColors.white,
             borderRadius: BorderRadius.circular(_fieldPillRadius),
             border: showErrorBorder
-                ? Border.all(color: _fieldErrorBorder, width: 1.5)
+                ? Border.all(color: _fieldErrorBorder, width: 1)
                 : null,
             boxShadow: const [
               BoxShadow(
@@ -645,18 +661,11 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                   color: AppColors.textPrimary,
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
+                border: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
+                enabledBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
+                focusedBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
+                errorBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
+                focusedErrorBorder: _fieldOutlineBorder(showErrorBorder: showErrorBorder),
               ),
             ),
           ),
