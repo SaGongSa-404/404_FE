@@ -57,6 +57,22 @@ class WishlistScreen extends ConsumerWidget {
       },
     );
 
+    ref.listen<String?>(
+      wishlistViewModelProvider.select((s) => s.submitErrorMessage),
+      (prev, next) {
+        if (next == null || next.isEmpty) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearSubmitError();
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: next,
+          );
+        });
+      },
+    );
+
     ref.listen<bool>(
       wishlistViewModelProvider.select((s) => s.showEmptyClipboardAlert),
       (prev, next) {
@@ -279,7 +295,10 @@ class WishlistScreen extends ConsumerWidget {
           WishlistItemFormPanel.edit(
             item: editingItem,
             onClose: viewModel.closeEditPanel,
-            onSubmit: viewModel.updateItem,
+            onSubmit: (item) async {
+              viewModel.updateItem(item);
+              return true;
+            },
             onDelete: () => viewModel.removeItem(editingItem.id),
           )
         else if (state.isAddWishOpen)
@@ -288,6 +307,7 @@ class WishlistScreen extends ConsumerWidget {
             onSubmit: viewModel.addItem,
             initialLink: state.addPrefillLink,
             linkReadOnly: state.isAddLinkReadOnly,
+            isSubmitting: state.isSubmitting,
           ),
       ],
     );

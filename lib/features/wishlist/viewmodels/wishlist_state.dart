@@ -2,6 +2,8 @@ import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 
 class WishlistState {
   final bool isLoading;
+  final bool isSubmitting;
+  final String? submitErrorMessage;
   final bool isAlarmOpen;
   final String? editingItemId;
   final bool isAddWishOpen;
@@ -14,6 +16,8 @@ class WishlistState {
 
   const WishlistState({
     this.isLoading = false,
+    this.isSubmitting = false,
+    this.submitErrorMessage,
     this.isAlarmOpen = false,
     this.editingItemId,
     this.isAddWishOpen = false,
@@ -27,6 +31,9 @@ class WishlistState {
 
   WishlistState copyWith({
     bool? isLoading,
+    bool? isSubmitting,
+    String? submitErrorMessage,
+    bool clearSubmitErrorMessage = false,
     bool? isAlarmOpen,
     String? editingItemId,
     bool clearEditingItemId = false,
@@ -45,6 +52,10 @@ class WishlistState {
   }) {
     return WishlistState(
       isLoading: isLoading ?? this.isLoading,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      submitErrorMessage: clearSubmitErrorMessage
+          ? null
+          : (submitErrorMessage ?? this.submitErrorMessage),
       isAlarmOpen: isAlarmOpen ?? this.isAlarmOpen,
       editingItemId: clearEditingItemId ? null : (editingItemId ?? this.editingItemId),
       isAddWishOpen: clearAddWish ? false : (isAddWishOpen ?? this.isAddWishOpen),

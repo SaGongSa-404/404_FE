@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
@@ -24,6 +25,7 @@ class WishlistItemFormPanel extends StatefulWidget {
     required this.onSubmit,
     this.initialLink,
     this.linkReadOnly = false,
+    this.isSubmitting = false,
   })  : mode = WishlistFormMode.add,
         item = null,
         onDelete = null;
@@ -34,6 +36,7 @@ class WishlistItemFormPanel extends StatefulWidget {
     required this.onClose,
     required this.onSubmit,
     this.onDelete,
+    this.isSubmitting = false,
   })  : mode = WishlistFormMode.edit,
         item = item,
         initialLink = null,
@@ -42,10 +45,11 @@ class WishlistItemFormPanel extends StatefulWidget {
   final WishlistFormMode mode;
   final WishlistPlaceholder? item;
   final VoidCallback onClose;
-  final ValueChanged<WishlistPlaceholder> onSubmit;
+  final Future<bool> Function(WishlistPlaceholder item) onSubmit;
   final VoidCallback? onDelete;
   final String? initialLink;
   final bool linkReadOnly;
+  final bool isSubmitting;
 
   @override
   State<WishlistItemFormPanel> createState() => _WishlistItemFormPanelState();
@@ -74,7 +78,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   static const double _beforeSaveButtonGap = 56;
   static const double _extraTopGap = 52;
   static const Color _fieldErrorBorder = Color(0xFF9C4444);
-  static const List<String> _categories = ['패션', '뷰티', '라이프', '디지털', '기타'];
+  static const List<String> _categories = WishlistCategoryUi.formLabels;
 
   bool get _isAdd => widget.mode == WishlistFormMode.add;
 
@@ -168,6 +172,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   }
 
   Future<void> _save() async {
+    if (widget.isSubmitting) return;
     if (!_formIsValid) {
       await _shakeController.forward(from: 0);
       return;
@@ -185,9 +190,12 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       category: _selectedCategory!,
       link: _linkController.text.trim(),
     );
+    final ok = await widget.onSubmit(updated);
+    if (!mounted) return;
+    if (!ok) return;
+
     await _playDismiss();
     if (!mounted) return;
-    widget.onSubmit(updated);
     if (context.mounted) {
       showCapsuleToast(
         context,
@@ -426,10 +434,10 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   Widget _footerSaveButton() {
     final label = _isAdd ? '위시 담기' : '수정완료';
     return WishlistModalPillButton(
-      label: label,
+      label: widget.isSubmitting ? '담는 중...' : label,
       background: AppColors.skyBlue_100,
       pressedBackground: AppColors.skyBlue_200,
-      onPressed: _save,
+      onPressed: widget.isSubmitting ? null : _save,
       fixedHeight: 54,
       padding: EdgeInsets.zero,
     );

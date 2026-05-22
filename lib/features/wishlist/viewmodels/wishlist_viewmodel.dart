@@ -1,6 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
+import 'package:fe_app/features/wishlist/services/wishlist_service.dart';
+import 'package:fe_app/shared/enums/api_enums.dart';
 import 'wishlist_state.dart';
 
 const List<String> categories = ['전체', '패션', '뷰티', '라이프', '디지털', '기타'];
@@ -29,7 +33,11 @@ const List<WishlistPlaceholder> mockWishlistItems = [
 ];
 
 class WishlistViewModel extends StateNotifier<WishlistState> {
-  WishlistViewModel() : super(const WishlistState());
+  WishlistViewModel(this._ref) : super(const WishlistState());
+
+  final Ref _ref;
+
+  WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
 
   Future<void> initialize() async {
     state = state.copyWith(isLoading: true);
@@ -78,6 +86,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearEditingItemId: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
+      clearSubmitErrorMessage: true,
     );
   }
 
@@ -93,6 +102,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearEditingItemId: true,
       addPrefillLink: trimmed,
       isAddLinkReadOnly: true,
+      clearSubmitErrorMessage: true,
     );
   }
 
@@ -119,6 +129,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddWish: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
+      clearSubmitErrorMessage: true,
     );
   }
 
@@ -130,10 +141,70 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(clearReopenAddEntryModal: true);
   }
 
-  void addItem(WishlistPlaceholder item) {
+  void clearSubmitError() {
+    state = state.copyWith(clearSubmitErrorMessage: true);
+  }
+
+  ItemInputSource _resolveInputSourceForAdd(WishlistPlaceholder draft) {
+    final link = draft.link.trim();
+    if (link.isEmpty) return ItemInputSource.directInput;
+    if (state.isAddLinkReadOnly) return ItemInputSource.share;
+    return ItemInputSource.share;
+  }
+
+  /// POST /api/v1/wishlist/items — 추가 성공 시 true.
+  Future<bool> addItem(WishlistPlaceholder draft) async {
     state = state.copyWith(
-      items: [...state.items, item],
+      isSubmitting: true,
+      clearSubmitErrorMessage: true,
     );
+
+    try {
+      final request = draft.toSaveRequest(
+        inputSource: _resolveInputSourceForAdd(draft),
+        categoryLockedByUser: true,
+      );
+      final created = await _wishlistService.createItem(request);
+      final item = created.toPlaceholder();
+
+      state = state.copyWith(
+        isSubmitting: false,
+        items: [...state.items, item],
+        clearAddWish: true,
+        clearAddPrefillLink: true,
+        clearAddLinkReadOnly: true,
+      );
+      return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 409 && e.code == 'DUPLICATE_SAVED_ITEM') {
+        final existing = WishlistService.parseDuplicateExistingItem(e);
+        if (existing != null) {
+          final placeholder = existing.toPlaceholder();
+          final alreadyListed = state.items.any((i) => i.id == placeholder.id);
+          state = state.copyWith(
+            isSubmitting: false,
+            items: alreadyListed ? state.items : [...state.items, placeholder],
+            submitErrorMessage: '이미 담긴 상품이에요',
+            clearAddWish: true,
+            clearAddPrefillLink: true,
+            clearAddLinkReadOnly: true,
+          );
+          return false;
+        }
+      }
+
+      state = state.copyWith(
+        isSubmitting: false,
+        submitErrorMessage: e.message,
+      );
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitErrorMessage: '위시를 담지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+      return false;
+    }
   }
 
   void updateItem(WishlistPlaceholder updatedItem) {
@@ -197,7 +268,7 @@ class ReflectDisplayItemRequest {
 
 final wishlistViewModelProvider =
     StateNotifierProvider<WishlistViewModel, WishlistState>((ref) {
-      final viewModel = WishlistViewModel();
+      final viewModel = WishlistViewModel(ref);
       viewModel.initialize();
       return viewModel;
     });
