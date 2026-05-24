@@ -44,29 +44,6 @@ NoTransitionPage<void> _bottomTabPage(GoRouterState state, Widget child) {
   );
 }
 
-/// 비로그인에서도 접근 허용 — **경로와 정확히 일치**할 때만.
-/// (UI 테스트용. 프로덕션에서 막으려면 항목 제거.)
-const Set<String> _guestAllowExactPaths = {
-  '/home',
-  '/notifications',
-};
-
-/// 비로그인에서도 접근 허용 — **이 접두어**이면 본인 + 하위 경로 (`/wishlist/consider` 등).
-const Set<String> _guestAllowPathPrefixes = {
-  '/onboarding',
-  '/wishlist',
-  '/tutorial',
-  '/feed',
-};
-
-bool _isAllowedPathForGuest(String location) {
-  if (_guestAllowExactPaths.contains(location)) return true;
-  for (final prefix in _guestAllowPathPrefixes) {
-    if (location == prefix || location.startsWith('$prefix/')) return true;
-  }
-  return false;
-}
-
 /// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
@@ -254,9 +231,6 @@ class _RouterNotifier extends ChangeNotifier {
 
     // 비로그인 상태 + 스플래시 → 로그인으로
     if (!isLoggedIn && location == '/') return '/login';
-
-    // 비로그인 + [_guestAllowExactPaths / _guestAllowPathPrefixes] 허용 목록이면 통과
-    if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
 
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
