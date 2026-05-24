@@ -244,7 +244,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
 class _NicknameEditModal extends StatefulWidget {
   final String initialNickname;
-  final Function(String) onSave;
+  final ValueChanged<String> onSave;
 
   const _NicknameEditModal({required this.initialNickname, required this.onSave});
 
