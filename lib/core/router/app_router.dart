@@ -261,12 +261,11 @@ class _RouterNotifier extends ChangeNotifier {
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
 
-    // 로그인 완료 + 스플래시 → 홈으로 (앱 재실행 시 자동 복귀)
-    if (isLoggedIn && location == '/') return '/home';
-
-    // 로그인 완료 + 로그인 페이지 → 약관 동의로 (소셜 로그인 성공 직후)
-    if (isLoggedIn && isAuthPage) {
-      return '/onboarding/terms';
+    // 로그인 완료 + 스플래시 또는 인증 페이지 → onboardingStatus 확인 후 분기
+    if (isLoggedIn && (location == '/' || isAuthPage)) {
+      final isCompleted =
+          authState.value?.onboardingStatus == 'COMPLETED';
+      return isCompleted ? '/home' : '/onboarding/terms';
     }
 
     return null;

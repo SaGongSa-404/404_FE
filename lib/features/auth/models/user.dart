@@ -14,6 +14,7 @@ class UserModel with _$UserModel {
     String? profileImageUrl,          // 소셜 설정에 따라 null 가능
     required String principalName,
     required List<String> authorities,
+    String? onboardingStatus,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

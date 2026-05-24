@@ -1,52 +1,44 @@
 import 'package:flutter/material.dart';
-// TODO(백엔드 연동 시): flutter_dotenv, url_launcher, api_endpoints, auth_provider import 복구
-// import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart'; // ui test용 (백엔드 연동 시 제거)
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:fe_app/core/config/env_config.dart';
+import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
-// TODO(백엔드 연동 시): 아래 import 복구
-// import 'package:fe_app/core/network/api_endpoints.dart';
-// import 'package:fe_app/features/auth/models/user.dart';
-// import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/auth/models/user.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/components/login_button_section.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
-  // TODO(백엔드 연동 시): 아래 실제 OAuth 코드로 교체
-  // static const _redirectUri = 'sagongsa404://auth/callback';
-  // Future<void> _launchOAuth(BuildContext context, String provider) async {
-  //   final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-  //   final url = Uri.parse('$baseUrl${ApiEndpoints.oauthAuthorization(provider, _redirectUri)}');
-  //   try {
-  //     if (!await canLaunchUrl(url)) throw Exception('Cannot launch $url');
-  //     await launchUrl(url, mode: LaunchMode.externalApplication);
-  //   } catch (_) {
-  //     if (context.mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
-  //       );
-  //     }
-  //   }
-  // }
   Future<void> _launchOAuth(BuildContext context, String provider) async {
-    context.go('/onboarding/terms'); // ui test용
+    const redirectUri = 'sagongsa404://auth/callback';
+    final path = ApiEndpoints.oauthAuthorization(provider, redirectUri);
+    final url = Uri.parse('${EnvConfig.apiBaseUrl}$path');
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO(백엔드 연동 시): 아래 ref.listen / isLoading 코드 복구
-    // ref.listen<AsyncValue<UserModel?>>(authProvider, (previous, next) {
-    //   if (next.hasError && previous?.isLoading == true) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
-    //     );
-    //   }
-    // });
-    // final isLoading = ref.watch(authProvider).isLoading;
+    ref.listen<AsyncValue<UserModel?>>(authProvider, (previous, next) {
+      if (next.hasError && previous?.isLoading == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
+        );
+      }
+    });
+
+    final isLoading = ref.watch(authProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -85,7 +77,7 @@ class LoginScreen extends ConsumerWidget {
                       LoginButtonSection(
                         onKakaoPressed: () => _launchOAuth(context, 'kakao'),
                         onGooglePressed: () => _launchOAuth(context, 'google'),
-                        isLoading: false, // ui test용 (백엔드 연동 시 isLoading으로 교체)
+                        isLoading: isLoading,
                       ),
                       const Spacer(flex: 134),
                     ],
