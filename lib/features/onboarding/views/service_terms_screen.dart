@@ -1,5 +1,3 @@
-import 'dart:math' show pi;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -15,20 +13,19 @@ class ServiceTermsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final scale = constraints.maxWidth / _designWidth;
-          final hPad = (constraints.maxWidth * (24 / _designWidth))
-              .clamp(20.0, 48.0);
-          final headerHPad = (constraints.maxWidth * (28 / _designWidth))
-              .clamp(22.0, 56.0);
-          final arrowSize = (18.658 * scale).clamp(15.0, 24.0);
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = constraints.maxWidth / _designWidth;
+            final hPad = (constraints.maxWidth * (24 / _designWidth))
+                .clamp(20.0, 48.0);
+            final headerHPad = (constraints.maxWidth * (28 / _designWidth))
+                .clamp(22.0, 56.0);
+            final arrowSize = (18.658 * scale).clamp(15.0, 24.0);
 
-          return Column(
-            children: [
-              SafeArea(
-                bottom: false,
-                child: _Header(
+            return Column(
+              children: [
+                _Header(
                   title: '서비스 이용약관',
                   arrowSize: arrowSize,
                   hPad: headerHPad,
@@ -36,21 +33,21 @@ class ServiceTermsScreen extends StatelessWidget {
                   fontSize: (20 * scale).clamp(15.0, 26.0),
                   onBack: () => context.pop(),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    hPad,
-                    (17 * scale).clamp(12.0, 22.0),
-                    hPad,
-                    (40 * scale).clamp(30.0, 52.0),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      hPad,
+                      (17 * scale).clamp(12.0, 22.0),
+                      hPad,
+                      (80 * scale).clamp(48.0, 80.0),
+                    ),
+                    child: _ServiceTermsContent(scale: scale),
                   ),
-                  child: _ServiceTermsContent(scale: scale),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -77,7 +74,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.background,
-      padding: EdgeInsets.fromLTRB(hPad, 0, hPad, bottomPad),
+      padding: EdgeInsets.fromLTRB(hPad, bottomPad, hPad, bottomPad),
       child: Row(
         children: [
           GestureDetector(
@@ -85,13 +82,10 @@ class _Header extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Transform.rotate(
-                angle: pi,
-                child: SvgPicture.asset(
-                  'assets/images/arrow_forward.svg',
-                  width: arrowSize,
-                  height: arrowSize,
-                ),
+              child: SvgPicture.asset(
+                'assets/images/arrow_forward.svg',
+                width: arrowSize,
+                height: arrowSize,
               ),
             ),
           ),
