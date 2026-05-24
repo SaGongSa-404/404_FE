@@ -8,6 +8,7 @@ class OnboardingPillTextField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     this.focusNode,
+    this.fontSize = 18,
     this.hintFontSize = 18,
     this.keyboardType,
     this.inputFormatters,
@@ -19,6 +20,7 @@ class OnboardingPillTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final FocusNode? focusNode;
+  final double fontSize;
   final double hintFontSize;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
@@ -58,8 +60,8 @@ class OnboardingPillTextField extends StatelessWidget {
               keyboardType: keyboardType,
               inputFormatters: inputFormatters,
               textInputAction: textInputAction,
-              style: const TextStyle(
-                fontSize: 18,
+              style: TextStyle(
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
                 color: _textColor,
                 height: 1.548,

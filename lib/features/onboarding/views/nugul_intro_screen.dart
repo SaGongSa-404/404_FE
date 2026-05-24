@@ -16,8 +16,7 @@ class NugulIntroScreen extends ConsumerWidget {
   final int currentStep;
   final int totalSteps;
 
-  // 피그마 기준 프레임 너비 (Android Compact 390px)
-  static const _designW = 390.0;
+  static const _designW = 412.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,10 +28,9 @@ class NugulIntroScreen extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
-            // 수평 패딩: 24/390 비율, 20~48px clamp
+            final scale = w / _designW;
             final hPad = (w * 24 / _designW).clamp(20.0, 48.0);
             final innerW = w - hPad * 2;
-            // 캐릭터 너비: 피그마 208/342(innerW) ≈ 61%, 140~210px clamp
             final charW = (innerW * 0.61).clamp(140.0, 210.0);
 
             return Center(
@@ -62,11 +60,11 @@ class NugulIntroScreen extends ConsumerWidget {
                             // 인디케이터 ↔ 텍스트: gap 23 + 텍스트 상단 패딩 74 = 97/844 비율
                             const Spacer(flex: 97),
 
-                            const Text(
+                            Text(
                               '위시템을 담으면\n솜사탕이 생겨요.',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 26,
+                                fontSize: (26 * scale).clamp(19.0, 33.0),
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
                                 height: 1.36,
@@ -75,11 +73,11 @@ class NugulIntroScreen extends ConsumerWidget {
 
                             const SizedBox(height: 12),
 
-                            const Text(
+                            Text(
                               '맑은 날엔 너굴이가 솜사탕을 맛있게\n먹을 수 있어요!',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 18,
+                                fontSize: (18 * scale).clamp(14.0, 23.0),
                                 fontWeight: FontWeight.w400,
                                 color: AppColors.textPrimary,
                                 height: 1.45,
@@ -97,6 +95,7 @@ class NugulIntroScreen extends ConsumerWidget {
                                     nickname:
                                         nickname.isEmpty ? '친구' : nickname,
                                     width: charW,
+                                    scale: scale,
                                   ),
                                   const SizedBox(height: 11),
                                   Image.asset(
@@ -115,6 +114,7 @@ class NugulIntroScreen extends ConsumerWidget {
                             OnboardingPrimaryButton(
                               label: '다음',
                               onPressed: () => context.go('/home'),
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
 
                             // 하단 여백: 40/844 비율
@@ -135,10 +135,15 @@ class NugulIntroScreen extends ConsumerWidget {
 }
 
 class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.nickname, required this.width});
+  const _SpeechBubble({
+    required this.nickname,
+    required this.width,
+    required this.scale,
+  });
 
   final String nickname;
   final double width;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +157,9 @@ class _SpeechBubble extends StatelessWidget {
           child: Text(
             '안녕하세요, $nickname님!\n저는 너굴이에요.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Pretendard',
-              fontSize: 16,
+              fontSize: (16 * scale).clamp(12.0, 21.0),
               fontWeight: FontWeight.w400,
               color: AppColors.textPrimary,
               height: 1.2,
