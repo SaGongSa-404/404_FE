@@ -93,7 +93,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 13 * scale),
               ),
             ),
-            const SizedBox(height: 36),
+            SizedBox(height: 36 * scale),
             Padding(
               padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
               child: Text(
