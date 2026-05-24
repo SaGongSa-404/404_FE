@@ -5,6 +5,9 @@ import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/nugul_intro_screen.dart';
+import 'package:fe_app/features/onboarding/views/privacy_policy_screen.dart';
+import 'package:fe_app/features/onboarding/views/service_terms_screen.dart';
+import 'package:fe_app/features/onboarding/views/terms_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -184,8 +187,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         redirect: (context, state) =>
-            state.uri.path == '/onboarding' ? '/onboarding/nickname' : null,
+            state.uri.path == '/onboarding' ? '/onboarding/terms' : null,
         routes: [
+          GoRoute(
+            path: 'terms',
+            builder: (context, state) => const TermsScreen(),
+          ),
           GoRoute(
             path: 'nickname',
             builder: (context, state) => const NicknameScreen(),
@@ -201,6 +208,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'nugul-intro',
             builder: (context, state) => const NugulIntroScreen(),
+          ),
+          GoRoute(
+            path: 'service-terms',
+            builder: (context, state) => const ServiceTermsScreen(),
+          ),
+          GoRoute(
+            path: 'privacy-policy',
+            builder: (context, state) => const PrivacyPolicyScreen(),
           ),
         ],
       ),
@@ -249,9 +264,9 @@ class _RouterNotifier extends ChangeNotifier {
     // 로그인 완료 + 스플래시 → 홈으로 (앱 재실행 시 자동 복귀)
     if (isLoggedIn && location == '/') return '/home';
 
-    // 로그인 완료 + 로그인 페이지 → 닉네임 설정으로 (소셜 로그인 성공 직후)
+    // 로그인 완료 + 로그인 페이지 → 약관 동의로 (소셜 로그인 성공 직후)
     if (isLoggedIn && isAuthPage) {
-      return '/onboarding/nickname';
+      return '/onboarding/terms';
     }
 
     return null;
