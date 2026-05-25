@@ -340,7 +340,9 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               final item = filteredItems[index];
                                               return WishlistItemCard(
                                                 item: item,
-                                                onTap: () => context.push('/wishlist/consider'),
+                                                onTap: () => context.push(
+                                                  '/wishlist/consider?id=${item.id}',
+                                                ),
                                                 onLongPress: () => {},
                                                 onEdit: () => viewModel.openEditPanel(item.id),
                                                 onDelete: () async {

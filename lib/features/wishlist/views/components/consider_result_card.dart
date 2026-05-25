@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 
 class ConsiderResultCard extends ConsumerWidget {
-  const ConsiderResultCard({super.key});
+  const ConsiderResultCard({super.key, required this.itemId});
+
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
+    final state = ref.watch(considerViewModelProvider(itemId));
 
     return Container(
       padding: const EdgeInsets.all(20),

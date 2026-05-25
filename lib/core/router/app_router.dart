@@ -98,14 +98,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'consider',
-            builder: (context, state) => const WishlistConsiderScreen(),
+            builder: (context, state) {
+              final itemId = state.uri.queryParameters['id'];
+              if (itemId == null || itemId.isEmpty) {
+                return const WishlistScreen();
+              }
+              return WishlistConsiderScreen(itemId: itemId);
+            },
             routes: [
               GoRoute(
                 name: 'wishlist_consider_result',
                 path: 'result',
                 builder: (context, state) {
-                  final caseType = state.extra as ConsiderCaseType;
-                  return WishlistConsiderResultScreen(caseType: caseType);
+                  final extra = state.extra;
+                  if (extra is ConsiderRouteResult) {
+                    return WishlistConsiderResultScreen(
+                      caseType: extra.caseType,
+                      itemId: extra.itemId,
+                    );
+                  }
+                  final legacy = extra as ConsiderCaseType?;
+                  return WishlistConsiderResultScreen(
+                    caseType: legacy ?? ConsiderCaseType.caseC,
+                    itemId: '',
+                  );
                 },
               ),
             ],

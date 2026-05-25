@@ -8,10 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class WishlistConsiderScreen extends ConsumerWidget {
-  const WishlistConsiderScreen({super.key});
+  const WishlistConsiderScreen({super.key, required this.itemId});
+
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(considerViewModelProvider(itemId));
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -24,7 +28,7 @@ class WishlistConsiderScreen extends ConsumerWidget {
             size: 18,
           ),
           onPressed: () {
-            ref.read(considerViewModelProvider.notifier).reset();
+            ref.read(considerViewModelProvider(itemId).notifier).resetAnswers();
             context.pop();
           },
         ),
@@ -38,32 +42,114 @@ class WishlistConsiderScreen extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: const SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
+      body: _buildBody(context, ref, state),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, WidgetRef ref, ConsiderState state) {
+    if (state.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.skyBlue_300),
+      );
+    }
+
+    if (state.loadError != null) {
+      return _LoadErrorView(
+        message: state.loadError!,
+        onRetry: () =>
+            ref.read(considerViewModelProvider(itemId).notifier).load(),
+        onBack: () => context.pop(),
+      );
+    }
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          ConsiderProductHeader(itemId: itemId),
+          const Divider(
+            thickness: 1,
+            color: AppColors.grey,
+            indent: 24,
+            endIndent: 24,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: ConsiderBudgetCard(itemId: itemId),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConsiderChecklistBody(itemId: itemId),
+          ),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConsiderResultCard(itemId: itemId),
+          ),
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: _BottomActionButtons(itemId: itemId),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadErrorView extends StatelessWidget {
+  const _LoadErrorView({
+    required this.message,
+    required this.onRetry,
+    required this.onBack,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ConsiderProductHeader(),
-            Divider(thickness: 1, color: AppColors.grey, indent: 24, endIndent: 24),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConsiderBudgetCard(),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+                height: 1.4,
+              ),
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderChecklistBody(),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onBack,
+                    child: const Text('돌아가기'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onRetry,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.skyBlue_100,
+                      foregroundColor: AppColors.textPrimary,
+                      elevation: 0,
+                    ),
+                    child: const Text('다시 시도'),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 32),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderResultCard(),
-            ),
-            SizedBox(height: 40),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: _BottomActionButtons(),
-            ),
-            SizedBox(height: 40),
           ],
         ),
       ),
@@ -72,11 +158,14 @@ class WishlistConsiderScreen extends ConsumerWidget {
 }
 
 class _BottomActionButtons extends ConsumerWidget {
-  const _BottomActionButtons();
+  const _BottomActionButtons({required this.itemId});
+
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
+    final state = ref.watch(considerViewModelProvider(itemId));
+    final questionCount = state.totalQuestions;
 
     return Row(
       children: [
@@ -85,19 +174,24 @@ class _BottomActionButtons extends ConsumerWidget {
             onTap: () {
               if (!state.isAllAnswered) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text('1~$questionCount번 질문에 모두 답변해 주세요.'),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
                 return;
               }
 
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
               final resultCase = ref
-                  .read(considerViewModelProvider.notifier)
+                  .read(considerViewModelProvider(itemId).notifier)
                   .recordDecision(PurchaseDecision.refrain);
-              context.push('/wishlist/consider/result', extra: resultCase);
+              context.push(
+                '/wishlist/consider/result',
+                extra: ConsiderRouteResult(
+                  caseType: resultCase,
+                  itemId: itemId,
+                ),
+              );
             },
             child: Container(
               height: 56,
@@ -124,19 +218,24 @@ class _BottomActionButtons extends ConsumerWidget {
             onTap: () {
               if (!state.isAllAnswered) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text('1~$questionCount번 질문에 모두 답변해 주세요.'),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
                 return;
               }
 
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
               final resultCase = ref
-                  .read(considerViewModelProvider.notifier)
+                  .read(considerViewModelProvider(itemId).notifier)
                   .recordDecision(PurchaseDecision.purchase);
-              context.push('/wishlist/consider/result', extra: resultCase);
+              context.push(
+                '/wishlist/consider/result',
+                extra: ConsiderRouteResult(
+                  caseType: resultCase,
+                  itemId: itemId,
+                ),
+              );
             },
             child: Container(
               height: 56,
@@ -163,25 +262,21 @@ class _BottomActionButtons extends ConsumerWidget {
 }
 
 class ConsiderChecklistBody extends ConsumerWidget {
-  const ConsiderChecklistBody({super.key});
+  const ConsiderChecklistBody({super.key, required this.itemId});
 
-  static const List<String> _questions = [
-    '1. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '2. \'세일 중\'이라서, 혹은 \'마지막 수량\'이라서 조급함을 느끼고 있지는 않은가요?',
-    '3. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '4. 지금 내 기분이 우울하거나, 피곤하거나, 혹은 너무 들떠있어서 사고 싶은 건 아닌가요?',
-  ];
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
-    final viewModel = ref.read(considerViewModelProvider.notifier);
+    final state = ref.watch(considerViewModelProvider(itemId));
+    final viewModel = ref.read(considerViewModelProvider(itemId).notifier);
+    final questions = state.questions;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...List.generate(_questions.length, (index) {
-          final question = _questions[index];
+        ...List.generate(questions.length, (index) {
+          final question = questions[index];
           final currentAnswer = state.answers[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 24),
@@ -189,7 +284,7 @@ class ConsiderChecklistBody extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  question,
+                  '${index + 1}. ${question.text}',
                   style: AppTextStyles.body.copyWith(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -200,9 +295,21 @@ class ConsiderChecklistBody extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildAnswerButton(viewModel, index, 'Yes', true, currentAnswer == true),
+                    _buildAnswerButton(
+                      viewModel,
+                      index,
+                      'Yes',
+                      true,
+                      currentAnswer == true,
+                    ),
                     const SizedBox(width: 12),
-                    _buildAnswerButton(viewModel, index, 'No', false, currentAnswer == false),
+                    _buildAnswerButton(
+                      viewModel,
+                      index,
+                      'No',
+                      false,
+                      currentAnswer == false,
+                    ),
                   ],
                 ),
               ],
@@ -215,12 +322,12 @@ class ConsiderChecklistBody extends ConsumerWidget {
   }
 
   Widget _buildAnswerButton(
-      ConsiderViewModel vm,
-      int index,
-      String label,
-      bool value,
-      bool isSelected,
-      ) {
+    ConsiderViewModel vm,
+    int index,
+    String label,
+    bool value,
+    bool isSelected,
+  ) {
     return Expanded(
       child: GestureDetector(
         onTap: () => vm.setAnswer(index, value),
@@ -240,7 +347,9 @@ class ConsiderChecklistBody extends ConsumerWidget {
               style: AppTextStyles.body.copyWith(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
               ),
             ),
           ),

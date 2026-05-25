@@ -5,20 +5,19 @@ import 'package:fe_app/features/wishlist/views/components/consider_scroll_indica
 
 class ConsiderChecklist extends ConsumerWidget {
   final PageController pageController;
+  final String itemId;
 
-  const ConsiderChecklist({super.key, required this.pageController});
-
-  static const List<String> _questions = [
-    '1. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '2. \'세일 중\'이라서, 혹은 \'마지막 수량\'이라서 조급함을 느끼고 있지는 않은가요?',
-    '3. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '4. 지금 내 기분이 우울하거나, 피곤하거나, 혹은 너무 들떠있어서 사고 싶은 건 아닌가요?',
-  ];
+  const ConsiderChecklist({
+    super.key,
+    required this.pageController,
+    required this.itemId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
-    final viewModel = ref.read(considerViewModelProvider.notifier);
+    final state = ref.watch(considerViewModelProvider(itemId));
+    final viewModel = ref.read(considerViewModelProvider(itemId).notifier);
+    final questions = state.questions;
 
     return Container(
       color: Colors.white,
@@ -36,8 +35,8 @@ class ConsiderChecklist extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
-            ...List.generate(_questions.length, (index) {
-              final question = _questions[index];
+            ...List.generate(questions.length, (index) {
+              final question = questions[index];
               final currentAnswer = state.answers[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 18),
@@ -45,7 +44,7 @@ class ConsiderChecklist extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      question,
+                      '${index + 1}. ${question.text}',
                       style: const TextStyle(fontSize: 16, height: 1.3),
                     ),
                     const SizedBox(height: 10),

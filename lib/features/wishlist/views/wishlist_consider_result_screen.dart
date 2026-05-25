@@ -10,9 +10,11 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
   const WishlistConsiderResultScreen({
     super.key,
     required this.caseType,
+    required this.itemId,
   });
 
   final ConsiderCaseType caseType;
+  final String itemId;
 
   Widget _caseImage() {
     switch (caseType) {
@@ -81,7 +83,9 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
         leading: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            ref.read(considerViewModelProvider.notifier).reset();
+            if (itemId.isNotEmpty) {
+              ref.read(considerViewModelProvider(itemId).notifier).reset();
+            }
             context.go('/wishlist');
           },
           child: Padding(
@@ -177,7 +181,11 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                         // Home 화면에서 딜레이 없이 재생하기 위해 결과를 바탕으로 비디오를 미리 로드합니다.
                         await special.preloadCase(caseType);
                         special.markCase(caseType);
-                        ref.read(considerViewModelProvider.notifier).reset();
+                        if (itemId.isNotEmpty) {
+                          ref
+                              .read(considerViewModelProvider(itemId).notifier)
+                              .reset();
+                        }
                         context.go('/home');
                       },
                       style: ElevatedButton.styleFrom(
