@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
@@ -52,6 +53,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
       final reported = await showReportModal(context);
       if (!mounted) return;
       if (reported) _triggerToast('신고가 완료되었습니다');
+    } else if (result == 'block') {
+      final blocked = await showBlockModal(context);
+      if (!mounted) return;
+      if (blocked) _triggerToast('차단되었습니다');
     }
   }
 

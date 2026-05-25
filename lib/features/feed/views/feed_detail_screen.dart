@@ -4,6 +4,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
@@ -33,6 +34,10 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       final reported = await showReportModal(context);
       if (!mounted) return;
       if (reported) _showCommentToast('신고가 완료되었습니다');
+    } else if (result == 'block') {
+      final blocked = await showBlockModal(context);
+      if (!mounted) return;
+      if (blocked) _showCommentToast('차단되었습니다');
     }
   }
 
