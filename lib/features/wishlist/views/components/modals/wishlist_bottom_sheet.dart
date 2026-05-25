@@ -25,7 +25,6 @@ Future<void> showWishlistModalBottomSheet(
   );
 }
 
-/// 모달·패널 공통 pill 버튼 (눌림 배경색 지정).
 class WishlistModalPillButton extends StatefulWidget {
   const WishlistModalPillButton({
     super.key,

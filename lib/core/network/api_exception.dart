@@ -53,3 +53,14 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+/// [DioException] 인터셉터가 [error]에 넣은 [ApiException] 또는 직접 throw된 값을 꺼냅니다.
+ApiException? apiExceptionFrom(Object error) {
+  if (error is ApiException) return error;
+  if (error is DioException) {
+    final inner = error.error;
+    if (inner is ApiException) return inner;
+    return ApiException.fromDioException(error);
+  }
+  return null;
+}

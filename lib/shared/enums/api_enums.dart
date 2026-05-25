@@ -4,6 +4,14 @@ enum ItemInputSource {
 
   const ItemInputSource(this.apiValue);
   final String apiValue;
+
+  static ItemInputSource? fromApiValue(String? value) {
+    if (value == null) return null;
+    for (final item in ItemInputSource.values) {
+      if (item.apiValue == value) return item;
+    }
+    return null;
+  }
 }
 
 enum ItemCategory {
@@ -20,9 +28,10 @@ enum ItemCategory {
   final String apiValue;
 
   static ItemCategory? fromApiValue(String? value) {
-    if (value == null) return null;
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
     for (final item in ItemCategory.values) {
-      if (item.apiValue == value) return item;
+      if (item.apiValue == normalized) return item;
     }
     return null;
   }
@@ -36,6 +45,14 @@ enum ItemStatus {
 
   const ItemStatus(this.apiValue);
   final String apiValue;
+
+  static ItemStatus? fromApiValue(String? value) {
+    if (value == null) return null;
+    for (final item in ItemStatus.values) {
+      if (item.apiValue == value) return item;
+    }
+    return null;
+  }
 }
 
 enum PurchaseDecisionResult {

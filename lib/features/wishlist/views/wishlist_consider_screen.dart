@@ -41,19 +41,16 @@ class WishlistConsiderScreen extends ConsumerWidget {
               child: ConsiderBudgetCard(),
             ),
             SizedBox(height: 20),
-            // 체크리스트 영역
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderChecklistBody(),
             ),
             SizedBox(height: 32),
-            // 결과 카드
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderResultCard(),
             ),
             SizedBox(height: 40),
-            // 하단 버튼
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: _BottomActionButtons(),
