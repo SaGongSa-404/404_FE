@@ -15,7 +15,7 @@ extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
 
     final price = (draft?.listedPrice ?? itemDraft?.listedPrice)?.round() ?? 0;
     final category = WishlistCategoryUi.toUiLabel(
-      draft?.category ?? itemDraft?.category?.apiValue,
+      _resolveCategoryApiValue(draft, itemDraft),
     );
     final imageUrl = draft?.imageUrl ?? itemDraft?.imageUrl;
 
@@ -51,6 +51,15 @@ extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
       rawPriceText: draft.rawPriceText ?? meta.rawPriceText,
       rawPayloadJson: draft.rawPayloadJson ?? meta.rawPayloadJson,
     );
+  }
+
+  String? _resolveCategoryApiValue(
+    WishlistItemSaveRequest? draft,
+    SavedItemDraft? itemDraft,
+  ) {
+    final fromSave = draft?.category.trim();
+    if (fromSave != null && fromSave.isNotEmpty) return fromSave;
+    return itemDraft?.category?.apiValue;
   }
 
   String _resolveLink(

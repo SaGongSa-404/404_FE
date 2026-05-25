@@ -18,27 +18,37 @@ class ItemImportLinkResponse {
 
   factory ItemImportLinkResponse.fromJson(Map<String, dynamic> json) {
     final rawWarnings = json['warnings'];
+    final item = json['item'] is Map<String, dynamic>
+        ? SavedItemDraft.fromJson(json['item'] as Map<String, dynamic>)
+        : null;
     return ItemImportLinkResponse(
       retrievalStatus: json['retrievalStatus'] as String? ?? '',
-      item: json['item'] is Map<String, dynamic>
-          ? SavedItemDraft.fromJson(json['item'] as Map<String, dynamic>)
-          : null,
+      item: item,
       sourceMetadata: json['sourceMetadata'] is Map<String, dynamic>
           ? ItemSourceMetadataDraft.fromJson(
               json['sourceMetadata'] as Map<String, dynamic>,
             )
           : null,
-      saveRequest: _tryParseSaveRequest(json['saveRequest']),
+      saveRequest: _tryParseSaveRequest(json['saveRequest'], item: item),
       warnings: rawWarnings is List
           ? rawWarnings.map((e) => e.toString()).toList()
           : const [],
     );
   }
 
-  static WishlistItemSaveRequest? _tryParseSaveRequest(Object? raw) {
+  static WishlistItemSaveRequest? _tryParseSaveRequest(
+    Object? raw, {
+    SavedItemDraft? item,
+  }) {
     if (raw is! Map<String, dynamic>) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final category = map['category'] as String?;
+    if ((category == null || category.trim().isEmpty) &&
+        item?.category != null) {
+      map['category'] = item!.category!.apiValue;
+    }
     try {
-      return WishlistItemSaveRequest.fromJson(raw);
+      return WishlistItemSaveRequest.fromJson(map);
     } catch (_) {
       return null;
     }

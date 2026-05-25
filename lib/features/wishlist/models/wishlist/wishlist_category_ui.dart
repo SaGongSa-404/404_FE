@@ -18,7 +18,9 @@ abstract final class WishlistCategoryUi {
   }
 
   static String toUiLabel(String? apiCategory) {
-    final category = ItemCategory.fromApiValue(apiCategory);
+    final normalized = apiCategory?.trim();
+    if (normalized == null || normalized.isEmpty) return '기타';
+    final category = ItemCategory.fromApiValue(normalized.toUpperCase());
     if (category == null) return '기타';
     for (final entry in _labelToEnum.entries) {
       if (entry.value == category) return entry.key;

@@ -28,9 +28,10 @@ enum ItemCategory {
   final String apiValue;
 
   static ItemCategory? fromApiValue(String? value) {
-    if (value == null) return null;
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
     for (final item in ItemCategory.values) {
-      if (item.apiValue == value) return item;
+      if (item.apiValue == normalized) return item;
     }
     return null;
   }

@@ -197,48 +197,10 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
       );
     } on ArgumentError {
-      state = state.copyWith(
-        isImportingLink: false,
-        clearAddWish: true,
-        clearAddPrefillLink: true,
-        clearAddLinkReadOnly: true,
-        submitErrorMessage: 'http 또는 https로 시작하는 상품 링크를 붙여넣어 주세요.',
-      );
-    } catch (e) {
-      final api = apiExceptionFrom(e);
-      if (api != null && _shouldNavigateImportFailure(api.statusCode)) {
-        _handleImportFailure();
-        return;
-      }
-      state = state.copyWith(
-        isImportingLink: false,
-        submitErrorMessage: _importErrorMessage(api),
-      );
+      _handleImportFailure();
+    } catch (_) {
+      _handleImportFailure();
     }
-  }
-
-  bool _shouldNavigateImportFailure(int? statusCode) {
-    return statusCode == 422 || statusCode == 502 || statusCode == 500;
-  }
-
-  String _importErrorMessage(ApiException? api) {
-    if (api == null) {
-      return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
-    }
-    return switch (api.statusCode) {
-      400 => api.message,
-      500 || 502 => '상품 페이지를 불러오지 못했어요. 링크를 확인하거나 잠시 후 다시 시도해 주세요.',
-      422 => '상품 정보를 추출하지 못했어요. 직접 입력해 주세요.',
-      _ => _sanitizeServerMessage(api.message),
-    };
-  }
-
-  String _sanitizeServerMessage(String message) {
-    final lower = message.toLowerCase();
-    if (lower.contains('internal server error')) {
-      return '서버에서 상품 정보를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
-    }
-    return message;
   }
 
   void _handleImportFailure() {
@@ -313,7 +275,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         listedPrice: draft.price > 0 ? draft.price : null,
         currencyCode: draft.price > 0 ? (imported.currencyCode ?? 'KRW') : null,
         category: WishlistCategoryUi.toApiValue(draft.category),
-        categoryLockedByUser: true,
+        categoryLockedByUser: imported.categoryLockedByUser ?? true,
         imageUrl: draft.imageUrl ?? imported.imageUrl,
         originalUrl: draft.link.trim().isNotEmpty
             ? draft.link.trim()

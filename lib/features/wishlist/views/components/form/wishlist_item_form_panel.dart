@@ -147,24 +147,39 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     super.didUpdateWidget(oldWidget);
     if (!_isAdd) return;
     if (widget.isImporting && !oldWidget.isImporting) return;
-    if (widget.formPrefill == oldWidget.formPrefill) return;
-    _applyFormPrefill(widget.formPrefill);
-  }
 
-  void _applyFormPrefill(WishlistAddFormPrefill? prefill) {
+    final prefill = widget.formPrefill;
     if (prefill == null) return;
 
-    if (prefill.link.isNotEmpty) {
-      _linkController.text = prefill.link;
+    final finishingImport = oldWidget.isImporting && !widget.isImporting;
+    if (!finishingImport && identical(prefill, oldWidget.formPrefill)) return;
+
+    _applyFormPrefill(prefill, rebuild: true);
+  }
+
+  void _applyFormPrefill(WishlistAddFormPrefill? prefill, {bool rebuild = false}) {
+    if (prefill == null) return;
+
+    void apply() {
+      if (prefill.link.isNotEmpty) {
+        _linkController.text = prefill.link;
+      }
+      if (prefill.title.isNotEmpty) {
+        _nameController.text = prefill.title;
+      }
+      if (prefill.price > 0) {
+        _priceController.text = _formatPrice(prefill.price);
+      }
+      final category = prefill.category.trim();
+      if (category.isNotEmpty && _categories.contains(category)) {
+        _selectedCategory = category;
+      }
     }
-    if (prefill.title.isNotEmpty) {
-      _nameController.text = prefill.title;
-    }
-    if (prefill.price > 0) {
-      _priceController.text = _formatPrice(prefill.price);
-    }
-    if (_categories.contains(prefill.category)) {
-      _selectedCategory = prefill.category;
+
+    if (rebuild && mounted) {
+      setState(apply);
+    } else {
+      apply();
     }
   }
 
