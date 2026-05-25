@@ -5,6 +5,7 @@ import 'package:fe_app/features/wishlist/models/item_import/item_import_link_req
 import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_category_update_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -39,6 +40,15 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
   Future<void> refreshItems() async {
     state = state.copyWith(clearListErrorMessage: true);
+    await _fetchFirstPage();
+  }
+
+  /// 위시 탭/화면 진입 시 서버 목록으로 동기화합니다.
+  Future<void> reloadOnScreenOpen() async {
+    state = state.copyWith(clearListErrorMessage: true);
+    if (state.items.isEmpty) {
+      state = state.copyWith(isLoading: true);
+    }
     await _fetchFirstPage();
   }
 
@@ -345,20 +355,60 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     }
   }
 
-  void updateItem(WishlistPlaceholder updatedItem) {
-    final nextItems = state.items
-        .map((item) => item.id == updatedItem.id ? updatedItem : item)
-        .toList();
+  Future<bool> updateItem(WishlistPlaceholder updatedItem) async {
+    final exists = state.items.any((item) => item.id == updatedItem.id);
+    if (!exists) return false;
 
-    state = state.copyWith(items: nextItems);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearSubmitErrorMessage: true,
+    );
+
+    try {
+      await _wishlistService.updateItemCategory(
+        itemId: updatedItem.id,
+        request: WishlistItemCategoryUpdateRequest(
+          category: WishlistCategoryUi.toApiValue(updatedItem.category),
+        ),
+      );
+      await _fetchFirstPage();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      state = state.copyWith(
+        isSubmitting: false,
+        submitErrorMessage: api?.message ??
+            '카테고리를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+      return false;
+    }
   }
 
-  void removeItem(String id) {
+  Future<bool> dropItem(String id) async {
     state = state.copyWith(
-      items: state.items.where((item) => item.id != id).toList(),
-      clearEditingItemId: true,
-      clearAddWish: true,
+      isSubmitting: true,
+      clearSubmitErrorMessage: true,
     );
+
+    try {
+      await _wishlistService.dropItem(itemId: id);
+      await _fetchFirstPage();
+      state = state.copyWith(
+        isSubmitting: false,
+        clearEditingItemId: true,
+        clearAddWish: true,
+      );
+      return true;
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      state = state.copyWith(
+        isSubmitting: false,
+        submitErrorMessage: api?.message ??
+            '위시를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+      return false;
+    }
   }
 
   WishlistPlaceholder resolveReflectItem({
@@ -406,7 +456,5 @@ class ReflectDisplayItemRequest {
 
 final wishlistViewModelProvider =
     StateNotifierProvider<WishlistViewModel, WishlistState>((ref) {
-      final viewModel = WishlistViewModel(ref);
-      viewModel.initialize();
-      return viewModel;
-    });
+  return WishlistViewModel(ref);
+});

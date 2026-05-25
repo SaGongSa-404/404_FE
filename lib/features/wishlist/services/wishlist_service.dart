@@ -5,6 +5,7 @@ import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_category_update_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/shared/models/pagination.dart';
 
@@ -42,6 +43,21 @@ class WishlistService {
       data: request.toJson(),
     );
     return WishlistItem.fromJson(res.data!);
+  }
+
+  Future<void> updateItemCategory({
+    required String itemId,
+    required WishlistItemCategoryUpdateRequest request,
+  }) async {
+    await _dio.patch<void>(
+      ApiEndpoints.wishlistItemCategory(itemId),
+      data: request.toJson(),
+    );
+  }
+
+  /// 저장 상품을 DROPPED 처리합니다 (204 No Content).
+  Future<void> dropItem({required String itemId}) async {
+    await _dio.delete<void>(ApiEndpoints.wishlistItem(itemId));
   }
 
   static WishlistItem? parseDuplicateExistingItem(ApiException error) {

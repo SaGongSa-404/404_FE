@@ -16,8 +16,22 @@ import 'package:fe_app/features/wishlist/views/components/modals/wishlist_add_en
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_share_modal.dart';
 import 'package:go_router/go_router.dart';
 
-class WishlistScreen extends ConsumerWidget {
+class WishlistScreen extends ConsumerStatefulWidget {
   const WishlistScreen({super.key});
+
+  @override
+  ConsumerState<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends ConsumerState<WishlistScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen();
+    });
+  }
 
   static const TextStyle _wishlistCountStyle = TextStyle(
     fontSize: 27,
@@ -41,7 +55,8 @@ class WishlistScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final state = ref.watch(wishlistViewModelProvider);
     final viewModel = ref.read(wishlistViewModelProvider.notifier);
 
@@ -328,15 +343,15 @@ class WishlistScreen extends ConsumerWidget {
                                                 onTap: () => context.push('/wishlist/consider'),
                                                 onLongPress: () => {},
                                                 onEdit: () => viewModel.openEditPanel(item.id),
-                                                onDelete: () {
-                                                  if (context.mounted) {
-                                                    showCapsuleToast(
-                                                      context,
-                                                      backgroundColor: const Color(0xFFD46868),
-                                                      text: '삭제되었습니다',
-                                                    );
-                                                  }
-                                                  viewModel.removeItem(item.id);
+                                                onDelete: () async {
+                                                  final ok =
+                                                      await viewModel.dropItem(item.id);
+                                                  if (!context.mounted || !ok) return;
+                                                  showCapsuleToast(
+                                                    context,
+                                                    backgroundColor: const Color(0xFFD46868),
+                                                    text: '삭제되었습니다',
+                                                  );
                                                 },
                                                 onShare: () {
                                                   showWishlistShareToFeedModal(
@@ -374,11 +389,19 @@ class WishlistScreen extends ConsumerWidget {
           WishlistItemFormPanel.edit(
             item: editingItem,
             onClose: viewModel.closeEditPanel,
-            onSubmit: (item) async {
-              viewModel.updateItem(item);
-              return true;
+            onSubmit: viewModel.updateItem,
+            isSubmitting: state.isSubmitting,
+            onDelete: () async {
+              final ok = await viewModel.dropItem(editingItem.id);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFFD46868),
+                  text: '삭제되었습니다',
+                );
+              }
+              return ok;
             },
-            onDelete: () => viewModel.removeItem(editingItem.id),
           )
         else if (state.isAddWishOpen)
           WishlistItemFormPanel.add(
