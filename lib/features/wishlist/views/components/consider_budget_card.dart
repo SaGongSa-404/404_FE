@@ -32,7 +32,6 @@ class ConsiderBudgetCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              // Progress Bar
               Stack(
                 children: [
                   Container(

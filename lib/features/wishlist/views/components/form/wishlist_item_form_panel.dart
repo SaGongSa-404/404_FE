@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
+import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,7 +26,10 @@ class WishlistItemFormPanel extends StatefulWidget {
     required this.onClose,
     required this.onSubmit,
     this.initialLink,
+    this.formPrefill,
     this.linkReadOnly = false,
+    this.isImporting = false,
+    this.isSubmitting = false,
   })  : mode = WishlistFormMode.add,
         item = null,
         onDelete = null;
@@ -34,18 +40,24 @@ class WishlistItemFormPanel extends StatefulWidget {
     required this.onClose,
     required this.onSubmit,
     this.onDelete,
+    this.isSubmitting = false,
   })  : mode = WishlistFormMode.edit,
         item = item,
         initialLink = null,
-        linkReadOnly = false;
+        formPrefill = null,
+        linkReadOnly = false,
+        isImporting = false;
 
   final WishlistFormMode mode;
   final WishlistPlaceholder? item;
   final VoidCallback onClose;
-  final ValueChanged<WishlistPlaceholder> onSubmit;
-  final VoidCallback? onDelete;
+  final Future<bool> Function(WishlistPlaceholder item) onSubmit;
+  final Future<bool> Function()? onDelete;
   final String? initialLink;
+  final WishlistAddFormPrefill? formPrefill;
   final bool linkReadOnly;
+  final bool isImporting;
+  final bool isSubmitting;
 
   @override
   State<WishlistItemFormPanel> createState() => _WishlistItemFormPanelState();
@@ -64,6 +76,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   String? _selectedCategory;
+  bool _showFieldErrors = false;
 
   static const double _sheetTopRadius = 22;
   static const Color _wishlistCardShadowColor = Color(0x22000000);
@@ -74,7 +87,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   static const double _beforeSaveButtonGap = 56;
   static const double _extraTopGap = 52;
   static const Color _fieldErrorBorder = Color(0xFF9C4444);
-  static const List<String> _categories = ['패션', '뷰티', '라이프', '디지털', '기타'];
+  static const List<String> _categories = WishlistCategoryUi.formLabels;
 
   bool get _isAdd => widget.mode == WishlistFormMode.add;
 
@@ -106,6 +119,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       _nameController = TextEditingController();
       _priceController = TextEditingController();
       _selectedCategory = null;
+      _applyFormPrefill(widget.formPrefill);
     } else {
       final i = widget.item!;
       _linkController = TextEditingController(text: i.link);
@@ -126,6 +140,47 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.forward();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant WishlistItemFormPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isAdd) return;
+    if (widget.isImporting && !oldWidget.isImporting) return;
+
+    final prefill = widget.formPrefill;
+    if (prefill == null) return;
+
+    final finishingImport = oldWidget.isImporting && !widget.isImporting;
+    if (!finishingImport && identical(prefill, oldWidget.formPrefill)) return;
+
+    _applyFormPrefill(prefill, rebuild: true);
+  }
+
+  void _applyFormPrefill(WishlistAddFormPrefill? prefill, {bool rebuild = false}) {
+    if (prefill == null) return;
+
+    void apply() {
+      if (prefill.link.isNotEmpty) {
+        _linkController.text = prefill.link;
+      }
+      if (prefill.title.isNotEmpty) {
+        _nameController.text = prefill.title;
+      }
+      if (prefill.price > 0) {
+        _priceController.text = _formatPrice(prefill.price);
+      }
+      final category = prefill.category.trim();
+      if (category.isNotEmpty && _categories.contains(category)) {
+        _selectedCategory = category;
+      }
+    }
+
+    if (rebuild && mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
   }
 
   @override
@@ -151,7 +206,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       _priceEmpty || int.tryParse(_priceController.text.replaceAll(',', '').trim()) == null;
   bool get _categoryInvalid => _categoryEmpty;
 
+  bool get _linkShowsError => _showFieldErrors && _linkInvalid;
+  bool get _titleShowsError => _showFieldErrors && _titleInvalid;
+  bool get _priceShowsError => _showFieldErrors && _priceInvalid;
+  bool get _categoryShowsError => _showFieldErrors && _categoryInvalid;
+
   bool get _formIsValid {
+    if (!_isAdd) return !_categoryEmpty;
     final linkOk = !_linkRequired || !_linkEmpty;
     return linkOk &&
         !_titleEmpty &&
@@ -168,40 +229,58 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   }
 
   Future<void> _save() async {
+    if (widget.isSubmitting || widget.isImporting) return;
     if (!_formIsValid) {
+      setState(() => _showFieldErrors = true);
       await _shakeController.forward(from: 0);
       return;
     }
 
-    final parsedPrice =
-        int.parse(_priceController.text.replaceAll(',', '').trim());
-    final id = _isAdd
-        ? 'w-${DateTime.now().millisecondsSinceEpoch}'
-        : widget.item!.id;
-    final updated = WishlistPlaceholder(
-      id: id,
-      title: _nameController.text.trim(),
-      price: parsedPrice,
-      category: _selectedCategory!,
-      link: _linkController.text.trim(),
-    );
+    final WishlistPlaceholder updated;
+    if (_isAdd) {
+      final parsedPrice =
+          int.parse(_priceController.text.replaceAll(',', '').trim());
+      updated = WishlistPlaceholder(
+        id: 'w-${DateTime.now().millisecondsSinceEpoch}',
+        title: _nameController.text.trim(),
+        price: parsedPrice,
+        category: _selectedCategory!,
+        link: _linkController.text.trim(),
+        imageUrl: widget.formPrefill?.imageUrl,
+      );
+    } else {
+      final item = widget.item!;
+      updated = WishlistPlaceholder(
+        id: item.id,
+        title: item.title,
+        price: item.price,
+        category: _selectedCategory!,
+        link: item.link,
+        imageUrl: item.imageUrl,
+      );
+    }
+    final ok = await widget.onSubmit(updated);
+    if (!mounted) return;
+    if (!ok) return;
+
     await _playDismiss();
     if (!mounted) return;
-    widget.onSubmit(updated);
-    if (context.mounted) {
+    if (!_isAdd && context.mounted) {
       showCapsuleToast(
         context,
         backgroundColor: const Color(0xFF5F8EAE),
-        text: _isAdd ? '솜사탕이 생겼어요' : '수정되었습니다',
+        text: '수정되었습니다',
       );
     }
     widget.onClose();
   }
 
   Future<void> _delete() async {
+    if (widget.onDelete == null || widget.isSubmitting) return;
+    final ok = await widget.onDelete!();
+    if (!mounted || !ok) return;
     await _playDismiss();
-    if (!mounted) return;
-    widget.onDelete?.call();
+    if (mounted) widget.onClose();
   }
 
   @override
@@ -262,33 +341,65 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildField(
-                                  label: '링크',
-                                  controller: _linkController,
-                                  hintText: WishlistItemFormHints.link,
-                                  showError: _linkInvalid,
-                                  showErrorBorder: _linkInvalid,
-                                  readOnly: widget.linkReadOnly,
-                                ),
-                                const SizedBox(height: 24),
-                                _buildField(
-                                  label: '상품명',
-                                  controller: _nameController,
-                                  hintText: WishlistItemFormHints.productName,
-                                  showError: _titleInvalid,
-                                  showErrorBorder: _titleInvalid,
-                                ),
-                                const SizedBox(height: 24),
-                                _buildField(
-                                  label: '가격',
-                                  controller: _priceController,
-                                  keyboardType: TextInputType.number,
-                                  suffix: '원',
-                                  hintText: WishlistItemFormHints.price,
-                                  showError: _priceInvalid,
-                                  showErrorBorder: _priceInvalid,
-                                ),
-                                const SizedBox(height: 32),
+                                if (_isAdd) ...[
+                                  _buildField(
+                                    label: '링크',
+                                    controller: _linkController,
+                                    hintText: WishlistItemFormHints.link,
+                                    showError: _linkShowsError,
+                                    showErrorBorder: _linkShowsError,
+                                    readOnly: widget.linkReadOnly,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildField(
+                                    label: '상품명',
+                                    controller: _nameController,
+                                    hintText: WishlistItemFormHints.productName,
+                                    showError: _titleShowsError,
+                                    showErrorBorder: _titleShowsError,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildField(
+                                    label: '가격',
+                                    controller: _priceController,
+                                    keyboardType: TextInputType.number,
+                                    suffix: '원',
+                                    hintText: WishlistItemFormHints.price,
+                                    showError: _priceShowsError,
+                                    showErrorBorder: _priceShowsError,
+                                  ),
+                                  const SizedBox(height: 32),
+                                ] else ...[
+                                  _buildField(
+                                    label: '링크',
+                                    controller: _linkController,
+                                    hintText: '',
+                                    showError: false,
+                                    showErrorBorder: false,
+                                    readOnly: true,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildField(
+                                    label: '상품명',
+                                    controller: _nameController,
+                                    hintText: '',
+                                    showError: false,
+                                    showErrorBorder: false,
+                                    readOnly: true,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildField(
+                                    label: '가격',
+                                    controller: _priceController,
+                                    keyboardType: TextInputType.number,
+                                    suffix: '원',
+                                    hintText: '',
+                                    showError: false,
+                                    showErrorBorder: false,
+                                    readOnly: true,
+                                  ),
+                                  const SizedBox(height: 32),
+                                ],
                                 _categoryLabelRow(),
                                 const SizedBox(height: 12),
                                 _categoryGridThreePerRow(),
@@ -305,16 +416,23 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               ),
             ),
           ),
+          if (widget.isImporting)
+            Positioned.fill(
+              child: ColoredBox(
+                color: const Color(0x66FFFFFF),
+                child: const LoadingIndicator(),
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _header(BuildContext context) {
-    final title = _isAdd ? '위시 추가' : '위시 수정';
+    final title = _isAdd ? '위시 추가' : '카테고리 수정';
     final trailing = widget.onDelete != null
         ? TextButton(
-            onPressed: _delete,
+            onPressed: widget.isSubmitting ? null : _delete,
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFFD46868),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -395,7 +513,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             height: 1.25,
           ),
         ),
-        _errorIconTrailing(visible: _categoryInvalid),
+        _errorIconTrailing(visible: _categoryShowsError),
       ],
     );
   }
@@ -424,12 +542,17 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   }
 
   Widget _footerSaveButton() {
-    final label = _isAdd ? '위시 담기' : '수정완료';
+    final String label;
+    if (widget.isSubmitting) {
+      label = _isAdd ? '담는 중...' : '수정 중...';
+    } else {
+      label = _isAdd ? '위시 담기' : '수정완료';
+    }
     return WishlistModalPillButton(
       label: label,
       background: AppColors.skyBlue_100,
       pressedBackground: AppColors.skyBlue_200,
-      onPressed: _save,
+      onPressed: (widget.isSubmitting || widget.isImporting) ? null : _save,
       fixedHeight: 54,
       padding: EdgeInsets.zero,
     );
@@ -455,7 +578,10 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                       right: j == 2 ? 0 : _categoryChipGap / 2,
                     ),
                     child: j < chunk.length
-                        ? _categoryChipFilterStyle(chunk[j])
+                        ? _categoryChipFilterStyle(
+                            chunk[j],
+                            showErrorBorder: _categoryShowsError,
+                          )
                         : const SizedBox.shrink(),
                   ),
                 ),
@@ -470,8 +596,14 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
-  Widget _categoryChipFilterStyle(String category) {
+  Widget _categoryChipFilterStyle(
+    String category, {
+    required bool showErrorBorder,
+  }) {
     final isSelected = _selectedCategory == category;
+    final borderColor = showErrorBorder && !isSelected
+        ? _fieldErrorBorder
+        : (isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0));
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = category),
       child: Container(
@@ -481,10 +613,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFE8F3F9) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0),
-            width: 1,
-          ),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Text(
           category,
@@ -543,70 +672,69 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           ],
         ),
         const SizedBox(height: 10),
-        DecoratedBox(
+        Container(
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(_fieldPillRadius),
             border: showErrorBorder
-                ? Border.all(color: _fieldErrorBorder, width: 1.5)
+                ? Border.all(color: _fieldErrorBorder, width: 1)
                 : null,
-            boxShadow: const [
-              BoxShadow(
-                color: _wishlistCardShadowColor,
-                blurRadius: _wishlistCardShadowBlur,
-                spreadRadius: 0,
-                offset: Offset.zero,
-              ),
-            ],
+            boxShadow: showErrorBorder
+                ? null
+                : const [
+                    BoxShadow(
+                      color: _wishlistCardShadowColor,
+                      blurRadius: _wishlistCardShadowBlur,
+                      spreadRadius: 0,
+                      offset: Offset.zero,
+                    ),
+                  ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(_fieldPillRadius),
-            child: TextField(
-              controller: controller,
-              readOnly: readOnly,
-              keyboardType: keyboardType,
-              inputFormatters: keyboardType == TextInputType.number
-                  ? <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                      _PriceTextInputFormatter(),
-                    ]
-                  : null,
-              style: const TextStyle(
+          child: TextField(
+            controller: controller,
+            readOnly: readOnly,
+            keyboardType: keyboardType,
+            inputFormatters: keyboardType == TextInputType.number
+                ? <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    _PriceTextInputFormatter(),
+                  ]
+                : null,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              color: AppColors.textPrimary,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: AppColors.white,
+              hintText: hintText.isEmpty ? null : hintText,
+              hintStyle: const TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textSecondary,
+              ),
+              suffixText: suffix,
+              suffixStyle: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: AppColors.white,
-                hintText: hintText.isEmpty ? null : hintText,
-                hintStyle: const TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
-                ),
-                suffixText: suffix,
-                suffixStyle: const TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(_fieldPillRadius),
-                  borderSide: BorderSide.none,
-                ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
