@@ -1,18 +1,23 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-Future<String?> showOptionModal(BuildContext context) {
+Future<String?> showOptionModal(
+  BuildContext context, {
+  required bool isMyPost,
+}) {
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
-    builder: (_) => const _OptionModalContent(),
+    builder: (_) => _OptionModalContent(isMyPost: isMyPost),
   );
 }
 
 class _OptionModalContent extends StatelessWidget {
-  const _OptionModalContent();
+  const _OptionModalContent({required this.isMyPost});
+
+  final bool isMyPost;
 
   @override
   Widget build(BuildContext context) {
@@ -40,40 +45,63 @@ class _OptionModalContent extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _OptionButton(
-              label: '수정하기',
-              color: AppColors.skyBlue_100,
-              onTap: () => Navigator.of(context).pop('edit'),
-            ),
-            const SizedBox(height: 12),
-            _OptionButton(
-              label: '삭제하기',
-              color: AppColors.grey_100,
-              onTap: () => Navigator.of(context).pop('delete'),
-            ),
-            const SizedBox(height: 12),
-            _OptionButton(
-              label: '공유하기',
-              color: AppColors.yellow,
-              onTap: () => Navigator.of(context).pop('share'),
-            ),
-          ],
+          children: isMyPost ? _myPostOptions(context) : _othersPostOptions(context),
         ),
       ),
     );
   }
+
+  List<Widget> _myPostOptions(BuildContext context) => [
+        _OptionButton(
+          label: '수정하기',
+          bgColor: AppColors.skyBlue_200,
+          textColor: AppColors.white,
+          onTap: () => Navigator.of(context).pop('edit'),
+        ),
+        const SizedBox(height: 12),
+        _OptionButton(
+          label: '삭제하기',
+          bgColor: AppColors.red_600,
+          textColor: AppColors.white,
+          onTap: () => Navigator.of(context).pop('delete'),
+        ),
+        const SizedBox(height: 12),
+        _OptionButton(
+          label: '공유하기',
+          bgColor: AppColors.yellow_100,
+          textColor: AppColors.textPrimary,
+          onTap: () => Navigator.of(context).pop('share'),
+        ),
+      ];
+
+  List<Widget> _othersPostOptions(BuildContext context) => [
+        _OptionButton(
+          label: '신고하기',
+          bgColor: AppColors.red_600,
+          textColor: AppColors.white,
+          onTap: () => Navigator.of(context).pop('report'),
+        ),
+        const SizedBox(height: 12),
+        _OptionButton(
+          label: '차단하기',
+          bgColor: AppColors.grey_300,
+          textColor: AppColors.textPrimary,
+          onTap: () => Navigator.of(context).pop('block'),
+        ),
+      ];
 }
 
 class _OptionButton extends StatelessWidget {
   const _OptionButton({
     required this.label,
-    required this.color,
+    required this.bgColor,
+    required this.textColor,
     required this.onTap,
   });
 
   final String label;
-  final Color color;
+  final Color bgColor;
+  final Color textColor;
   final VoidCallback onTap;
 
   @override
@@ -84,17 +112,17 @@ class _OptionButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: color,
+          color: bgColor,
           borderRadius: BorderRadius.circular(100),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w600,
             fontSize: 20,
-            color: AppColors.textPrimary,
+            color: textColor,
           ),
         ),
       ),

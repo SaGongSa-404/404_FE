@@ -147,20 +147,19 @@ class _PostHeader extends StatelessWidget {
             ),
           ),
         ),
-        if (post.isMyPost)
-          GestureDetector(
-            onTap: onOptionTap,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: SvgPicture.asset(
-                isOptionActive
-                    ? 'assets/images/option_clicked.svg'
-                    : 'assets/images/option.svg',
-                width: 20,
-                height: 20,
-              ),
+        GestureDetector(
+          onTap: onOptionTap,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: SvgPicture.asset(
+              isOptionActive
+                  ? 'assets/images/option_clicked.svg'
+                  : 'assets/images/option.svg',
+              width: 20,
+              height: 20,
             ),
           ),
+        ),
       ],
     );
   }
