@@ -23,6 +23,7 @@ class _BlockDialogState extends State<_BlockDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
 
     return Dialog(
@@ -39,7 +40,10 @@ class _BlockDialogState extends State<_BlockDialog> {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
+        padding: EdgeInsets.symmetric(
+          horizontal: (24 * scale).clamp(18.0, 32.0),
+          vertical: (31 * scale).clamp(24.0, 40.0),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,25 +52,25 @@ class _BlockDialogState extends State<_BlockDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 7),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     '이 사용자를 차단하시겠습니까?',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w600,
-                      fontSize: 20,
+                      fontSize: (20 * scale).clamp(16.0, 24.0),
                       color: AppColors.textPrimary,
                       height: 1.29,
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
                     '차단 후에는 이 사용자가 작성한 모든 게시글과\n댓글을 더 이상 볼 수 없습니다.',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: Color(0xFF979797),
+                      fontSize: (16 * scale).clamp(13.0, 20.0),
+                      color: const Color(0xFF979797),
                       height: 1.33,
                     ),
                   ),
@@ -86,18 +90,18 @@ class _BlockDialogState extends State<_BlockDialog> {
                     onTapCancel: () => setState(() => _cancelPressed = false),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 100),
-                      height: 57,
+                      height: (57 * scale).clamp(46.0, 68.0),
                       decoration: BoxDecoration(
                         color: _cancelPressed ? AppColors.grey_300 : AppColors.grey_100,
                         borderRadius: BorderRadius.circular(57),
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
+                      child: Text(
                         '취소',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w600,
-                          fontSize: 20,
+                          fontSize: (20 * scale).clamp(16.0, 24.0),
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -115,7 +119,7 @@ class _BlockDialogState extends State<_BlockDialog> {
                     onTapCancel: () => setState(() => _blockPressed = false),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 100),
-                      height: 57,
+                      height: (57 * scale).clamp(46.0, 68.0),
                       decoration: BoxDecoration(
                         color: _blockPressed
                             ? AppColors.red_600.withValues(alpha: 0.75)
@@ -123,12 +127,12 @@ class _BlockDialogState extends State<_BlockDialog> {
                         borderRadius: BorderRadius.circular(57),
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
+                      child: Text(
                         '차단',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w600,
-                          fontSize: 20,
+                          fontSize: (20 * scale).clamp(16.0, 24.0),
                           color: AppColors.white,
                         ),
                       ),

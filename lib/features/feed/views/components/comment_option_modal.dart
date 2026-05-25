@@ -21,6 +21,7 @@ class _CommentOptionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
     final bottomPadding = MediaQuery.of(context).padding.bottom + 27;
 
@@ -42,7 +43,10 @@ class _CommentOptionContent extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 31),
+        padding: EdgeInsets.symmetric(
+          horizontal: (24 * scale).clamp(18.0, 32.0),
+          vertical: (31 * scale).clamp(24.0, 40.0),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: isMyComment
@@ -102,6 +106,7 @@ class _PressableButtonState extends State<_PressableButton> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
@@ -112,7 +117,7 @@ class _PressableButtonState extends State<_PressableButton> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 15),
+        padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 19.0)),
         decoration: BoxDecoration(
           color: _pressed ? widget.pressedColor : widget.defaultColor,
           borderRadius: BorderRadius.circular(100),
@@ -123,7 +128,7 @@ class _PressableButtonState extends State<_PressableButton> {
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: (20 * scale).clamp(16.0, 24.0),
             color: widget.textColor,
           ),
         ),

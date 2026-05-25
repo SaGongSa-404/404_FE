@@ -316,6 +316,7 @@ class _CommentInputState extends State<_CommentInput> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Container(
       color: AppColors.background,
       padding: EdgeInsets.fromLTRB(28, 19, 28, MediaQuery.of(context).padding.bottom + 19),
@@ -367,19 +368,19 @@ class _CommentInputState extends State<_CommentInput> {
                       child: Padding(
                         padding: const EdgeInsets.only(left: 8),
                         child: Container(
-                          width: 38,
-                          height: 38,
+                          width: (38 * scale).clamp(32.0, 44.0),
+                          height: (38 * scale).clamp(32.0, 44.0),
                           decoration: BoxDecoration(
                             color: AppColors.skyBlue_100,
-                            borderRadius: BorderRadius.circular(19),
+                            borderRadius: BorderRadius.circular((19 * scale).clamp(16.0, 22.0)),
                           ),
                           alignment: Alignment.center,
                           child: SvgPicture.asset(
                             _uploadPressed
                                 ? 'assets/images/comment_upload_clicked.svg'
                                 : 'assets/images/comment_upload.svg',
-                            width: 20,
-                            height: 20,
+                            width: (20 * scale).clamp(16.0, 24.0),
+                            height: (20 * scale).clamp(16.0, 24.0),
                           ),
                         ),
                       ),
@@ -387,11 +388,11 @@ class _CommentInputState extends State<_CommentInput> {
                   : Opacity(
                       key: const ValueKey('send'),
                       opacity: 0.3,
-                      child: const Padding(
-                        padding: EdgeInsets.only(left: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
                         child: Icon(
                           Icons.send_rounded,
-                          size: 22,
+                          size: (22 * scale).clamp(18.0, 26.0),
                           color: AppColors.skyBlue_200,
                         ),
                       ),
