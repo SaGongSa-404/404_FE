@@ -20,6 +20,10 @@ class ItemImportService {
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.itemsImportLink,
       data: request.toJson(),
+      options: Options(
+        receiveTimeout: const Duration(seconds: 45),
+        sendTimeout: const Duration(seconds: 15),
+      ),
     );
     return ItemImportLinkResponse.fromJson(res.data!);
   }

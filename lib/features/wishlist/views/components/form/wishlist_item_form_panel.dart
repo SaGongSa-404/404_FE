@@ -146,6 +146,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   void didUpdateWidget(covariant WishlistItemFormPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_isAdd) return;
+    if (widget.isImporting && !oldWidget.isImporting) return;
     if (widget.formPrefill == oldWidget.formPrefill) return;
     _applyFormPrefill(widget.formPrefill);
   }

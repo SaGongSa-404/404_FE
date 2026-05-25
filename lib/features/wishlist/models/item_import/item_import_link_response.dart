@@ -28,15 +28,20 @@ class ItemImportLinkResponse {
               json['sourceMetadata'] as Map<String, dynamic>,
             )
           : null,
-      saveRequest: json['saveRequest'] is Map<String, dynamic>
-          ? WishlistItemSaveRequest.fromJson(
-              json['saveRequest'] as Map<String, dynamic>,
-            )
-          : null,
+      saveRequest: _tryParseSaveRequest(json['saveRequest']),
       warnings: rawWarnings is List
           ? rawWarnings.map((e) => e.toString()).toList()
           : const [],
     );
+  }
+
+  static WishlistItemSaveRequest? _tryParseSaveRequest(Object? raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    try {
+      return WishlistItemSaveRequest.fromJson(raw);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -86,6 +91,28 @@ class SavedItemDraft {
       categoryConfidence: json['categoryConfidence'] as num?,
       categoryLockedByUser: json['categoryLockedByUser'] as bool?,
       status: ItemStatus.fromApiValue(json['status'] as String?),
+    );
+  }
+
+  WishlistItemSaveRequest? toSaveRequest() {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) return null;
+
+    final link = (normalizedUrl ?? originalUrl ?? '').trim();
+    final host = link.isNotEmpty ? Uri.tryParse(link)?.host : null;
+
+    return WishlistItemSaveRequest(
+      inputSource: inputSource?.apiValue ?? ItemInputSource.share.apiValue,
+      originalUrl: originalUrl,
+      normalizedUrl: normalizedUrl,
+      title: trimmedTitle,
+      imageUrl: imageUrl,
+      listedPrice: listedPrice,
+      currencyCode: currencyCode,
+      category: category?.apiValue ?? ItemCategory.etc.apiValue,
+      categoryConfidence: categoryConfidence,
+      categoryLockedByUser: categoryLockedByUser,
+      sourceDomain: host,
     );
   }
 }

@@ -31,7 +31,16 @@ extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
   WishlistItemSaveRequest? enrichedSaveRequest() {
     final draft = saveRequest;
     if (draft == null) return null;
+    return _mergeSourceMetadata(draft);
+  }
 
+  WishlistItemSaveRequest? resolvedSaveRequest() {
+    final fromSave = enrichedSaveRequest() ?? item?.toSaveRequest();
+    if (fromSave == null) return null;
+    return _mergeSourceMetadata(fromSave);
+  }
+
+  WishlistItemSaveRequest _mergeSourceMetadata(WishlistItemSaveRequest draft) {
     final meta = sourceMetadata;
     if (meta == null) return draft;
 

@@ -58,6 +58,22 @@ class WishlistScreen extends ConsumerWidget {
     );
 
     ref.listen<String?>(
+      wishlistViewModelProvider.select((s) => s.listErrorMessage),
+      (prev, next) {
+        if (next == null || next.isEmpty) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearListError();
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: next,
+          );
+        });
+      },
+    );
+
+    ref.listen<String?>(
       wishlistViewModelProvider.select((s) => s.submitErrorMessage),
       (prev, next) {
         if (next == null || next.isEmpty) return;
@@ -162,7 +178,10 @@ class WishlistScreen extends ConsumerWidget {
         ? null
         : state.items.where((item) => item.id == state.editingItemId).firstOrNull;
 
-    if (state.isLoading) {
+    final showInitialLoading =
+        state.isLoading && !state.isAddWishOpen && editingItem == null;
+
+    if (showInitialLoading) {
       return const Scaffold(body: LoadingIndicator(message: '로딩 중...'));
     }
 
@@ -266,45 +285,75 @@ class WishlistScreen extends ConsumerWidget {
                                           onLearnHow: () =>
                                               context.push('/tutorial'),
                                         )
-                                      : ListView.separated(
-                                          physics: const BouncingScrollPhysics(
-                                            parent: AlwaysScrollableScrollPhysics(),
-                                          ),
-                                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                                          itemCount: filteredItems.length,
-                                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                                          itemBuilder: (context, index) {
-                                            final item = filteredItems[index];
-                                            return WishlistItemCard(
-                                              item: item,
-                                              onTap: () => context.push('/wishlist/consider'),
-                                              onLongPress: () => {},
-                                              onEdit: () => viewModel.openEditPanel(item.id),
-                                              onDelete: () {
-                                                if (context.mounted) {
-                                                  showCapsuleToast(
-                                                    context,
-                                                    backgroundColor: const Color(0xFFD46868),
-                                                    text: '삭제되었습니다',
-                                                  );
-                                                }
-                                                viewModel.removeItem(item.id);
-                                              },
-                                              onShare: () {
-                                                showWishlistShareToFeedModal(
-                                                  context,
-                                                  onConfirm: () {
-                                                    if (!context.mounted) return;
+                                      : NotificationListener<ScrollNotification>(
+                                          onNotification: (notification) {
+                                            if (notification.metrics.extentAfter > 200) {
+                                              return false;
+                                            }
+                                            if (notification is! ScrollUpdateNotification &&
+                                                notification is! ScrollEndNotification) {
+                                              return false;
+                                            }
+                                            viewModel.loadMore();
+                                            return false;
+                                          },
+                                          child: ListView.separated(
+                                            physics: const BouncingScrollPhysics(
+                                              parent: AlwaysScrollableScrollPhysics(),
+                                            ),
+                                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                                            itemCount: filteredItems.length +
+                                                (state.isLoadingMore ? 1 : 0),
+                                            separatorBuilder: (context, index) =>
+                                                const SizedBox(height: 12),
+                                            itemBuilder: (context, index) {
+                                              if (index >= filteredItems.length) {
+                                                return const Padding(
+                                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                                  child: Center(
+                                                    child: SizedBox(
+                                                      width: 24,
+                                                      height: 24,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: AppColors.skyBlue_300,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              final item = filteredItems[index];
+                                              return WishlistItemCard(
+                                                item: item,
+                                                onTap: () => context.push('/wishlist/consider'),
+                                                onLongPress: () => {},
+                                                onEdit: () => viewModel.openEditPanel(item.id),
+                                                onDelete: () {
+                                                  if (context.mounted) {
                                                     showCapsuleToast(
                                                       context,
-                                                      backgroundColor: const Color(0xFF5F8EAE),
-                                                      text: '피드에 공유되었습니다',
+                                                      backgroundColor: const Color(0xFFD46868),
+                                                      text: '삭제되었습니다',
                                                     );
-                                                  },
-                                                );
-                                              },
-                                            );
-                                          },
+                                                  }
+                                                  viewModel.removeItem(item.id);
+                                                },
+                                                onShare: () {
+                                                  showWishlistShareToFeedModal(
+                                                    context,
+                                                    onConfirm: () {
+                                                      if (!context.mounted) return;
+                                                      showCapsuleToast(
+                                                        context,
+                                                        backgroundColor: const Color(0xFF5F8EAE),
+                                                        text: '피드에 공유되었습니다',
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
                                         ),
                                 ),
                               ],

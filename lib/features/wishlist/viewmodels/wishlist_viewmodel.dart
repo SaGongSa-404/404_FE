@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_link_request.dart';
+import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_mapper.dart';
@@ -13,29 +14,14 @@ import 'package:fe_app/shared/enums/api_enums.dart';
 import 'wishlist_state.dart';
 
 const List<String> categories = ['전체', '패션', '뷰티', '라이프', '디지털', '기타'];
-const List<WishlistPlaceholder> mockWishlistItems = [
-  WishlistPlaceholder(
-    id: 'w-1',
-    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
-    price: 29000,
-    category: '패션',
-    link: 'musinsa.com/app/goods/hoodie',
-  ),
-  WishlistPlaceholder(
-    id: 'w-3',
-    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
-    price: 29000,
-    category: '패션',
-    link: 'musinsa.com/app/goods/headphone',
-  ),
-  WishlistPlaceholder(
-    id: 'w-4',
-    title: 'PWC PIBBED EVERYDAY SHORT SLEEVE TEE',
-    price: 29000,
-    category: '패션',
-    link: 'musinsa.com/app/goods/coffee',
-  ),
-];
+
+const WishlistPlaceholder _emptyReflectItem = WishlistPlaceholder(
+  id: '',
+  title: '',
+  price: 0,
+  category: '기타',
+  link: '',
+);
 
 class WishlistViewModel extends StateNotifier<WishlistState> {
   WishlistViewModel(this._ref) : super(const WishlistState());
@@ -47,14 +33,78 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   ItemImportService get _itemImportService => _ref.read(itemImportServiceProvider);
 
   Future<void> initialize() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearListErrorMessage: true);
+    await _fetchFirstPage();
+  }
 
-    await Future<void>.delayed(Duration.zero);
+  Future<void> refreshItems() async {
+    state = state.copyWith(clearListErrorMessage: true);
+    await _fetchFirstPage();
+  }
 
-    state = state.copyWith(
-      isLoading: false,
-      items: mockWishlistItems,
-    );
+  Future<void> _fetchFirstPage() async {
+    try {
+      final page = await _wishlistService.listItems();
+      state = state.copyWith(
+        isLoading: false,
+        items: page.items.map((e) => e.toPlaceholder()).toList(),
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        clearNextCursor: page.nextCursor == null,
+      );
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      if (api != null) {
+        state = state.copyWith(
+          isLoading: false,
+          items: [],
+          hasMore: false,
+          clearNextCursor: true,
+          listErrorMessage: api.statusCode == 403
+              ? '온보딩을 먼저 완료해 주세요.'
+              : api.message,
+        );
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        items: [],
+        hasMore: false,
+        clearNextCursor: true,
+        listErrorMessage: '위시리스트를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final cursor = state.nextCursor;
+    if (state.isLoadingMore || !state.hasMore || cursor == null) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final page = await _wishlistService.listItems(cursor: cursor);
+      final existingIds = state.items.map((item) => item.id).toSet();
+      final appended = page.items
+          .map((e) => e.toPlaceholder())
+          .where((item) => !existingIds.contains(item.id))
+          .toList();
+
+      state = state.copyWith(
+        isLoadingMore: false,
+        items: [...state.items, ...appended],
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        clearNextCursor: page.nextCursor == null,
+      );
+    } catch (_) {
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
+  void clearListError() {
+    state = state.copyWith(clearListErrorMessage: true);
   }
 
   void toggleAlarm() {
@@ -106,17 +156,25 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       return;
     }
 
+    final normalized = ShareLinkUrl.normalize(trimmed);
+    if (normalized == null) {
+      state = state.copyWith(
+        submitErrorMessage: 'http 또는 https로 시작하는 상품 링크를 붙여넣어 주세요.',
+      );
+      return;
+    }
+
     state = state.copyWith(
       isAddWishOpen: true,
       clearEditingItemId: true,
-      addPrefillLink: trimmed,
+      addPrefillLink: normalized,
       isAddLinkReadOnly: true,
       isImportingLink: true,
       clearAddFormPrefill: true,
       clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
     );
-    _importShareLink(trimmed);
+    _importShareLink(normalized);
   }
 
   Future<void> _importShareLink(String url) async {
@@ -125,9 +183,9 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         ItemImportLinkRequest.share(url),
       );
       final prefill = response.toFormPrefill();
-      final saveRequest = response.enrichedSaveRequest();
+      final saveRequest = response.resolvedSaveRequest();
 
-      if (prefill == null || saveRequest == null) {
+      if (prefill == null) {
         _handleImportFailure();
         return;
       }
@@ -138,21 +196,49 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         addImportSaveRequest: saveRequest,
         addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
       );
-    } on ApiException catch (e) {
-      if (e.statusCode == 422 || e.statusCode == 502) {
+    } on ArgumentError {
+      state = state.copyWith(
+        isImportingLink: false,
+        clearAddWish: true,
+        clearAddPrefillLink: true,
+        clearAddLinkReadOnly: true,
+        submitErrorMessage: 'http 또는 https로 시작하는 상품 링크를 붙여넣어 주세요.',
+      );
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      if (api != null && _shouldNavigateImportFailure(api.statusCode)) {
         _handleImportFailure();
         return;
       }
       state = state.copyWith(
         isImportingLink: false,
-        submitErrorMessage: e.message,
-      );
-    } catch (_) {
-      state = state.copyWith(
-        isImportingLink: false,
-        submitErrorMessage: '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+        submitErrorMessage: _importErrorMessage(api),
       );
     }
+  }
+
+  bool _shouldNavigateImportFailure(int? statusCode) {
+    return statusCode == 422 || statusCode == 502 || statusCode == 500;
+  }
+
+  String _importErrorMessage(ApiException? api) {
+    if (api == null) {
+      return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+    return switch (api.statusCode) {
+      400 => api.message,
+      500 || 502 => '상품 페이지를 불러오지 못했어요. 링크를 확인하거나 잠시 후 다시 시도해 주세요.',
+      422 => '상품 정보를 추출하지 못했어요. 직접 입력해 주세요.',
+      _ => _sanitizeServerMessage(api.message),
+    };
+  }
+
+  String _sanitizeServerMessage(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('internal server error')) {
+      return '서버에서 상품 정보를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+    return message;
   }
 
   void _handleImportFailure() {
@@ -265,9 +351,12 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         clearAddImportSaveRequest: true,
       );
       return true;
-    } on ApiException catch (e) {
-      if (e.statusCode == 409 && e.code == 'DUPLICATE_SAVED_ITEM') {
-        final existing = WishlistService.parseDuplicateExistingItem(e);
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      if (api != null &&
+          api.statusCode == 409 &&
+          api.code == 'DUPLICATE_SAVED_ITEM') {
+        final existing = WishlistService.parseDuplicateExistingItem(api);
         if (existing != null) {
           final placeholder = existing.toPlaceholder();
           final alreadyListed = state.items.any((i) => i.id == placeholder.id);
@@ -287,13 +376,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
       state = state.copyWith(
         isSubmitting: false,
-        submitErrorMessage: e.message,
-      );
-      return false;
-    } catch (_) {
-      state = state.copyWith(
-        isSubmitting: false,
-        submitErrorMessage: '위시를 담지 못했어요. 잠시 후 다시 시도해 주세요.',
+        submitErrorMessage: api?.message ??
+            '위시를 담지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
       return false;
     }
@@ -328,7 +412,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     }
 
     if (state.items.isNotEmpty) return state.items.first;
-    return mockWishlistItems.first;
+    return _emptyReflectItem;
   }
 }
 
