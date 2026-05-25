@@ -1,3 +1,4 @@
+import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/shared/enums/api_enums.dart';
 
 class ItemImportLinkRequest {
@@ -18,9 +19,13 @@ class ItemImportLinkRequest {
   final String? imageUrl;
 
   factory ItemImportLinkRequest.share(String url) {
+    final normalized = ShareLinkUrl.normalize(url);
+    if (normalized == null) {
+      throw ArgumentError('Invalid share URL', 'url');
+    }
     return ItemImportLinkRequest(
       inputSource: ItemInputSource.share,
-      url: url.trim(),
+      url: normalized,
     );
   }
 

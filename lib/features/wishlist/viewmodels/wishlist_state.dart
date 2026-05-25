@@ -19,6 +19,10 @@ class WishlistState {
   final WishlistItemSaveRequest? addImportSaveRequest;
   final Set<String> selectedCategories;
   final List<WishlistPlaceholder> items;
+  final String? nextCursor;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final String? listErrorMessage;
 
   const WishlistState({
     this.isLoading = false,
@@ -37,6 +41,10 @@ class WishlistState {
     this.addImportSaveRequest,
     this.selectedCategories = const {'전체'},
     this.items = const [],
+    this.nextCursor,
+    this.hasMore = false,
+    this.isLoadingMore = false,
+    this.listErrorMessage,
   });
 
   WishlistState copyWith({
@@ -66,6 +74,12 @@ class WishlistState {
     bool clearAddImportSaveRequest = false,
     Set<String>? selectedCategories,
     List<WishlistPlaceholder>? items,
+    String? nextCursor,
+    bool clearNextCursor = false,
+    bool? hasMore,
+    bool? isLoadingMore,
+    String? listErrorMessage,
+    bool clearListErrorMessage = false,
   }) {
     return WishlistState(
       isLoading: isLoading ?? this.isLoading,
@@ -104,6 +118,12 @@ class WishlistState {
         selectedCategories ?? this.selectedCategories,
       ),
       items: List.unmodifiable(items ?? this.items),
+      nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      listErrorMessage: clearListErrorMessage
+          ? null
+          : (listErrorMessage ?? this.listErrorMessage),
     );
   }
 }
