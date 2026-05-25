@@ -13,9 +13,9 @@ class OnboardingCompleteResponse {
 
   factory OnboardingCompleteResponse.fromJson(Map<String, dynamic> json) =>
       OnboardingCompleteResponse(
-        userId: json['userId'] as String,
+        userId: json['userId']?.toString() ?? '',
         onboardingStatus: json['onboardingStatus'] as String,
         budgetYearMonth: json['budgetYearMonth'] as String,
-        surveyResponseSetId: json['surveyResponseSetId'] as String,
+        surveyResponseSetId: json['surveyResponseSetId']?.toString() ?? '',
       );
 }

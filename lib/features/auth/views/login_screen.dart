@@ -15,10 +15,23 @@ class LoginScreen extends ConsumerWidget {
 
   Future<void> _launchOAuth(BuildContext context, String provider) async {
     const redirectUri = 'sagongsa404://auth/callback';
-    final path = ApiEndpoints.oauthAuthorization(provider, redirectUri);
-    final url = Uri.parse('${EnvConfig.apiBaseUrl}$path');
+    final base = Uri.parse(EnvConfig.apiBaseUrl);
+    final url = Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: '/oauth2/authorization/$provider',
+      queryParameters: {'redirect_uri': redirectUri},
+    );
 
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    try {
+      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
+        );
+      }
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),

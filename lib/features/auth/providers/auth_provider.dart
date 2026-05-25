@@ -1,27 +1,58 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
+import 'package:fe_app/features/auth/services/auth_service.dart';
 
-/// 앱 시작 시 스플래시 화면에서 멈추는 현상을 방지하기 위해 
-/// 즉시 AsyncData(null) 상태를 반환하도록 설정된 수동 Provider입니다.
-/// FutureOr를 사용하여 초기 로딩 상태(AsyncLoading)를 발생시키지 않습니다.
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
-  FutureOr<UserModel?> build() {
-    // API 연동 전이므로 동기적으로 null을 반환하여 즉시 완료 상태가 되도록 합니다.
-    return null;
+  Future<UserModel?> build() async {
+    final storage = ref.read(secureStorageServiceProvider);
+    final token = await storage.getAccessToken();
+    if (token == null) return null;
+    try {
+      return await ref.read(authServiceProvider).getMe();
+    } catch (_) {
+      await storage.clearTokens();
+      return null;
+    }
   }
 
   Future<void> handleCallback(Uri uri) async {
     state = const AsyncLoading();
-    // OAuth 콜백 처리 (테스트용 임시 완료)
-    state = const AsyncData(null);
+    // fragment(#) 또는 query(?) 어느 쪽으로 오든 처리
+    final fragment = Uri.splitQueryString(uri.fragment);
+    final query = uri.queryParameters;
+    final accessToken = fragment['access_token'] ?? query['access_token'];
+    final refreshToken = fragment['refresh_token'] ?? query['refresh_token'];
+    if (accessToken == null || refreshToken == null) {
+      state = AsyncError(
+        Exception('콜백 URL에서 토큰을 찾을 수 없습니다.'),
+        StackTrace.current,
+      );
+      return;
+    }
+    final storage = ref.read(secureStorageServiceProvider);
+    await storage.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+    try {
+      final user = await ref.read(authServiceProvider).getMe();
+      state = AsyncData(user);
+    } catch (e, st) {
+      await storage.clearTokens();
+      state = AsyncError(e, st);
+    }
   }
 
   Future<void> logout() async {
-    state = const AsyncLoading();
-    // 로그아웃 처리 (임시 완료)
-    state = const AsyncData(null);
+    try {
+      await ref.read(authServiceProvider).logout();
+    } finally {
+      await ref.read(secureStorageServiceProvider).clearTokens();
+      state = const AsyncData(null);
+    }
   }
 }
 
