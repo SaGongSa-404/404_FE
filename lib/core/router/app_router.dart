@@ -6,6 +6,9 @@ import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
+import 'package:fe_app/features/onboarding/views/privacy_policy_screen.dart';
+import 'package:fe_app/features/onboarding/views/service_terms_screen.dart';
+import 'package:fe_app/features/onboarding/views/terms_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
@@ -191,8 +194,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         redirect: (context, state) =>
-        state.uri.path == '/onboarding' ? '/onboarding/nickname' : null,
+            state.uri.path == '/onboarding' ? '/onboarding/terms' : null,
         routes: [
+          GoRoute(
+            path: 'terms',
+            builder: (context, state) => const TermsScreen(),
+          ),
           GoRoute(
             path: 'nickname',
             builder: (context, state) => const NicknameScreen(),
@@ -208,6 +215,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'nugul-intro',
             builder: (context, state) => const NugulIntroScreen(),
+          ),
+          GoRoute(
+            path: 'service-terms',
+            builder: (context, state) => const ServiceTermsScreen(),
+          ),
+          GoRoute(
+            path: 'privacy-policy',
+            builder: (context, state) => const PrivacyPolicyScreen(),
           ),
         ],
       ),
@@ -250,7 +265,7 @@ class _RouterNotifier extends ChangeNotifier {
     if (isLoggedIn && location == '/') return '/home';
 
     if (isLoggedIn && isAuthPage) {
-      return '/onboarding/nickname';
+      return '/onboarding/terms';
     }
 
     return null;

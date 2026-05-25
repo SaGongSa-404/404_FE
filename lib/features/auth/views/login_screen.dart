@@ -33,7 +33,7 @@ class LoginScreen extends ConsumerWidget {
   //   }
   // }
   Future<void> _launchOAuth(BuildContext context, String provider) async {
-    context.go('/onboarding/nickname'); // ui test용
+    context.go('/onboarding/terms'); // ui test용
   }
 
   @override

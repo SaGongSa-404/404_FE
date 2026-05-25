@@ -36,32 +36,31 @@ class AppBottomNavigationBar extends StatelessWidget {
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = _currentIndex(location);
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.white,
         boxShadow: _BottomNavBarShadow.layers,
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: 18 * scale,
-            bottom: 10 * scale,
-          ),
-          child: Row(
-            children: [
-              for (var i = 0; i < _paths.length; i++)
-                Expanded(
-                  child: _BottomNavItem(
-                    selected: i == currentIndex,
-                    tabIndex: i,
-                    label: _labels[i],
-                    scale: scale,
-                    onTap: () => context.go(_paths[i]),
-                  ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: 18 * scale,
+          bottom: 10 * scale + bottomInset,
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < _paths.length; i++)
+              Expanded(
+                child: _BottomNavItem(
+                  selected: i == currentIndex,
+                  tabIndex: i,
+                  label: _labels[i],
+                  scale: scale,
+                  onTap: () => context.go(_paths[i]),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

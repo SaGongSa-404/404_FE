@@ -6,10 +6,12 @@ class OnboardingPrimaryButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.fontSize = 18,
   });
 
   final String label;
   final VoidCallback? onPressed;
+  final double fontSize;
 
   @override
   State<OnboardingPrimaryButton> createState() =>
@@ -44,8 +46,8 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
             child: Center(
               child: Text(
                 widget.label,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                   height: 1.548,
