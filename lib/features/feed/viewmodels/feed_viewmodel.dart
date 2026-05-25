@@ -143,15 +143,4 @@ class FeedViewModel extends StateNotifier<FeedState> {
     );
   }
 
-  void toggleCommentLike(String postId, String commentId) {
-    final comments = state.commentsMap[postId];
-    if (comments == null) return;
-    final updated = comments.map((c) {
-      if (c.id != commentId) return c;
-      return c.copyWith(isLiked: !c.isLiked);
-    }).toList();
-    state = state.copyWith(
-      commentsMap: {...state.commentsMap, postId: updated},
-    );
-  }
 }

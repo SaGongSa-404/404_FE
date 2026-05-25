@@ -7,7 +7,6 @@ class FeedComment {
     required this.authorName,
     required this.createdAt,
     required this.content,
-    this.isLiked = false,
     this.isMyComment = false,
   });
 
@@ -15,15 +14,13 @@ class FeedComment {
   final String authorName;
   final String createdAt;
   final String content;
-  final bool isLiked;
   final bool isMyComment;
 
-  FeedComment copyWith({bool? isLiked, bool? isMyComment}) => FeedComment(
+  FeedComment copyWith({bool? isMyComment}) => FeedComment(
         id: id,
         authorName: authorName,
         createdAt: createdAt,
         content: content,
-        isLiked: isLiked ?? this.isLiked,
         isMyComment: isMyComment ?? this.isMyComment,
       );
 }

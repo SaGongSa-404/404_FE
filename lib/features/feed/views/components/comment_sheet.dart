@@ -67,6 +67,8 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     final feedState = ref.watch(feedProvider);
     final vm = ref.read(feedProvider.notifier);
     final comments = feedState.commentsMap[widget.postId] ?? [];
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final topPad = (80.0 * scale).clamp(60.0, 100.0);
 
     return DraggableScrollableSheet(
       initialChildSize: 1.0,
@@ -113,17 +115,13 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
               Expanded(
                 child: ListView.separated(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 16),
+                  padding: EdgeInsets.fromLTRB(24, topPad, 24, 16),
                   itemCount: comments.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 26),
                   itemBuilder: (_, index) => _CommentItem(
                     comment: comments[index],
-                    onLike: () => vm.toggleCommentLike(
-                        widget.postId, comments[index].id),
-                    onDelete: comments[index].isMyComment
-                        ? () {
-                            _handleDeleteComment(comments[index].id);
-                          }
+                    onOption: comments[index].isMyComment
+                        ? () => _handleDeleteComment(comments[index].id)
                         : null,
                   ),
                 ),
@@ -173,19 +171,26 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
   }
 }
 
-class _CommentItem extends StatelessWidget {
+class _CommentItem extends StatefulWidget {
   const _CommentItem({
     required this.comment,
-    required this.onLike,
-    this.onDelete,
+    this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback onLike;
-  final VoidCallback? onDelete;
+  final VoidCallback? onOption;
+
+  @override
+  State<_CommentItem> createState() => _CommentItemState();
+}
+
+class _CommentItemState extends State<_CommentItem> {
+  bool _optionPressed = false;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,7 +215,7 @@ class _CommentItem extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    comment.authorName,
+                    widget.comment.authorName,
                     style: const TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
@@ -220,7 +225,7 @@ class _CommentItem extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    comment.createdAt,
+                    widget.comment.createdAt,
                     style: const TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
@@ -232,7 +237,7 @@ class _CommentItem extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                comment.content,
+                widget.comment.content,
                 style: const TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
@@ -241,55 +246,24 @@ class _CommentItem extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  const Text(
-                    '답글',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  if (comment.isMyComment && onDelete != null) ...[
-                    const SizedBox(width: 3),
-                    GestureDetector(
-                      onTap: onDelete,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 7),
-                        child: Text(
-                          '삭제',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: AppColors.red_600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
             ],
           ),
         ),
         GestureDetector(
-          onTap: onLike,
+          onTapDown: (_) => setState(() => _optionPressed = true),
+          onTapUp: (_) {
+            setState(() => _optionPressed = false);
+            widget.onOption?.call();
+          },
+          onTapCancel: () => setState(() => _optionPressed = false),
           child: Padding(
             padding: const EdgeInsets.only(top: 3, left: 8),
             child: SvgPicture.asset(
-              comment.isLiked
-                  ? 'assets/images/heart_filled.svg'
-                  : 'assets/images/heart.svg',
-              width: 20,
-              height: 20,
-              colorFilter: ColorFilter.mode(
-                comment.isLiked ? AppColors.red_600 : AppColors.textDate,
-                BlendMode.srcIn,
-              ),
+              _optionPressed
+                  ? 'assets/images/option_clicked.svg'
+                  : 'assets/images/option.svg',
+              width: (20.0 * scale).clamp(16.0, 24.0),
+              height: (20.0 * scale).clamp(16.0, 24.0),
             ),
           ),
         ),
@@ -336,7 +310,7 @@ class _CommentInputState extends State<_CommentInput> {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.background,
-      padding: const EdgeInsets.fromLTRB(28, 19, 28, 40),
+      padding: EdgeInsets.fromLTRB(28, 19, 28, MediaQuery.of(context).padding.bottom + 19),
       child: Container(
         padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
         decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/material.dart';
@@ -11,81 +12,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class FeedDetailScreen extends ConsumerWidget {
+class FeedDetailScreen extends ConsumerStatefulWidget {
   const FeedDetailScreen({super.key, required this.postId});
 
   final String postId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(feedProvider);
-    final vm = ref.read(feedProvider.notifier);
+  ConsumerState<FeedDetailScreen> createState() => _FeedDetailScreenState();
+}
 
-    FeedPost? post;
-    for (final p in state.posts) {
-      if (p.id == postId) {
-        post = p;
-        break;
-      }
-    }
-
-    if (post == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: _buildAppBar(context),
-        body: const Center(child: Text('게시글을 찾을 수 없어요')),
-      );
-    }
-
-    final comments = state.commentsMap[postId] ?? [];
-    final currentPost = post;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(context),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                _DetailPostCard(
-                  post: currentPost,
-                  onVote: (vote) => vm.vote(postId, vote),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 21, 30, 0),
-                  child: Text(
-                    '댓글 ${comments.length}개',
-                    style: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 21),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: _CommentList(
-                    comments: comments,
-                    onLike: (commentId) =>
-                        vm.toggleCommentLike(postId, commentId),
-                  ),
-                ),
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-          _BottomCommentBar(
-            onSubmit: (text) => vm.addComment(postId, text),
-          ),
-        ],
-      ),
+class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
+  Future<void> _handleDeleteComment(String commentId) async {
+    final confirmed = await showConfirmBottomSheet(
+      context: context,
+      title: '작성한 댓글을\n정말 삭제하실 건가요?',
+      subtitle: '한 번 삭제된 댓글은 되돌릴 수 없어요',
+      actionLabel: '삭제하기',
     );
+    if (confirmed == true && mounted) {
+      ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
+    }
   }
 
-  AppBar _buildAppBar(BuildContext context) {
+  AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: AppColors.white,
       elevation: 0,
@@ -116,6 +65,74 @@ class FeedDetailScreen extends ConsumerWidget {
           fontSize: 20,
           color: AppColors.brown,
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(feedProvider);
+    final vm = ref.read(feedProvider.notifier);
+
+    FeedPost? post;
+    for (final p in state.posts) {
+      if (p.id == widget.postId) {
+        post = p;
+        break;
+      }
+    }
+
+    if (post == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _buildAppBar(),
+        body: const Center(child: Text('게시글을 찾을 수 없어요')),
+      );
+    }
+
+    final comments = state.commentsMap[widget.postId] ?? [];
+    final currentPost = post;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              children: [
+                _DetailPostCard(
+                  post: currentPost,
+                  onVote: (vote) => vm.vote(widget.postId, vote),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(30, 21, 30, 0),
+                  child: Text(
+                    '댓글 ${comments.length}개',
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 21),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: _CommentList(
+                    comments: comments,
+                    onDelete: _handleDeleteComment,
+                  ),
+                ),
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
+          _BottomCommentBar(
+            onSubmit: (text) => vm.addComment(widget.postId, text),
+          ),
+        ],
       ),
     );
   }
@@ -256,11 +273,11 @@ class _DetailProductCard extends StatelessWidget {
 class _CommentList extends StatelessWidget {
   const _CommentList({
     required this.comments,
-    required this.onLike,
+    required this.onDelete,
   });
 
   final List<FeedComment> comments;
-  final ValueChanged<String> onLike;
+  final ValueChanged<String> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +289,9 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onLike: () => onLike(comments[i].id),
+            onOption: comments[i].isMyComment
+                ? () => onDelete(comments[i].id)
+                : null,
           ),
           if (i < comments.length - 1) const SizedBox(height: 20),
         ],
@@ -281,14 +300,21 @@ class _CommentList extends StatelessWidget {
   }
 }
 
-class _DetailCommentItem extends StatelessWidget {
+class _DetailCommentItem extends StatefulWidget {
   const _DetailCommentItem({
     required this.comment,
-    required this.onLike,
+    this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback onLike;
+  final VoidCallback? onOption;
+
+  @override
+  State<_DetailCommentItem> createState() => _DetailCommentItemState();
+}
+
+class _DetailCommentItemState extends State<_DetailCommentItem> {
+  bool _optionPressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -304,40 +330,39 @@ class _DetailCommentItem extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    comment.authorName,
+                    widget.comment.authorName,
                     style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.textSecondary),
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    comment.createdAt,
+                    widget.comment.createdAt,
                     style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w400, fontSize: 15, color: AppColors.textDate),
                   ),
                 ],
               ),
               const SizedBox(height: 3),
               Text(
-                comment.content,
+                widget.comment.content,
                 style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textDark, height: 1.5),
               ),
-              const SizedBox(height: 3),
-              const Text('답글', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.textSecondary)),
             ],
           ),
         ),
         GestureDetector(
-          onTap: onLike,
+          onTapDown: (_) => setState(() => _optionPressed = true),
+          onTapUp: (_) {
+            setState(() => _optionPressed = false);
+            widget.onOption?.call();
+          },
+          onTapCancel: () => setState(() => _optionPressed = false),
           child: Padding(
             padding: const EdgeInsets.only(top: 3, left: 8),
             child: SvgPicture.asset(
-              comment.isLiked
-                  ? 'assets/images/heart_filled.svg'
-                  : 'assets/images/heart.svg',
+              _optionPressed
+                  ? 'assets/images/option_clicked.svg'
+                  : 'assets/images/option.svg',
               width: 20,
               height: 20,
-              colorFilter: ColorFilter.mode(
-                comment.isLiked ? AppColors.red_600 : AppColors.textDate,
-                BlendMode.srcIn,
-              ),
             ),
           ),
         ),
