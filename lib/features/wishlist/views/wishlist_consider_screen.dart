@@ -1,11 +1,11 @@
+import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
+import 'package:fe_app/features/wishlist/views/components/consider_budget_card.dart';
+import 'package:fe_app/features/wishlist/views/components/consider_product_header.dart';
+import 'package:fe_app/features/wishlist/views/components/consider_result_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_product_header.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_budget_card.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_result_card.dart';
-import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
-import 'package:fe_app/core/theme/app_theme.dart';
 
 class WishlistConsiderScreen extends ConsumerWidget {
   const WishlistConsiderScreen({super.key});
@@ -18,7 +18,11 @@ class WishlistConsiderScreen extends ConsumerWidget {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.textPrimary,
+            size: 18,
+          ),
           onPressed: () {
             ref.read(considerViewModelProvider.notifier).reset();
             context.pop();
@@ -26,7 +30,11 @@ class WishlistConsiderScreen extends ConsumerWidget {
         ),
         title: Text(
           '살까 말까',
-          style: AppTextStyles.heading.copyWith(fontSize: 18),
+          style: AppTextStyles.heading.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
         ),
         centerTitle: true,
       ),
@@ -41,19 +49,16 @@ class WishlistConsiderScreen extends ConsumerWidget {
               child: ConsiderBudgetCard(),
             ),
             SizedBox(height: 20),
-            // 체크리스트 영역
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderChecklistBody(),
             ),
             SizedBox(height: 32),
-            // 결과 카드
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: ConsiderResultCard(),
             ),
             SizedBox(height: 40),
-            // 하단 버튼
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: _BottomActionButtons(),
@@ -71,13 +76,28 @@ class _BottomActionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(considerViewModelProvider);
+
     return Row(
       children: [
         Expanded(
           child: GestureDetector(
             onTap: () {
-              ref.read(considerViewModelProvider.notifier).reset();
-              context.pop();
+              if (!state.isAllAnswered) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
+              final resultCase = ref
+                  .read(considerViewModelProvider.notifier)
+                  .recordDecision(PurchaseDecision.refrain);
+              context.push('/wishlist/consider/result', extra: resultCase);
             },
             child: Container(
               height: 56,
@@ -102,8 +122,21 @@ class _BottomActionButtons extends ConsumerWidget {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              ref.read(considerViewModelProvider.notifier).reset();
-              context.pop();
+              if (!state.isAllAnswered) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
+              final resultCase = ref
+                  .read(considerViewModelProvider.notifier)
+                  .recordDecision(PurchaseDecision.purchase);
+              context.push('/wishlist/consider/result', extra: resultCase);
             },
             child: Container(
               height: 56,
@@ -157,7 +190,12 @@ class ConsiderChecklistBody extends ConsumerWidget {
               children: [
                 Text(
                   question,
-                  style: AppTextStyles.body.copyWith(fontSize: 15, height: 1.4),
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -176,7 +214,13 @@ class ConsiderChecklistBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnswerButton(ConsiderViewModel vm, int index, String label, bool value, bool isSelected) {
+  Widget _buildAnswerButton(
+      ConsiderViewModel vm,
+      int index,
+      String label,
+      bool value,
+      bool isSelected,
+      ) {
     return Expanded(
       child: GestureDetector(
         onTap: () => vm.setAnswer(index, value),

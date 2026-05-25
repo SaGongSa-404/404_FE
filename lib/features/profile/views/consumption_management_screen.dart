@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
@@ -338,13 +339,13 @@ class ConsumptionManagementScreen extends ConsumerWidget {
       builder: (sheetContext) {
         final scale = responsiveScale(sheetContext);
         final horizontalInset = 21 * scale;
-
+        // 키보드에 반응하여 패딩을 조절합니다.
         return Padding(
           padding: EdgeInsets.fromLTRB(
             horizontalInset,
             0,
             horizontalInset,
-            MediaQuery.paddingOf(sheetContext).bottom + 24 * scale,
+            max(MediaQuery.paddingOf(sheetContext).bottom, MediaQuery.of(sheetContext).viewInsets.bottom) + 24 * scale,
           ),
           child: Container(
             decoration: BoxDecoration(

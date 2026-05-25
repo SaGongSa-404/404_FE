@@ -7,6 +7,7 @@ void showCapsuleToast(
   required Color backgroundColor,
   required String text,
   Duration duration = const Duration(milliseconds: 2000),
+  double bottomOffset = 88, // 필수 파라미터에서 선택 파라미터(기본값 88)로 변경
 }) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
@@ -18,7 +19,7 @@ void showCapsuleToast(
       return Positioned(
         left: 0,
         right: 0,
-        bottom: bottomPad + 88,
+        bottom: bottomPad + bottomOffset,
         child: Material(
           color: Colors.transparent,
           child: CapsuleToast(
@@ -31,7 +32,9 @@ void showCapsuleToast(
   );
   overlay.insert(entry);
   Future<void>.delayed(duration, () {
-    entry.remove();
+    if (entry.mounted) {
+      entry.remove();
+    }
   });
 }
 
@@ -76,10 +79,6 @@ class CapsuleToast extends StatelessWidget {
               child: Text(
                 text,
                 textAlign: TextAlign.center,
-                textHeightBehavior: const TextHeightBehavior(
-                  applyHeightToFirstAscent: false,
-                  applyHeightToLastDescent: false,
-                ),
                 style: const TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
