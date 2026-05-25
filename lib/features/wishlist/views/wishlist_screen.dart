@@ -16,8 +16,22 @@ import 'package:fe_app/features/wishlist/views/components/modals/wishlist_add_en
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_share_modal.dart';
 import 'package:go_router/go_router.dart';
 
-class WishlistScreen extends ConsumerWidget {
+class WishlistScreen extends ConsumerStatefulWidget {
   const WishlistScreen({super.key});
+
+  @override
+  ConsumerState<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends ConsumerState<WishlistScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen();
+    });
+  }
 
   static const TextStyle _wishlistCountStyle = TextStyle(
     fontSize: 27,
@@ -41,7 +55,8 @@ class WishlistScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final state = ref.watch(wishlistViewModelProvider);
     final viewModel = ref.read(wishlistViewModelProvider.notifier);
 
@@ -53,6 +68,68 @@ class WishlistScreen extends ConsumerWidget {
           if (!context.mounted) return;
           viewModel.clearReopenAddEntryModal();
           _openAddEntryModal(context, ref);
+        });
+      },
+    );
+
+    ref.listen<String?>(
+      wishlistViewModelProvider.select((s) => s.listErrorMessage),
+      (prev, next) {
+        if (next == null || next.isEmpty) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearListError();
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: next,
+          );
+        });
+      },
+    );
+
+    ref.listen<String?>(
+      wishlistViewModelProvider.select((s) => s.submitErrorMessage),
+      (prev, next) {
+        if (next == null || next.isEmpty) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearSubmitError();
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: next,
+          );
+        });
+      },
+    );
+
+    ref.listen<bool>(
+      wishlistViewModelProvider.select((s) => s.isImportingLink),
+      (prev, next) {
+        if (prev != true || next != false) return;
+        final hasPrefill =
+            ref.read(wishlistViewModelProvider).addFormPrefill != null;
+        if (!hasPrefill) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFF5F8EAE),
+            text: '성공적으로 불러왔습니다.',
+          );
+        });
+      },
+    );
+
+    ref.listen<bool>(
+      wishlistViewModelProvider.select((s) => s.pendingImportFailedNavigation),
+      (prev, next) {
+        if (next != true) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          viewModel.clearPendingImportFailedNavigation();
+          context.push('/wishlist/add-fetch-failed');
         });
       },
     );
@@ -116,7 +193,10 @@ class WishlistScreen extends ConsumerWidget {
         ? null
         : state.items.where((item) => item.id == state.editingItemId).firstOrNull;
 
-    if (state.isLoading) {
+    final showInitialLoading =
+        state.isLoading && !state.isAddWishOpen && editingItem == null;
+
+    if (showInitialLoading) {
       return const Scaffold(body: LoadingIndicator(message: '로딩 중...'));
     }
 
@@ -220,45 +300,75 @@ class WishlistScreen extends ConsumerWidget {
                                           onLearnHow: () =>
                                               context.push('/tutorial'),
                                         )
-                                      : ListView.separated(
-                                          physics: const BouncingScrollPhysics(
-                                            parent: AlwaysScrollableScrollPhysics(),
-                                          ),
-                                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                                          itemCount: filteredItems.length,
-                                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                                          itemBuilder: (context, index) {
-                                            final item = filteredItems[index];
-                                            return WishlistItemCard(
-                                              item: item,
-                                              onTap: () => context.push('/wishlist/consider'),
-                                              onLongPress: () => {},
-                                              onEdit: () => viewModel.openEditPanel(item.id),
-                                              onDelete: () {
-                                                if (context.mounted) {
+                                      : NotificationListener<ScrollNotification>(
+                                          onNotification: (notification) {
+                                            if (notification.metrics.extentAfter > 200) {
+                                              return false;
+                                            }
+                                            if (notification is! ScrollUpdateNotification &&
+                                                notification is! ScrollEndNotification) {
+                                              return false;
+                                            }
+                                            viewModel.loadMore();
+                                            return false;
+                                          },
+                                          child: ListView.separated(
+                                            physics: const BouncingScrollPhysics(
+                                              parent: AlwaysScrollableScrollPhysics(),
+                                            ),
+                                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                                            itemCount: filteredItems.length +
+                                                (state.isLoadingMore ? 1 : 0),
+                                            separatorBuilder: (context, index) =>
+                                                const SizedBox(height: 12),
+                                            itemBuilder: (context, index) {
+                                              if (index >= filteredItems.length) {
+                                                return const Padding(
+                                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                                  child: Center(
+                                                    child: SizedBox(
+                                                      width: 24,
+                                                      height: 24,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: AppColors.skyBlue_300,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              final item = filteredItems[index];
+                                              return WishlistItemCard(
+                                                item: item,
+                                                onTap: () => context.push('/wishlist/consider'),
+                                                onLongPress: () => {},
+                                                onEdit: () => viewModel.openEditPanel(item.id),
+                                                onDelete: () async {
+                                                  final ok =
+                                                      await viewModel.dropItem(item.id);
+                                                  if (!context.mounted || !ok) return;
                                                   showCapsuleToast(
                                                     context,
                                                     backgroundColor: const Color(0xFFD46868),
                                                     text: '삭제되었습니다',
                                                   );
-                                                }
-                                                viewModel.removeItem(item.id);
-                                              },
-                                              onShare: () {
-                                                showWishlistShareToFeedModal(
-                                                  context,
-                                                  onConfirm: () {
-                                                    if (!context.mounted) return;
-                                                    showCapsuleToast(
-                                                      context,
-                                                      backgroundColor: const Color(0xFF5F8EAE),
-                                                      text: '피드에 공유되었습니다',
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            );
-                                          },
+                                                },
+                                                onShare: () {
+                                                  showWishlistShareToFeedModal(
+                                                    context,
+                                                    onConfirm: () {
+                                                      if (!context.mounted) return;
+                                                      showCapsuleToast(
+                                                        context,
+                                                        backgroundColor: const Color(0xFF5F8EAE),
+                                                        text: '피드에 공유되었습니다',
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
                                         ),
                                 ),
                               ],
@@ -280,14 +390,38 @@ class WishlistScreen extends ConsumerWidget {
             item: editingItem,
             onClose: viewModel.closeEditPanel,
             onSubmit: viewModel.updateItem,
-            onDelete: () => viewModel.removeItem(editingItem.id),
+            isSubmitting: state.isSubmitting,
+            onDelete: () async {
+              final ok = await viewModel.dropItem(editingItem.id);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFFD46868),
+                  text: '삭제되었습니다',
+                );
+              }
+              return ok;
+            },
           )
         else if (state.isAddWishOpen)
           WishlistItemFormPanel.add(
             onClose: viewModel.closeEditPanel,
-            onSubmit: viewModel.addItem,
+            onSubmit: (item) async {
+              final ok = await viewModel.addItem(item);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFF5F8EAE),
+                  text: '솜사탕이 생겼어요!',
+                );
+              }
+              return ok;
+            },
             initialLink: state.addPrefillLink,
+            formPrefill: state.addFormPrefill,
             linkReadOnly: state.isAddLinkReadOnly,
+            isImporting: state.isImportingLink,
+            isSubmitting: state.isSubmitting,
           ),
       ],
     );
