@@ -6,7 +6,7 @@ import 'package:fe_app/features/onboarding/views/components/onboarding_primary_b
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 
-class NugulIntroScreen extends ConsumerWidget {
+class NugulIntroScreen extends ConsumerStatefulWidget {
   const NugulIntroScreen({
     super.key,
     this.currentStep = 6,
@@ -16,11 +16,33 @@ class NugulIntroScreen extends ConsumerWidget {
   final int currentStep;
   final int totalSteps;
 
+  @override
+  ConsumerState<NugulIntroScreen> createState() => _NugulIntroScreenState();
+}
+
+class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
   static const _designW = 412.0;
 
+  Future<void> _onNext() async {
+    final success =
+        await ref.read(onboardingProvider.notifier).completeOnboarding();
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/home');
+    } else {
+      final msg = ref.read(onboardingProvider).errorMessage ??
+          '온보딩 완료 중 오류가 발생했습니다.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nickname = ref.watch(onboardingProvider).nickname;
+  Widget build(BuildContext context) {
+    final state = ref.watch(onboardingProvider);
+    final mascotName = state.mascotName;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,20 +68,15 @@ class NugulIntroScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 상단 여백: 피그마 65/844 비율
                             const Spacer(flex: 65),
-
                             OnboardingProgressIndicator(
-                              currentStep: currentStep,
-                              totalSteps: totalSteps,
+                              currentStep: widget.currentStep,
+                              totalSteps: widget.totalSteps,
                               onBack: () {
                                 if (context.canPop()) context.pop();
                               },
                             ),
-
-                            // 인디케이터 ↔ 텍스트: gap 23 + 텍스트 상단 패딩 74 = 97/844 비율
                             const Spacer(flex: 97),
-
                             Text(
                               '위시템을 담으면\n솜사탕이 생겨요.',
                               style: TextStyle(
@@ -70,9 +87,7 @@ class NugulIntroScreen extends ConsumerWidget {
                                 height: 1.36,
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
                             Text(
                               '맑은 날엔 너굴이가 솜사탕을 맛있게\n먹을 수 있어요!',
                               style: TextStyle(
@@ -83,17 +98,14 @@ class NugulIntroScreen extends ConsumerWidget {
                                 height: 1.45,
                               ),
                             ),
-
-                            // 텍스트↔캐릭터 여백: 87/844 비율
                             const Spacer(flex: 87),
-
                             Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _SpeechBubble(
                                     nickname:
-                                        nickname.isEmpty ? '친구' : nickname,
+                                        mascotName.isEmpty ? '친구' : mascotName,
                                     width: charW,
                                     scale: scale,
                                   ),
@@ -107,17 +119,12 @@ class NugulIntroScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-
-                            // 캐릭터 ↔ 버튼 여백: 12/844 비율
                             const Spacer(flex: 12),
-
                             OnboardingPrimaryButton(
-                              label: '다음',
-                              onPressed: () => context.go('/home'),
+                              label: '시작하기',
+                              onPressed: state.isLoading ? null : _onNext,
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
-
-                            // 하단 여백: 40/844 비율
                             const Spacer(flex: 40),
                           ],
                         ),
@@ -152,7 +159,6 @@ class _SpeechBubble extends StatelessWidget {
       child: CustomPaint(
         painter: const _BubblePainter(),
         child: Padding(
-          // 좌우 24px + 상 16px + 하 30px (내용 패딩 16 + 꼬리 공간 14)
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
           child: Text(
             '안녕하세요, $nickname님!\n저는 너굴이에요.',
@@ -201,7 +207,6 @@ class _BubblePainter extends CustomPainter {
       ..arcToPoint(Offset(r, 0), radius: const Radius.circular(r))
       ..close();
 
-    // 피그마 drop-shadow(0 0 3px rgba(0,0,0,0.2)) 재현
     canvas.drawPath(
       path,
       Paint()

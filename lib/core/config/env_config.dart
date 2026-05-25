@@ -21,7 +21,7 @@ abstract final class EnvConfig {
     if (value == null || value.isEmpty) {
       throw StateError('API_BASE_URL is required. Check your .env file.');
     }
-    return value;
+    return value.replaceAll(RegExp(r'/+$'), '');
   }
 
   static String? get kakaoNativeAppKey {

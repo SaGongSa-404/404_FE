@@ -1,47 +1,93 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/onboarding/models/onboarding_complete_request.dart';
+import 'package:fe_app/features/onboarding/repositories/onboarding_repository.dart';
 
 class OnboardingState {
-  final String nickname;
-  final List<String> surveyAnswers;
-
-  OnboardingState({
-    this.nickname = '',
-    this.surveyAnswers = const [],
+  const OnboardingState({
+    this.mascotName = '',
+    this.monthlyBudgetAmount,
+    this.regretFrequencyChoice,
+    this.isLoading = false,
+    this.errorMessage,
   });
 
+  final String mascotName;
+  final int? monthlyBudgetAmount;
+
+  /// LESS_THAN_ONCE | ONE_TO_THREE | FOUR_OR_MORE
+  final String? regretFrequencyChoice;
+
+  final bool isLoading;
+  final String? errorMessage;
+
   OnboardingState copyWith({
-    String? nickname,
-    List<String>? surveyAnswers,
+    String? mascotName,
+    int? monthlyBudgetAmount,
+    String? regretFrequencyChoice,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
   }) {
     return OnboardingState(
-      nickname: nickname ?? this.nickname,
-      surveyAnswers: surveyAnswers ?? this.surveyAnswers,
+      mascotName: mascotName ?? this.mascotName,
+      monthlyBudgetAmount: monthlyBudgetAmount ?? this.monthlyBudgetAmount,
+      regretFrequencyChoice:
+          regretFrequencyChoice ?? this.regretFrequencyChoice,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
 
 class OnboardingViewModel extends StateNotifier<OnboardingState> {
-  OnboardingViewModel() : super(OnboardingState());
+  OnboardingViewModel(this._repository) : super(const OnboardingState());
 
-  void setNickname(String nickname) {
-    state = state.copyWith(nickname: nickname);
-  }
+  final OnboardingRepository _repository;
 
-  void addSurveyAnswer(String answer) {
-    final updatedAnswers = List<String>.from(state.surveyAnswers)..add(answer);
-    state = state.copyWith(surveyAnswers: updatedAnswers);
-  }
+  void setMascotName(String name) =>
+      state = state.copyWith(mascotName: name);
 
-  void selectSurveyOption(int index, String answer) {
-    state = state.copyWith(surveyAnswers: [answer]);
-  }
+  void setMonthlyBudget(int amount) =>
+      state = state.copyWith(monthlyBudgetAmount: amount);
 
-  void resetSurvey() {
-    state = state.copyWith(surveyAnswers: []);
+  void setRegretFrequency(String choice) =>
+      state = state.copyWith(regretFrequencyChoice: choice);
+
+  /// 온보딩 완료 API 호출. true 반환 시 홈으로 이동, false 반환 시 errorMessage 참조.
+  Future<bool> completeOnboarding() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final timezone = await FlutterTimezone.getLocalTimezone();
+      final request = OnboardingCompleteRequest(
+        mascotName: state.mascotName,
+        timezone: timezone,
+        monthlyBudgetAmount: state.monthlyBudgetAmount ?? 0,
+        regretFrequencyChoice:
+            state.regretFrequencyChoice ?? 'LESS_THAN_ONCE',
+      );
+
+      await _repository.complete(request);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 409) {
+        // 이미 온보딩 완료 상태 → 홈으로 이동
+        state = state.copyWith(isLoading: false);
+        return true;
+      }
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
   }
 }
 
 final onboardingProvider =
-StateNotifierProvider<OnboardingViewModel, OnboardingState>((ref) {
-  return OnboardingViewModel();
+    StateNotifierProvider<OnboardingViewModel, OnboardingState>((ref) {
+  return OnboardingViewModel(ref.watch(onboardingRepositoryProvider));
 });

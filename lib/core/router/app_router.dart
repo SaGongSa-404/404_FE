@@ -65,6 +65,7 @@ bool _isAllowedPathForGuest(String location) {
   return false;
 }
 
+/// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
@@ -260,12 +261,14 @@ class _RouterNotifier extends ChangeNotifier {
 
     if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
 
+    // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
 
-    if (isLoggedIn && location == '/') return '/home';
-
-    if (isLoggedIn && isAuthPage) {
-      return '/onboarding/terms';
+    // 로그인 완료 + 스플래시 또는 인증 페이지 → onboardingStatus 확인 후 분기
+    if (isLoggedIn && (location == '/' || isAuthPage)) {
+      final isCompleted =
+          authState.value?.onboardingStatus == 'COMPLETED';
+      return isCompleted ? '/home' : '/onboarding/terms';
     }
 
     return null;

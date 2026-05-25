@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_header.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_pill_text_field.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 
-class BudgetScreen extends StatefulWidget {
+class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
 
   @override
-  State<BudgetScreen> createState() => _BudgetScreenState();
+  ConsumerState<BudgetScreen> createState() => _BudgetScreenState();
 }
 
-class _BudgetScreenState extends State<BudgetScreen> {
+class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   static const _designWidth = 412.0;
 
   final _controller = TextEditingController();
@@ -39,6 +41,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
+    final digits = _controller.text.replaceAll(',', '');
+    final amount = int.tryParse(digits) ?? 0;
+    ref.read(onboardingProvider.notifier).setMonthlyBudget(amount);
     context.push('/onboarding/survey');
   }
 

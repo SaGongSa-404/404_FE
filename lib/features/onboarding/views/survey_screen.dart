@@ -23,14 +23,17 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
     '자주 있었어요 (월 4회 이상)',
   ];
 
+  static const _enumValues = <String>[
+    'LESS_THAN_ONCE',
+    'ONE_TO_THREE',
+    'FOUR_OR_MORE',
+  ];
+
   int? _selectedIndex;
 
   void _onSelect(int index) {
     setState(() => _selectedIndex = index);
-    ref.read(onboardingProvider.notifier).selectSurveyOption(
-          index,
-          _options[index],
-        );
+    ref.read(onboardingProvider.notifier).setRegretFrequency(_enumValues[index]);
   }
 
   void _onNext() {
