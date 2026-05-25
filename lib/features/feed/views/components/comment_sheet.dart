@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
+import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class _CommentSheetContent extends ConsumerStatefulWidget {
 }
 
 class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
-  bool _showDeleteToast = false;
+  String? _toastMessage;
   Timer? _toastTimer;
 
   @override
@@ -46,15 +47,19 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     if (!mounted) return;
     if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
-      _triggerToast();
+      _triggerToast('삭제되었습니다');
+    } else if (result == 'report') {
+      final reported = await showReportModal(context);
+      if (!mounted) return;
+      if (reported) _triggerToast('신고가 완료되었습니다');
     }
   }
 
-  void _triggerToast() {
-    setState(() => _showDeleteToast = true);
+  void _triggerToast(String message) {
+    setState(() => _toastMessage = message);
     _toastTimer?.cancel();
     _toastTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _showDeleteToast = false);
+      if (mounted) setState(() => _toastMessage = null);
     });
   }
 
@@ -125,7 +130,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
               ),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                child: _showDeleteToast
+                child: _toastMessage != null
                     ? Padding(
                         key: const ValueKey('toast'),
                         padding: const EdgeInsets.fromLTRB(26, 0, 26, 8),
@@ -144,9 +149,9 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: const Text(
-                            '삭제되었습니다',
-                            style: TextStyle(
+                          child: Text(
+                            _toastMessage!,
+                            style: const TextStyle(
                               fontFamily: 'Pretendard',
                               fontWeight: FontWeight.w500,
                               fontSize: 18,

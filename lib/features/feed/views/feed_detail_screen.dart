@@ -6,6 +6,7 @@ import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
+import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +28,36 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     if (!mounted) return;
     if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
+      _showCommentToast('삭제되었습니다');
+    } else if (result == 'report') {
+      final reported = await showReportModal(context);
+      if (!mounted) return;
+      if (reported) _showCommentToast('신고가 완료되었습니다');
     }
+  }
+
+  void _showCommentToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w500,
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(47)),
+        margin: const EdgeInsets.symmetric(horizontal: 26, vertical: 19),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
+        elevation: 6,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   AppBar _buildAppBar() {
