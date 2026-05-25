@@ -371,6 +371,15 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                   const SizedBox(height: 32),
                                 ] else ...[
                                   _buildField(
+                                    label: '링크',
+                                    controller: _linkController,
+                                    hintText: '',
+                                    showError: false,
+                                    showErrorBorder: false,
+                                    readOnly: true,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildField(
                                     label: '상품명',
                                     controller: _nameController,
                                     hintText: '',
@@ -389,17 +398,6 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showErrorBorder: false,
                                     readOnly: true,
                                   ),
-                                  if (_linkController.text.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildField(
-                                      label: '링크',
-                                      controller: _linkController,
-                                      hintText: '',
-                                      showError: false,
-                                      showErrorBorder: false,
-                                      readOnly: true,
-                                    ),
-                                  ],
                                   const SizedBox(height: 32),
                                 ],
                                 _categoryLabelRow(),

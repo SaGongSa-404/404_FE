@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
+import 'package:fe_app/core/network/json_response.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_link_request.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_link_response.dart';
 
@@ -25,6 +26,6 @@ class ItemImportService {
         sendTimeout: const Duration(seconds: 15),
       ),
     );
-    return ItemImportLinkResponse.fromJson(res.data!);
+    return ItemImportLinkResponse.fromJson(requireJsonMap(res.data));
   }
 }

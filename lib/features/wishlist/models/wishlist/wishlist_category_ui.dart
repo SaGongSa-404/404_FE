@@ -10,7 +10,21 @@ abstract final class WishlistCategoryUi {
     '뷰티': ItemCategory.beauty,
     '라이프': ItemCategory.living,
     '디지털': ItemCategory.digital,
+    '음식': ItemCategory.food,
+    '취미': ItemCategory.hobby,
+    '구독': ItemCategory.subscription,
     '기타': ItemCategory.etc,
+  };
+
+  static const Map<ItemCategory, String> _enumToUiLabel = {
+    ItemCategory.fashion: '패션',
+    ItemCategory.beauty: '뷰티',
+    ItemCategory.living: '라이프',
+    ItemCategory.digital: '디지털',
+    ItemCategory.food: '음식',
+    ItemCategory.hobby: '취미',
+    ItemCategory.subscription: '구독',
+    ItemCategory.etc: '기타',
   };
 
   static String toApiValue(String uiLabel) {
@@ -22,9 +36,6 @@ abstract final class WishlistCategoryUi {
     if (normalized == null || normalized.isEmpty) return '기타';
     final category = ItemCategory.fromApiValue(normalized.toUpperCase());
     if (category == null) return '기타';
-    for (final entry in _labelToEnum.entries) {
-      if (entry.value == category) return entry.key;
-    }
-    return '기타';
+    return _enumToUiLabel[category] ?? '기타';
   }
 }

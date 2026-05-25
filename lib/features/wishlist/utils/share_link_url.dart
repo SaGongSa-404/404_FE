@@ -38,15 +38,49 @@ abstract final class ShareLinkUrl {
   static bool _isBlockedHost(String host) {
     final h = host.toLowerCase();
     if (h == 'localhost' || h.endsWith('.localhost')) return true;
-    if (h.startsWith('127.')) return true;
-    if (h.startsWith('10.')) return true;
-    if (h.startsWith('192.168.')) return true;
-    if (h.startsWith('172.')) {
-      final parts = h.split('.');
+    if (h.contains(':')) return _isBlockedIpv6Host(h);
+    return _isBlockedIpv4Host(h);
+  }
+
+  static bool _isBlockedIpv4Host(String host) {
+    if (host == '0.0.0.0') return true;
+    if (host.startsWith('127.')) return true;
+    if (host.startsWith('10.')) return true;
+    if (host.startsWith('192.168.')) return true;
+    if (host.startsWith('169.254.')) return true;
+    if (host.startsWith('172.')) {
+      final parts = host.split('.');
       if (parts.length >= 2) {
         final second = int.tryParse(parts[1]);
         if (second != null && second >= 16 && second <= 31) return true;
       }
+    }
+    return false;
+  }
+
+  static bool _isBlockedIpv6Host(String host) {
+    var normalized = host;
+    if (normalized.startsWith('[') && normalized.endsWith(']')) {
+      normalized = normalized.substring(1, normalized.length - 1);
+    }
+    if (normalized == '::1' || normalized == '0:0:0:0:0:0:0:1') return true;
+
+    if (normalized.startsWith('::ffff:')) {
+      final embedded = normalized.substring('::ffff:'.length);
+      if (embedded.contains('.')) {
+        return _isBlockedIpv4Host(embedded);
+      }
+    }
+
+    final firstHextet = normalized.split(':').first;
+    if (firstHextet.startsWith('fc') || firstHextet.startsWith('fd')) {
+      return true;
+    }
+    if (firstHextet.startsWith('fe8') ||
+        firstHextet.startsWith('fe9') ||
+        firstHextet.startsWith('fea') ||
+        firstHextet.startsWith('feb')) {
+      return true;
     }
     return false;
   }

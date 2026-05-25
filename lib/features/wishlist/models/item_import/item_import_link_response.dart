@@ -42,9 +42,11 @@ class ItemImportLinkResponse {
   }) {
     if (raw is! Map<String, dynamic>) return null;
     final map = Map<String, dynamic>.from(raw);
-    final category = map['category'] as String?;
-    if ((category == null || category.trim().isEmpty) &&
-        item?.category != null) {
+    final categoryRaw = map['category'];
+    final category = categoryRaw == null
+        ? null
+        : categoryRaw.toString().trim();
+    if ((category == null || category.isEmpty) && item?.category != null) {
       map['category'] = item!.category!.apiValue;
     }
     try {

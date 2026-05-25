@@ -35,9 +35,13 @@ class ItemImportLinkRequest {
     num? price,
     String? imageUrl,
   }) {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      throw ArgumentError('Title must not be empty', 'title');
+    }
     return ItemImportLinkRequest(
       inputSource: ItemInputSource.directInput,
-      title: title.trim(),
+      title: trimmedTitle,
       brandName: brandName,
       price: price,
       imageUrl: imageUrl,
