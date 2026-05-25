@@ -28,6 +28,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   WishlistViewModel(this._ref) : super(const WishlistState());
 
   final Ref _ref;
+  int _linkImportGeneration = 0;
 
   WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
 
@@ -174,6 +175,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       return;
     }
 
+    final generation = ++_linkImportGeneration;
     state = state.copyWith(
       isAddWishOpen: true,
       clearEditingItemId: true,
@@ -184,21 +186,27 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
     );
-    _importShareLink(normalized);
+    _importShareLink(normalized, generation);
   }
 
-  Future<void> _importShareLink(String url) async {
+  Future<void> _importShareLink(String url, int generation) async {
     try {
       final response = await _itemImportService.importLink(
         ItemImportLinkRequest.share(url),
       );
+      if (!_isLinkImportStillActive(generation, url)) return;
+
       final prefill = response.toFormPrefill();
       final saveRequest = response.resolvedSaveRequest();
 
       if (prefill == null) {
-        _handleImportFailure();
+        if (_isLinkImportStillActive(generation, url)) {
+          _handleImportFailure();
+        }
         return;
       }
+
+      if (!_isLinkImportStillActive(generation, url)) return;
 
       state = state.copyWith(
         isImportingLink: false,
@@ -207,10 +215,21 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
       );
     } on ArgumentError {
-      _handleImportFailure();
+      if (_isLinkImportStillActive(generation, url)) {
+        _handleImportFailure();
+      }
     } catch (_) {
-      _handleImportFailure();
+      if (_isLinkImportStillActive(generation, url)) {
+        _handleImportFailure();
+      }
     }
+  }
+
+  bool _isLinkImportStillActive(int generation, String url) {
+    return generation == _linkImportGeneration &&
+        state.isAddWishOpen &&
+        state.isImportingLink &&
+        state.addPrefillLink == url;
   }
 
   void _handleImportFailure() {
@@ -274,7 +293,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     final link = draft.link.trim();
     if (link.isEmpty) return ItemInputSource.directInput;
     if (state.isAddLinkReadOnly) return ItemInputSource.share;
-    return ItemInputSource.share;
+    return ItemInputSource.directInput;
   }
 
   WishlistItemSaveRequest _buildSaveRequestForAdd(WishlistPlaceholder draft) {
@@ -310,18 +329,17 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
     try {
       final request = _buildSaveRequestForAdd(draft);
-      final created = await _wishlistService.createItem(request);
-      final item = created.toPlaceholder();
+      await _wishlistService.createItem(request);
 
       state = state.copyWith(
         isSubmitting: false,
-        items: [...state.items, item],
         clearAddWish: true,
         clearAddPrefillLink: true,
         clearAddLinkReadOnly: true,
         clearAddFormPrefill: true,
         clearAddImportSaveRequest: true,
       );
+      await _fetchFirstPage();
       return true;
     } catch (e) {
       final api = apiExceptionFrom(e);

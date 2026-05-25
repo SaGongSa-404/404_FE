@@ -6,9 +6,10 @@ enum ItemInputSource {
   final String apiValue;
 
   static ItemInputSource? fromApiValue(String? value) {
-    if (value == null) return null;
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
     for (final item in ItemInputSource.values) {
-      if (item.apiValue == value) return item;
+      if (item.apiValue == normalized) return item;
     }
     return null;
   }
@@ -47,9 +48,10 @@ enum ItemStatus {
   final String apiValue;
 
   static ItemStatus? fromApiValue(String? value) {
-    if (value == null) return null;
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
     for (final item in ItemStatus.values) {
-      if (item.apiValue == value) return item;
+      if (item.apiValue == normalized) return item;
     }
     return null;
   }

@@ -1,4 +1,3 @@
-/// POST /api/v1/items/import-link (SHARE)용 URL 정규화·검증.
 abstract final class ShareLinkUrl {
   ShareLinkUrl._();
 
@@ -36,11 +35,19 @@ abstract final class ShareLinkUrl {
   }
 
   static bool _isBlockedHost(String host) {
-    final h = host.toLowerCase();
+    var h = host.toLowerCase();
+    if (h.startsWith('[') && h.endsWith(']')) {
+      h = h.substring(1, h.length - 1);
+    }
+
     if (h == 'localhost' || h.endsWith('.localhost')) return true;
+    if (h == '::1' || h == '0:0:0:0:0:0:0:1') return true;
+    if (h == '0.0.0.0') return true;
+
     if (h.startsWith('127.')) return true;
     if (h.startsWith('10.')) return true;
     if (h.startsWith('192.168.')) return true;
+    if (h.startsWith('169.254.')) return true;
     if (h.startsWith('172.')) {
       final parts = h.split('.');
       if (parts.length >= 2) {
@@ -48,6 +55,10 @@ abstract final class ShareLinkUrl {
         if (second != null && second >= 16 && second <= 31) return true;
       }
     }
+
+    if (h.startsWith('fe80:')) return true;
+    if (h.startsWith('fc') || h.startsWith('fd')) return true;
+
     return false;
   }
 }
