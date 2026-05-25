@@ -52,15 +52,11 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                   child: Column(
                     children: [
                       SizedBox(height: 32 * scale),
-                      SvgPicture.asset(
-                        'assets/images/nugul_face.svg',
-                        width: 90 * scale,
-                        height: 90 * scale,
-                        placeholderBuilder: (context) => SizedBox(
-                          width: 90 * scale,
-                          height: 90 * scale,
-                          child: const Center(child: CircularProgressIndicator()),
-                        ),
+                      Image.asset(
+                        'assets/images/nugul_face.png',
+                        width: 118 * scale,
+                        height: 118 * scale,
+
                       ),
                       SizedBox(height: 16 * scale),
                       RichText(
