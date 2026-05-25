@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:flutter/material.dart';
@@ -41,14 +41,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     super.dispose();
   }
 
-  Future<void> _handleDeleteComment(String commentId) async {
-    final confirmed = await showConfirmBottomSheet(
-      context: context,
-      title: '작성한 댓글을\n정말 삭제하실 건가요?',
-      subtitle: '한 번 삭제된 댓글은 되돌릴 수 없어요',
-      actionLabel: '삭제하기',
-    );
-    if (confirmed == true && mounted) {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment) async {
+    final result = await showCommentOptionModal(context, isMyComment: isMyComment);
+    if (!mounted) return;
+    if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
       _triggerToast();
     }
@@ -120,9 +116,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                   separatorBuilder: (_, __) => const SizedBox(height: 26),
                   itemBuilder: (_, index) => _CommentItem(
                     comment: comments[index],
-                    onOption: comments[index].isMyComment
-                        ? () => _handleDeleteComment(comments[index].id)
-                        : null,
+                    onOption: () => _handleCommentOption(
+                      comments[index].id,
+                      comments[index].isMyComment,
+                    ),
                   ),
                 ),
               ),
@@ -174,11 +171,11 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
 class _CommentItem extends StatefulWidget {
   const _CommentItem({
     required this.comment,
-    this.onOption,
+    required this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback? onOption;
+  final VoidCallback onOption;
 
   @override
   State<_CommentItem> createState() => _CommentItemState();
@@ -253,7 +250,7 @@ class _CommentItemState extends State<_CommentItem> {
           onTapDown: (_) => setState(() => _optionPressed = true),
           onTapUp: (_) {
             setState(() => _optionPressed = false);
-            widget.onOption?.call();
+            widget.onOption();
           },
           onTapCancel: () => setState(() => _optionPressed = false),
           child: Padding(
@@ -284,6 +281,7 @@ class _CommentInput extends StatefulWidget {
 class _CommentInputState extends State<_CommentInput> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _uploadPressed = false;
 
   @override
   void initState() {
@@ -345,20 +343,49 @@ class _CommentInputState extends State<_CommentInput> {
                 onSubmitted: (_) => _submit(),
               ),
             ),
-            AnimatedOpacity(
-              opacity: _hasText ? 1.0 : 0.3,
+            AnimatedSwitcher(
               duration: const Duration(milliseconds: 150),
-              child: GestureDetector(
-                onTap: _submit,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.send_rounded,
-                    size: 22,
-                    color: AppColors.skyBlue_200,
-                  ),
-                ),
-              ),
+              child: _hasText
+                  ? GestureDetector(
+                      key: const ValueKey('upload'),
+                      onTapDown: (_) => setState(() => _uploadPressed = true),
+                      onTapUp: (_) {
+                        setState(() => _uploadPressed = false);
+                        _submit();
+                      },
+                      onTapCancel: () => setState(() => _uploadPressed = false),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.skyBlue_100,
+                            borderRadius: BorderRadius.circular(19),
+                          ),
+                          alignment: Alignment.center,
+                          child: SvgPicture.asset(
+                            _uploadPressed
+                                ? 'assets/images/comment_upload_clicked.svg'
+                                : 'assets/images/comment_upload.svg',
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Opacity(
+                      key: const ValueKey('send'),
+                      opacity: 0.3,
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(
+                          Icons.send_rounded,
+                          size: 22,
+                          color: AppColors.skyBlue_200,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

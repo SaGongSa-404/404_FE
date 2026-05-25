@@ -5,6 +5,7 @@ import 'package:fe_app/features/feed/views/components/comment_sheet.dart';
 import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
+import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
@@ -58,7 +59,10 @@ class FeedScreen extends ConsumerWidget {
                       onVote: (vote) => vm.vote(post.id, vote),
                       onOptionTap: () async {
                         vm.setActiveOption(post.id);
-                        final result = await showOptionModal(context);
+                        final result = await showOptionModal(
+                          context,
+                          isMyPost: post.isMyPost,
+                        );
                         vm.setActiveOption(null);
                         if (!context.mounted) return;
                         if (result == 'delete') {
@@ -117,6 +121,36 @@ class FeedScreen extends ConsumerWidget {
                                 ),
                                 backgroundColor:
                                     AppColors.skyBlue_400.withValues(alpha: 0.8),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(47),
+                                ),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 26, vertical: 19),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 9),
+                                elevation: 6,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } else if (result == 'report') {
+                          final reported = await showReportModal(context);
+                          if (reported && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  '신고가 완료되었습니다',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor:
+                                    AppColors.red_600.withValues(alpha: 0.8),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(47),

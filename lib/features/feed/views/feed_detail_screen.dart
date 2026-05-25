@@ -4,7 +4,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
-import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/material.dart';
@@ -22,14 +22,10 @@ class FeedDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
-  Future<void> _handleDeleteComment(String commentId) async {
-    final confirmed = await showConfirmBottomSheet(
-      context: context,
-      title: '작성한 댓글을\n정말 삭제하실 건가요?',
-      subtitle: '한 번 삭제된 댓글은 되돌릴 수 없어요',
-      actionLabel: '삭제하기',
-    );
-    if (confirmed == true && mounted) {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment) async {
+    final result = await showCommentOptionModal(context, isMyComment: isMyComment);
+    if (!mounted) return;
+    if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
     }
   }
@@ -122,7 +118,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: _CommentList(
                     comments: comments,
-                    onDelete: _handleDeleteComment,
+                    onOption: _handleCommentOption,
                   ),
                 ),
                 const SizedBox(height: 100),
@@ -273,11 +269,11 @@ class _DetailProductCard extends StatelessWidget {
 class _CommentList extends StatelessWidget {
   const _CommentList({
     required this.comments,
-    required this.onDelete,
+    required this.onOption,
   });
 
   final List<FeedComment> comments;
-  final ValueChanged<String> onDelete;
+  final void Function(String commentId, bool isMyComment) onOption;
 
   @override
   Widget build(BuildContext context) {
@@ -289,9 +285,7 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onOption: comments[i].isMyComment
-                ? () => onDelete(comments[i].id)
-                : null,
+            onOption: () => onOption(comments[i].id, comments[i].isMyComment),
           ),
           if (i < comments.length - 1) const SizedBox(height: 20),
         ],
@@ -303,11 +297,11 @@ class _CommentList extends StatelessWidget {
 class _DetailCommentItem extends StatefulWidget {
   const _DetailCommentItem({
     required this.comment,
-    this.onOption,
+    required this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback? onOption;
+  final VoidCallback onOption;
 
   @override
   State<_DetailCommentItem> createState() => _DetailCommentItemState();
@@ -352,7 +346,7 @@ class _DetailCommentItemState extends State<_DetailCommentItem> {
           onTapDown: (_) => setState(() => _optionPressed = true),
           onTapUp: (_) {
             setState(() => _optionPressed = false);
-            widget.onOption?.call();
+            widget.onOption();
           },
           onTapCancel: () => setState(() => _optionPressed = false),
           child: Padding(
@@ -383,6 +377,7 @@ class _BottomCommentBar extends StatefulWidget {
 class _BottomCommentBarState extends State<_BottomCommentBar> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _uploadPressed = false;
 
   @override
   void initState() {
@@ -449,20 +444,49 @@ class _BottomCommentBarState extends State<_BottomCommentBar> {
                 onSubmitted: (_) => _submit(),
               ),
             ),
-            AnimatedOpacity(
-              opacity: _hasText ? 1.0 : 0.3,
+            AnimatedSwitcher(
               duration: const Duration(milliseconds: 150),
-              child: GestureDetector(
-                onTap: _submit,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.send_rounded,
-                    size: 22,
-                    color: AppColors.skyBlue_200,
-                  ),
-                ),
-              ),
+              child: _hasText
+                  ? GestureDetector(
+                      key: const ValueKey('upload'),
+                      onTapDown: (_) => setState(() => _uploadPressed = true),
+                      onTapUp: (_) {
+                        setState(() => _uploadPressed = false);
+                        _submit();
+                      },
+                      onTapCancel: () => setState(() => _uploadPressed = false),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.skyBlue_100,
+                            borderRadius: BorderRadius.circular(19),
+                          ),
+                          alignment: Alignment.center,
+                          child: SvgPicture.asset(
+                            _uploadPressed
+                                ? 'assets/images/comment_upload_clicked.svg'
+                                : 'assets/images/comment_upload.svg',
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Opacity(
+                      key: const ValueKey('send'),
+                      opacity: 0.3,
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(
+                          Icons.send_rounded,
+                          size: 22,
+                          color: AppColors.skyBlue_200,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
