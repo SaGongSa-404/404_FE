@@ -27,8 +27,8 @@ class VoteButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final hasVoted = myVote != VoteType.none;
-
     final showPercent = isDisabled || hasVoted;
 
     final buttons = Row(
@@ -43,7 +43,7 @@ class VoteButtons extends StatelessWidget {
             onTap: () => onVote(VoteType.go),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: (12 * scale).clamp(9.0, 15.0)),
         Expanded(
           child: _VoteButton(
             label: 'STOP',
@@ -83,13 +83,17 @@ class _VoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final bgColor = isDimmed ? AppColors.background : activeColor;
     final border = isDimmed ? null : Border.all(color: activeColor, width: 2);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: (10 * scale).clamp(8.0, 12.0),
+          horizontal: (8 * scale).clamp(6.0, 10.0),
+        ),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(100),
@@ -100,22 +104,22 @@ class _VoteButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                fontSize: 18,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
                 color: AppColors.textDark,
               ),
             ),
             if (percentText.isNotEmpty) ...[
-              const SizedBox(width: 12),
+              SizedBox(width: (12 * scale).clamp(9.0, 15.0)),
               Flexible(
                 child: Text(
                   percentText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w400,
-                    fontSize: 12,
+                    fontSize: (12 * scale).clamp(9.0, 15.0),
                     color: AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,

@@ -60,6 +60,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final post = ref
         .watch(feedProvider)
         .posts
@@ -78,8 +79,8 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
           child: Center(
             child: SvgPicture.asset(
               'assets/images/close.svg',
-              width: 16,
-              height: 16,
+              width: (16 * scale).clamp(13.0, 19.0),
+              height: (16 * scale).clamp(13.0, 19.0),
               colorFilter: const ColorFilter.mode(
                 AppColors.brown,
                 BlendMode.srcIn,
@@ -87,12 +88,12 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
             ),
           ),
         ),
-        title: const Text(
+        title: Text(
           '게시글 수정하기',
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: (20 * scale).clamp(16.0, 24.0),
             color: AppColors.brown,
           ),
         ),
@@ -101,7 +102,12 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              padding: EdgeInsets.fromLTRB(
+                (24 * scale).clamp(18.0, 30.0),
+                (20 * scale).clamp(15.0, 25.0),
+                (24 * scale).clamp(18.0, 30.0),
+                (16 * scale).clamp(12.0, 20.0),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -110,10 +116,10 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
                     maxLines: null,
                     minLines: 6,
                     autofocus: true,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
-                      fontSize: 20,
+                      fontSize: (20 * scale).clamp(16.0, 24.0),
                       color: AppColors.textDark,
                       height: 1.3,
                     ),
@@ -123,7 +129,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
                     ),
                   ),
                   if (post.productName != null) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                     _ProductCard(
                       name: post.productName!,
                       price: post.productPrice,
@@ -158,28 +164,37 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+          ),
           child: imageUrl != null
-              ? Image.network(imageUrl!,
-                  height: 150,
+              ? Image.network(
+                  imageUrl!,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
-                  fit: BoxFit.cover)
+                  fit: BoxFit.cover,
+                )
               : Container(
-                  height: 150,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
                   color: AppColors.skyBlue_100.withValues(alpha: 0.4),
                 ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: (12 * scale).clamp(9.0, 15.0),
+            vertical: (10 * scale).clamp(8.0, 12.0),
+          ),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(22)),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -192,20 +207,20 @@ class _ProductCard extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textPrimary,
                 ),
               ),
               if (price != null)
                 Text(
                   price!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    fontSize: (14 * scale).clamp(11.0, 17.0),
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -217,7 +232,7 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-class _BottomButtons extends StatelessWidget {
+class _BottomButtons extends StatefulWidget {
   const _BottomButtons({
     required this.canSubmit,
     required this.onCancel,
@@ -229,60 +244,80 @@ class _BottomButtons extends StatelessWidget {
   final VoidCallback onSubmit;
 
   @override
+  State<_BottomButtons> createState() => _BottomButtonsState();
+}
+
+class _BottomButtonsState extends State<_BottomButtons> {
+  bool _cancelPressed = false;
+  bool _submitPressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Container(
       color: AppColors.white,
       padding: EdgeInsets.fromLTRB(
-        24,
-        8,
-        24,
-        MediaQuery.of(context).padding.bottom + 16,
+        (24 * scale).clamp(18.0, 30.0),
+        (8 * scale).clamp(6.0, 10.0),
+        (24 * scale).clamp(18.0, 30.0),
+        MediaQuery.of(context).padding.bottom + (16 * scale).clamp(12.0, 20.0),
       ),
       child: Row(
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: onCancel,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 15),
+              onTapDown: (_) => setState(() => _cancelPressed = true),
+              onTapUp: (_) {
+                setState(() => _cancelPressed = false);
+                widget.onCancel();
+              },
+              onTapCancel: () => setState(() => _cancelPressed = false),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 100),
+                padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
                 decoration: BoxDecoration(
-                  color: AppColors.grey_100,
+                  color: _cancelPressed ? AppColors.grey_300 : AppColors.grey_100,
                   borderRadius: BorderRadius.circular(40),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
+                child: Text(
                   '취소',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
-                    fontSize: 20,
+                    fontSize: (20 * scale).clamp(16.0, 24.0),
                     color: AppColors.textDark,
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12 * scale).clamp(9.0, 15.0)),
           Expanded(
             child: AnimatedOpacity(
-              opacity: canSubmit ? 1.0 : 0.5,
+              opacity: widget.canSubmit ? 1.0 : 0.5,
               duration: const Duration(milliseconds: 200),
               child: GestureDetector(
-                onTap: canSubmit ? onSubmit : null,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                onTapDown: widget.canSubmit ? (_) => setState(() => _submitPressed = true) : null,
+                onTapUp: widget.canSubmit ? (_) {
+                  setState(() => _submitPressed = false);
+                  widget.onSubmit();
+                } : null,
+                onTapCancel: () => setState(() => _submitPressed = false),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 100),
+                  padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
                   decoration: BoxDecoration(
-                    color: AppColors.skyBlue_100,
+                    color: _submitPressed ? AppColors.skyBlue_200 : AppColors.skyBlue_100,
                     borderRadius: BorderRadius.circular(40),
-                    border: Border.all(color: AppColors.skyBlue_200, width: 2),
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     '수정완료',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
-                      fontSize: 20,
+                      fontSize: (20 * scale).clamp(16.0, 24.0),
                       color: AppColors.textDark,
                     ),
                   ),
