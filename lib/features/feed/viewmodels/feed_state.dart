@@ -9,18 +9,21 @@ class FeedState {
     this.isLoading = false,
     this.activeOptionPostId,
     this.commentsMap = const {},
+    this.blockedAuthorNames = const {},
   });
 
   final List<FeedPost> posts;
   final bool isLoading;
   final String? activeOptionPostId;
   final Map<String, List<FeedComment>> commentsMap;
+  final Set<String> blockedAuthorNames;
 
   FeedState copyWith({
     List<FeedPost>? posts,
     bool? isLoading,
     Object? activeOptionPostId = _sentinel,
     Map<String, List<FeedComment>>? commentsMap,
+    Set<String>? blockedAuthorNames,
   }) {
     return FeedState(
       posts: posts ?? this.posts,
@@ -29,6 +32,7 @@ class FeedState {
           ? this.activeOptionPostId
           : activeOptionPostId as String?,
       commentsMap: commentsMap ?? this.commentsMap,
+      blockedAuthorNames: blockedAuthorNames ?? this.blockedAuthorNames,
     );
   }
 

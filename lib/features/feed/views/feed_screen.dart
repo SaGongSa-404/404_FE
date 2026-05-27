@@ -138,6 +138,7 @@ class FeedScreen extends ConsumerWidget {
                         } else if (result == 'block') {
                           final blocked = await showBlockModal(context);
                           if (blocked && context.mounted) {
+                            vm.blockUser(post.authorName);
                             ScaffoldMessenger.of(context).showSnackBar(
                               _buildSnackBar('차단되었습니다',
                                   AppColors.red_600.withValues(alpha: 0.8)),

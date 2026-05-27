@@ -127,6 +127,32 @@ class FeedViewModel extends StateNotifier<FeedState> {
     );
   }
 
+  void blockUser(String authorName) {
+    final updatedCommentsMap = state.commentsMap.map(
+      (postId, comments) => MapEntry(
+        postId,
+        comments.where((c) => c.authorName != authorName).toList(),
+      ),
+    );
+    final filteredPosts = state.posts
+        .where((p) => p.authorName != authorName)
+        .map((p) {
+          final updated = updatedCommentsMap[p.id];
+          if (updated == null) return p;
+          return p.copyWith(
+            commentCount: updated.length,
+            latestCommentText: updated.isEmpty ? null : updated.last.content,
+          );
+        })
+        .toList();
+    state = state.copyWith(
+      posts: filteredPosts,
+      commentsMap: updatedCommentsMap,
+      blockedAuthorNames: {...state.blockedAuthorNames, authorName},
+      activeOptionPostId: null,
+    );
+  }
+
   void deleteComment(String postId, String commentId) {
     final comments = state.commentsMap[postId];
     if (comments == null) return;

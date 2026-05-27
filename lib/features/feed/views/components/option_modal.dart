@@ -89,7 +89,7 @@ class _OptionModalContent extends StatelessWidget {
           label: '신고하기',
           defaultColor: AppColors.red_600,
           pressedColor: AppColors.red_500,
-          textColor: AppColors.textPrimary,
+          textColor: AppColors.white,
           onTap: () => Navigator.of(context).pop('report'),
         ),
         SizedBox(height: (12 * scale).clamp(9.0, 15.0)),

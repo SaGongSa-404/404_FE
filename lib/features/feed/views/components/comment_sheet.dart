@@ -43,7 +43,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     super.dispose();
   }
 
-  Future<void> _handleCommentOption(String commentId, bool isMyComment) async {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
@@ -56,7 +56,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     } else if (result == 'block') {
       final blocked = await showBlockModal(context);
       if (!mounted) return;
-      if (blocked) _triggerToast('차단되었습니다');
+      if (blocked) {
+        ref.read(feedProvider.notifier).blockUser(authorName);
+        _triggerToast('차단되었습니다');
+      }
     }
   }
 
@@ -142,6 +145,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                         onOption: () => _handleCommentOption(
                           comments[index].id,
                           comments[index].isMyComment,
+                          comments[index].authorName,
                         ),
                       ),
                     ),

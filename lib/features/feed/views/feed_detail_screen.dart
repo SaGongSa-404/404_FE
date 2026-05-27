@@ -22,7 +22,7 @@ class FeedDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
-  Future<void> _handleCommentOption(String commentId, bool isMyComment) async {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
@@ -35,7 +35,10 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     } else if (result == 'block') {
       final blocked = await showBlockModal(context);
       if (!mounted) return;
-      if (blocked) _showCommentToast('차단되었습니다');
+      if (blocked) {
+        ref.read(feedProvider.notifier).blockUser(authorName);
+        _showCommentToast('차단되었습니다');
+      }
     }
   }
 
@@ -367,7 +370,7 @@ class _CommentList extends StatelessWidget {
   });
 
   final List<FeedComment> comments;
-  final void Function(String commentId, bool isMyComment) onOption;
+  final void Function(String commentId, bool isMyComment, String authorName) onOption;
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +383,7 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onOption: () => onOption(comments[i].id, comments[i].isMyComment),
+            onOption: () => onOption(comments[i].id, comments[i].isMyComment, comments[i].authorName),
           ),
           if (i < comments.length - 1) SizedBox(height: (20 * scale).clamp(15.0, 25.0)),
         ],
