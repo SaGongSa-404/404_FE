@@ -24,6 +24,7 @@ import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_result_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_item_entry_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const WishlistScreen()),
+            _bottomTabPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -128,6 +129,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'reflect',
             builder: (context, state) => WishlistReflectScreen(
               itemId: state.uri.queryParameters['id'],
+            ),
+          ),
+          GoRoute(
+            path: 'item',
+            builder: (context, state) => WishlistItemEntryScreen(
+              itemId: state.uri.queryParameters['id'] ?? '',
             ),
           ),
         ],

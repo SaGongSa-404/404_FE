@@ -1,27 +1,47 @@
-class NotificationModel {
-  final String id;
-  final String title;
-  final String time;
-  final bool isRead;
-  final String targetPath;
-  final String? body;
-  final String? type;
-  final DateTime? createdAt;
-  final DateTime? readAt;
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/network/api_client.dart';
+import 'package:fe_app/core/network/api_endpoints.dart';
+import 'package:fe_app/features/notification/models/notification_model.dart';
 
-  NotificationModel({
-    required this.id,
-    required this.title,
-    required this.time,
-    this.isRead = false,
-    this.targetPath = '/home',
-    this.body,
-    this.type,
-    this.createdAt,
-    this.readAt,
-  });
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService(ref.watch(apiClientProvider).dio);
+});
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+class NotificationService {
+  const NotificationService(this._dio);
+
+  final Dio _dio;
+
+  Future<List<NotificationModel>> fetchNotifications({
+    required bool unreadOnly,
+    CancelToken? cancelToken,
+  }) async {
+    final res = await _dio.get<List<dynamic>>(
+      ApiEndpoints.notifications,
+      queryParameters: {
+        'unreadOnly': unreadOnly,
+      },
+      cancelToken: cancelToken,
+    );
+
+    final rawItems = res.data ?? const <dynamic>[];
+    return rawItems
+        .whereType<Map>()
+        .map((item) => _notificationFromJson(
+              item.map((key, value) => MapEntry(key.toString(), value)),
+            ))
+        .toList(growable: false);
+  }
+
+  Future<void> markAsRead(String notificationId, {CancelToken? cancelToken}) async {
+    await _dio.patch<void>(
+      ApiEndpoints.notificationRead(notificationId),
+      cancelToken: cancelToken,
+    );
+  }
+
+  NotificationModel _notificationFromJson(Map<String, dynamic> json) {
     final createdAt = _tryParseDateTime(json['createdAt']);
     final readAt = _tryParseDateTime(json['readAt']);
 
@@ -35,28 +55,6 @@ class NotificationModel {
       type: _asNullableString(json['type']),
       createdAt: createdAt,
       readAt: readAt,
-    );
-  }
-
-  NotificationModel copyWith({
-    bool? isRead,
-    String? time,
-    String? targetPath,
-    String? body,
-    String? type,
-    DateTime? createdAt,
-    DateTime? readAt,
-  }) {
-    return NotificationModel(
-      id: id,
-      title: title,
-      time: time ?? this.time,
-      isRead: isRead ?? this.isRead,
-      targetPath: targetPath ?? this.targetPath,
-      body: body ?? this.body,
-      type: type ?? this.type,
-      createdAt: createdAt ?? this.createdAt,
-      readAt: readAt ?? this.readAt,
     );
   }
 }
@@ -97,4 +95,5 @@ String _formatRelativeTime(DateTime? dateTime) {
   if (diff.inDays < 7) return '${diff.inDays}일 전';
   return '${dateTime.month}/${dateTime.day}';
 }
+
 

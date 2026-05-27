@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/home/models/home_summary.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -30,6 +31,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _currentVideoPath = '';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
+  bool _isBudgetBubbleDialogShowing = false;
+  bool _hasUserInteractedWithMascot = false;
+  String? _lastBudgetBubbleKey;
   VoidCallback? _specialListener;
 
   final List<String> _safeMessages = [
@@ -51,18 +55,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return isBudgetExhausted
         ? 'assets/videos/nugul_embarrassed.mp4'
         : 'assets/videos/nugul_home.mp4';
-  }
-
-  String _getSpecialVideoPath(ConsiderCaseType caseType) {
-    switch (caseType) {
-      case ConsiderCaseType.caseA:
-      case ConsiderCaseType.caseC:
-        return 'assets/videos/nugul_sunny_smile.mp4';
-      case ConsiderCaseType.caseB:
-        return 'assets/videos/nugul_rainy.mp4';
-      case ConsiderCaseType.caseD:
-        return 'assets/videos/nugul_sunny_happy.mp4';
-    }
   }
 
   Future<void> _initializeVideo(String videoPath, {bool loop = true}) async {
@@ -171,6 +163,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onNugulTap(bool isExceeded) {
+    _hasUserInteractedWithMascot = true;
     _changeMessage(isExceeded);
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
@@ -191,11 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     _currentMessage = _safeMessages[0];
-    
-    final profile = ref.read(profileNotifierProvider);
-    final currentRecord = profile.currentMonthRecord;
-    final isBudgetExhausted = (currentRecord.budget - currentRecord.spentAmount) <= 0;
-    _currentVideoPath = _getDefaultVideoPath(isBudgetExhausted);
+    _currentVideoPath = 'assets/videos/nugul_home.mp4';
   }
 
   @override
@@ -208,15 +197,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
+  void _syncMascotMessage(HomeSummaryResponse? summary) {
+    if (_hasUserInteractedWithMascot) return;
+
+    final serverMessage = summary?.mascot.lastReactionMessage;
+    if (serverMessage == null || serverMessage.trim().isEmpty) return;
+    if (_currentMessage != _safeMessages[0]) return;
+    if (_currentMessage == serverMessage) return;
+
+    setState(() {
+      _currentMessage = serverMessage;
+    });
+  }
+
+  Future<void> _showBudgetBubbleIfNeeded(HomeSummaryResponse? summary) async {
+    final budget = summary?.budget;
+    if (budget == null || !budget.showBudgetExhaustionBubble) return;
+    if (_isBudgetBubbleDialogShowing || _lastBudgetBubbleKey == budget.yearMonth) return;
+
+    _lastBudgetBubbleKey = budget.yearMonth;
+    _isBudgetBubbleDialogShowing = true;
+
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) {
+          final dialogScale = responsiveScale(dialogContext);
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20 * dialogScale),
+            ),
+            title: const Text('예산이 모두 소진되었어요'),
+            content: const Text('예산 소진 말풍선을 확인했습니다.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('닫기'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (error) {
+      debugPrint('budget bubble dialog error: $error');
+    } finally {
+      _isBudgetBubbleDialogShowing = false;
+      if (mounted) {
+        await ref.read(homeSummaryProvider.notifier).acknowledgeBudgetBubbleSeen();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
-    final currentRecord = profile.currentMonthRecord;
-    final isExceeded = currentRecord.isExceeded;
+    final summaryAsync = ref.watch(homeSummaryProvider);
+    final summary = summaryAsync.valueOrNull;
+    final isExceeded = summary?.budget.isBudgetExhausted ?? false;
 
-    final remainingBudget = currentRecord.budget - currentRecord.spentAmount;
-    final isBudgetExhausted = remainingBudget <= 0;
+    final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
 
     final specialState = ref.watch(homeSpecialEffectProvider);
@@ -226,9 +267,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
+      _syncMascotMessage(summary);
+      unawaited(_showBudgetBubbleIfNeeded(summary));
+
       if (hasSpecial && !_isPlayingSpecialOnce) {
+        if (preloadedController == null) return;
         _playPreloadedSpecialAndRestore(
-          preloadedController: preloadedController!,
+          preloadedController: preloadedController,
           defaultVideoPath: defaultVideoPath,
         );
         return;
@@ -278,6 +323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       BlendMode.srcIn,
                     ),
                   ),
+                  badgeCount: summary?.notifications.unreadCount,
                   onAlarmPressed: () => context.push('/notifications'),
                 ),
                 SizedBox(height: 20 * scale),

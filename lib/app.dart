@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/router/app_router.dart';
 import 'package:fe_app/features/auth/providers/deep_link_provider.dart';
+import 'package:fe_app/features/notification/views/components/notification_app_shell.dart';
 
 final class App extends ConsumerWidget {
   const App({super.key});
@@ -21,6 +22,11 @@ final class App extends ConsumerWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Pretendard',
       ),
+      builder: (context, child) {
+        return NotificationAppShell(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: appRouter,
     );
   }

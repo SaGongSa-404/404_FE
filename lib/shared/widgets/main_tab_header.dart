@@ -10,11 +10,13 @@ class MainTabHeader extends StatelessWidget {
     required this.leading,
     required this.onAlarmPressed,
     this.backgroundColor,
+    this.badgeCount,
   });
 
   final Widget leading;
   final VoidCallback onAlarmPressed;
   final Color? backgroundColor;
+  final int? badgeCount;
 
   /// 위시탭 `개의 위시리스트` 제목과 동일 (Figma 20 / w600).
   static TextStyle titleTextStyle(double scale) => TextStyle(
@@ -64,7 +66,7 @@ class MainTabHeader extends StatelessWidget {
               child: leading,
             ),
           ),
-          AlarmButton(onPressed: onAlarmPressed),
+          AlarmButton(onPressed: onAlarmPressed, badgeCount: badgeCount),
         ],
       ),
     );

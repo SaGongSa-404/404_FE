@@ -1,6 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,53 +11,65 @@ class BudgetCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
-    final current = profile.currentMonthRecord;
-    final isExceeded = current.isExceeded;
+    final state = ref.watch(homeSummaryProvider);
+
+    if (state.isLoading) {
+      return _Placeholder(scale: scale, message: '예산 정보를 불러오는 중이에요.');
+    }
+
+    final error = state.error;
+    if (error != null) {
+      return _ErrorView(
+        scale: scale,
+        onRetry: () => ref.read(homeSummaryProvider.notifier).refresh(),
+      );
+    }
+
+    final summary = state.valueOrNull;
+    final budget = summary?.budget;
+    if (budget == null) {
+      return _Placeholder(scale: scale, message: '예산 정보를 불러오지 못했어요.');
+    }
 
     final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
     String format(int val) => val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    final remaining = current.budget - current.spentAmount;
-    final progress = (current.spentAmount / current.budget).clamp(0.0, 1.0);
+    final isExceeded = budget.isBudgetExhausted;
+    final progress = budget.monthlyBudgetAmount <= 0
+        ? 0.0
+        : (budget.spentAmount / budget.monthlyBudgetAmount).clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '이번 달 예산 현황',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14 * scale,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            GestureDetector(
-              onTap: () => context.push('/my/consumption'),
-              child: Icon(
-                Icons.arrow_forward_ios,
-                size: 16 * scale,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8 * scale),
         Text(
-          isExceeded ? '예산 초과!' : '${format(remaining)}원 남음',
+          '이번 달 예산',
           style: TextStyle(
-            color: isExceeded ? AppColors.red_400 : AppColors.textPrimary,
-            fontSize: 24 * scale,
-            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+            fontSize: 14 * scale,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        SizedBox(height: 20 * scale),
+        SizedBox(height: 12 * scale),
+        Text(
+          '${format(budget.remainingAmount)}원 남았어요',
+          style: TextStyle(
+            color: isExceeded ? AppColors.red_200 : AppColors.textPrimary,
+            fontSize: 22 * scale,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: 6 * scale),
+        Text(
+          '${budget.yearMonth} · 총 ${format(budget.monthlyBudgetAmount)}원',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12 * scale,
+          ),
+        ),
+        SizedBox(height: 14 * scale),
         Container(
-          height: 16 * scale,
-          width: double.infinity,
+          height: 12 * scale,
           decoration: BoxDecoration(
             color: const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(8 * scale),
@@ -78,14 +90,14 @@ class BudgetCard extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${format(current.spentAmount)}원',
+              '${format(budget.spentAmount)}원',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12 * scale,
               ),
             ),
             Text(
-              '${format(current.budget)}원',
+              '${format(budget.monthlyBudgetAmount)}원',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12 * scale,
@@ -93,7 +105,66 @@ class BudgetCard extends ConsumerWidget {
             ),
           ],
         ),
+        SizedBox(height: 10 * scale),
+        TextButton(
+          onPressed: () => context.go('/my/consumption'),
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          child: Text(
+            '소비관리 자세히 보기',
+            style: TextStyle(
+              fontSize: 12 * scale,
+              color: AppColors.skyBlue_100,
+            ),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _Placeholder extends StatelessWidget {
+  const _Placeholder({required this.scale, required this.message});
+
+  final double scale;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 140 * scale,
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13 * scale,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.scale, required this.onRetry});
+
+  final double scale;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 140 * scale,
+      child: Center(
+        child: TextButton(
+          onPressed: onRetry,
+          child: Text(
+            '예산 정보를 다시 불러오기',
+            style: TextStyle(fontSize: 13 * scale),
+          ),
+        ),
+      ),
     );
   }
 }
