@@ -74,111 +74,129 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     final vm = ref.read(feedProvider.notifier);
     final comments = feedState.commentsMap[widget.postId] ?? [];
     final scale = MediaQuery.of(context).size.width / 412.0;
-    final topPad = (80.0 * scale).clamp(60.0, 100.0);
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 1.0,
-      minChildSize: 0.5,
-      maxChildSize: 1.0,
-      snap: true,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 23, 24, 0),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: SvgPicture.asset(
-                        'assets/images/close.svg',
-                        width: 24,
-                        height: 24,
-                      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          snap: true,
+          builder: (sheetContext, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+              ),
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      (24 * scale).clamp(18.0, 30.0),
+                      (23 * scale).clamp(17.0, 29.0),
+                      (24 * scale).clamp(18.0, 30.0),
+                      0,
                     ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          '댓글 ${comments.length}',
-                          style: const TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 20,
-                            color: AppColors.textPrimary,
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(sheetContext).pop(),
+                          child: SvgPicture.asset(
+                            'assets/images/close.svg',
+                            width: (14 * scale).clamp(11.0, 17.0),
+                            height: (14 * scale).clamp(11.0, 17.0),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(24, topPad, 24, 16),
-                  itemCount: comments.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 26),
-                  itemBuilder: (_, index) => _CommentItem(
-                    comment: comments[index],
-                    onOption: () => _handleCommentOption(
-                      comments[index].id,
-                      comments[index].isMyComment,
-                    ),
-                  ),
-                ),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _toastMessage != null
-                    ? Padding(
-                        key: const ValueKey('toast'),
-                        padding: const EdgeInsets.fromLTRB(26, 0, 26, 8),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: AppColors.red_600.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(47),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                blurRadius: 6,
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              '댓글 ${comments.length}',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w600,
+                                fontSize: (20 * scale).clamp(16.0, 24.0),
+                                color: AppColors.textPrimary,
                               ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            _toastMessage!,
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                              color: AppColors.white,
                             ),
                           ),
                         ),
-                      )
-                    : const SizedBox.shrink(key: ValueKey('no-toast')),
+                        SizedBox(width: (14 * scale).clamp(11.0, 17.0)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: (30 * scale).clamp(22.0, 38.0)),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (24 * scale).clamp(18.0, 30.0),
+                      ),
+                      itemCount: comments.length,
+                      separatorBuilder: (_, __) => SizedBox(height: (26 * scale).clamp(20.0, 32.0)),
+                      itemBuilder: (_, index) => _CommentItem(
+                        comment: comments[index],
+                        onOption: () => _handleCommentOption(
+                          comments[index].id,
+                          comments[index].isMyComment,
+                        ),
+                      ),
+                    ),
+                  ),
+                  _CommentInput(
+                    onSubmit: (text) => vm.addComment(widget.postId, text),
+                  ),
+                ],
               ),
-              _CommentInput(
-                onSubmit: (text) => vm.addComment(widget.postId, text),
-              ),
-            ],
+            );
+          },
+        ),
+        Positioned(
+          bottom: (134 * scale).clamp(100.0, 168.0),
+          left: (26 * scale).clamp(20.0, 32.0),
+          right: (26 * scale).clamp(20.0, 32.0),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _toastMessage != null
+                ? Container(
+                    key: const ValueKey('toast'),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: (24 * scale).clamp(18.0, 30.0),
+                      vertical: (9 * scale).clamp(7.0, 12.0),
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.red_600.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(47),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _toastMessage!,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w500,
+                        fontSize: (18 * scale).clamp(14.0, 22.0),
+                        color: AppColors.white,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('no-toast')),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
-class _CommentItem extends StatefulWidget {
+class _CommentItem extends StatelessWidget {
   const _CommentItem({
     required this.comment,
     required this.onOption,
@@ -188,13 +206,6 @@ class _CommentItem extends StatefulWidget {
   final VoidCallback onOption;
 
   @override
-  State<_CommentItem> createState() => _CommentItemState();
-}
-
-class _CommentItemState extends State<_CommentItem> {
-  bool _optionPressed = false;
-
-  @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
 
@@ -202,11 +213,11 @@ class _CommentItemState extends State<_CommentItem> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 18,
-          height: 18,
+          width: (18 * scale).clamp(14.0, 22.0),
+          height: (18 * scale).clamp(14.0, 22.0),
           decoration: BoxDecoration(
             color: AppColors.grey_200,
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular((9 * scale).clamp(7.0, 11.0)),
           ),
           clipBehavior: Clip.antiAlias,
           child: SvgPicture.asset(
@@ -214,7 +225,7 @@ class _CommentItemState extends State<_CommentItem> {
             fit: BoxFit.cover,
           ),
         ),
-        const SizedBox(width: 7),
+        SizedBox(width: (7 * scale).clamp(5.0, 9.0)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,33 +233,33 @@ class _CommentItemState extends State<_CommentItem> {
               Row(
                 children: [
                   Text(
-                    widget.comment.authorName,
-                    style: const TextStyle(
+                    comment.authorName,
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
-                    widget.comment.createdAt,
-                    style: const TextStyle(
+                    comment.createdAt,
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
-                      fontSize: 15,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
                       color: AppColors.textDate,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
-                widget.comment.content,
-                style: const TextStyle(
+                comment.content,
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
                   color: AppColors.textDark,
                   height: 1.5,
                 ),
@@ -257,18 +268,14 @@ class _CommentItemState extends State<_CommentItem> {
           ),
         ),
         GestureDetector(
-          onTapDown: (_) => setState(() => _optionPressed = true),
-          onTapUp: (_) {
-            setState(() => _optionPressed = false);
-            widget.onOption();
-          },
-          onTapCancel: () => setState(() => _optionPressed = false),
+          onTap: onOption,
           child: Padding(
-            padding: const EdgeInsets.only(top: 3, left: 8),
+            padding: EdgeInsets.only(
+              top: (3 * scale).clamp(2.0, 4.0),
+              left: (8 * scale).clamp(6.0, 10.0),
+            ),
             child: SvgPicture.asset(
-              _optionPressed
-                  ? 'assets/images/option_clicked.svg'
-                  : 'assets/images/option.svg',
+              'assets/images/comment_option.svg',
               width: (20.0 * scale).clamp(16.0, 24.0),
               height: (20.0 * scale).clamp(16.0, 24.0),
             ),
@@ -312,94 +319,92 @@ class _CommentInputState extends State<_CommentInput> {
     if (!_hasText) return;
     widget.onSubmit(_controller.text.trim());
     _controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final iconSize = (54 * scale).clamp(43.0, 65.0);
+    final iconRight = (16 * scale).clamp(12.0, 20.0);
+
     return Container(
       color: AppColors.background,
-      padding: EdgeInsets.fromLTRB(28, 19, 28, MediaQuery.of(context).padding.bottom + 19),
-      child: Container(
-        padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(59),
-          border: Border.all(color: const Color(0xFFADADAD)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(
+      padding: EdgeInsets.fromLTRB(
+        (26 * scale).clamp(20.0, 32.0),
+        (19 * scale).clamp(14.0, 24.0),
+        (26 * scale).clamp(20.0, 32.0),
+        safeBottom + (19 * scale).clamp(14.0, 24.0),
+      ),
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              (28 * scale).clamp(22.0, 34.0),
+              (26 * scale).clamp(20.0, 32.0),
+              (iconSize + iconRight + (8 * scale).clamp(6.0, 10.0)),
+              (26 * scale).clamp(20.0, 32.0),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(
+                  (59 * scale).clamp(47.0, 72.0)),
+              border: Border.all(color: const Color(0xFFADADAD)),
+            ),
+            child: TextField(
+              controller: _controller,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
+                color: AppColors.textDark,
+                height: 1.548,
+              ),
+              decoration: InputDecoration(
+                hintText: '댓글을 입력해주세요',
+                hintStyle: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: AppColors.textDark,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
+                  color: const Color(0xFFADADAD),
+                  height: 1.548,
                 ),
-                decoration: const InputDecoration(
-                  hintText: '댓글을 입력해주세요',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Color(0xFFADADAD),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isDense: true,
-                ),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submit(),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
               ),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
             ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: _hasText
-                  ? GestureDetector(
-                      key: const ValueKey('upload'),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: _hasText
+                ? Padding(
+                    key: const ValueKey('upload'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: GestureDetector(
                       onTapDown: (_) => setState(() => _uploadPressed = true),
                       onTapUp: (_) {
                         setState(() => _uploadPressed = false);
                         _submit();
                       },
                       onTapCancel: () => setState(() => _uploadPressed = false),
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Container(
-                          width: (38 * scale).clamp(32.0, 44.0),
-                          height: (38 * scale).clamp(32.0, 44.0),
-                          decoration: BoxDecoration(
-                            color: AppColors.skyBlue_100,
-                            borderRadius: BorderRadius.circular((19 * scale).clamp(16.0, 22.0)),
-                          ),
-                          alignment: Alignment.center,
-                          child: SvgPicture.asset(
-                            _uploadPressed
-                                ? 'assets/images/comment_upload_clicked.svg'
-                                : 'assets/images/comment_upload.svg',
-                            width: (20 * scale).clamp(16.0, 24.0),
-                            height: (20 * scale).clamp(16.0, 24.0),
-                          ),
-                        ),
-                      ),
-                    )
-                  : Opacity(
-                      key: const ValueKey('send'),
-                      opacity: 0.3,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Icon(
-                          Icons.send_rounded,
-                          size: (22 * scale).clamp(18.0, 26.0),
-                          color: AppColors.skyBlue_200,
-                        ),
+                      child: SvgPicture.asset(
+                        _uploadPressed
+                            ? 'assets/images/comment_upload_clicked.svg'
+                            : 'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
                       ),
                     ),
-            ),
-          ],
-        ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('empty')),
+          ),
+        ],
       ),
     );
   }

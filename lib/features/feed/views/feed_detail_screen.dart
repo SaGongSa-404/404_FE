@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
@@ -42,23 +40,32 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   }
 
   void _showCommentToast(String message) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
-            fontSize: 18,
+            fontSize: (18 * scale).clamp(14.0, 22.0),
             color: Colors.white,
           ),
         ),
         backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(47)),
-        margin: const EdgeInsets.symmetric(horizontal: 26, vertical: 19),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
+        margin: EdgeInsets.fromLTRB(
+          (26 * scale).clamp(20.0, 32.0),
+          0,
+          (26 * scale).clamp(20.0, 32.0),
+          (134 * scale).clamp(100.0, 168.0),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: (24 * scale).clamp(18.0, 30.0),
+          vertical: (9 * scale).clamp(7.0, 12.0),
+        ),
         elevation: 6,
         duration: const Duration(seconds: 2),
       ),
@@ -66,6 +73,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   }
 
   AppBar _buildAppBar() {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return AppBar(
       backgroundColor: AppColors.white,
       elevation: 0,
@@ -74,26 +82,23 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       leading: GestureDetector(
         onTap: () => context.pop(),
         child: Center(
-          child: Transform.rotate(
-            angle: math.pi,
-            child: SvgPicture.asset(
-              'assets/images/arrow_forward.svg',
-              width: 19,
-              height: 19,
-              colorFilter: const ColorFilter.mode(
-                AppColors.brown,
-                BlendMode.srcIn,
-              ),
+          child: SvgPicture.asset(
+            'assets/images/arrow_forward.svg',
+            width: (19 * scale).clamp(15.0, 23.0),
+            height: (19 * scale).clamp(15.0, 23.0),
+            colorFilter: const ColorFilter.mode(
+              AppColors.brown,
+              BlendMode.srcIn,
             ),
           ),
         ),
       ),
-      title: const Text(
+      title: Text(
         '게시글',
         style: TextStyle(
           fontFamily: 'Pretendard',
           fontWeight: FontWeight.w600,
-          fontSize: 20,
+          fontSize: (20 * scale).clamp(16.0, 24.0),
           color: AppColors.brown,
         ),
       ),
@@ -102,6 +107,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final state = ref.watch(feedProvider);
     final vm = ref.read(feedProvider.notifier);
 
@@ -137,26 +143,33 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                   onVote: (vote) => vm.vote(widget.postId, vote),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 21, 30, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    (30 * scale).clamp(24.0, 36.0),
+                    (21 * scale).clamp(16.0, 26.0),
+                    (30 * scale).clamp(24.0, 36.0),
+                    0,
+                  ),
                   child: Text(
                     '댓글 ${comments.length}개',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
-                      fontSize: 16,
+                      fontSize: (16 * scale).clamp(13.0, 19.0),
                       color: AppColors.textPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 21),
+                SizedBox(height: (21 * scale).clamp(16.0, 26.0)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: (30 * scale).clamp(24.0, 36.0),
+                  ),
                   child: _CommentList(
                     comments: comments,
                     onOption: _handleCommentOption,
                   ),
                 ),
-                const SizedBox(height: 100),
+                SizedBox(height: (100 * scale).clamp(80.0, 120.0)),
               ],
             ),
           ),
@@ -180,13 +193,21 @@ class _DetailPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+        ),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 25, 24, 25),
+      padding: EdgeInsets.fromLTRB(
+        (24 * scale).clamp(18.0, 30.0),
+        (25 * scale).clamp(19.0, 31.0),
+        (24 * scale).clamp(18.0, 30.0),
+        (25 * scale).clamp(19.0, 31.0),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,43 +215,43 @@ class _DetailPostCard extends StatelessWidget {
             children: [
               SvgPicture.asset(
                 'assets/images/user_profile.svg',
-                width: 31,
-                height: 32,
+                width: (31 * scale).clamp(25.0, 37.0),
+                height: (32 * scale).clamp(26.0, 38.0),
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: (5 * scale).clamp(4.0, 6.0)),
               Text(
                 post.authorName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
               Text(
                 post.createdAt,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w400,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textDate,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
           Text(
             post.content,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w500,
-              fontSize: 18,
+              fontSize: (18 * scale).clamp(14.0, 22.0),
               color: AppColors.textDark,
               height: 1.43,
             ),
           ),
-          const SizedBox(height: 19),
+          SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
           if (post.productName != null) ...[
             GestureDetector(
               onTap: () => showProductLinkDialog(
@@ -243,7 +264,7 @@ class _DetailPostCard extends StatelessWidget {
                 imageUrl: post.productImageUrl,
               ),
             ),
-            const SizedBox(height: 17),
+            SizedBox(height: (17 * scale).clamp(13.0, 21.0)),
           ],
           VoteButtons(
             myVote: post.myVote,
@@ -271,28 +292,66 @@ class _DetailProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+          ),
           child: imageUrl != null
-              ? Image.network(imageUrl!, height: 150, width: double.infinity, fit: BoxFit.cover)
-              : Container(height: 150, width: double.infinity, color: AppColors.skyBlue_100.withValues(alpha: 0.4)),
+              ? Image.network(
+                  imageUrl!,
+                  height: (150 * scale).clamp(120.0, 180.0),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  height: (150 * scale).clamp(120.0, 180.0),
+                  width: double.infinity,
+                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
+                ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: (12 * scale).clamp(9.0, 15.0),
+            vertical: (10 * scale).clamp(8.0, 12.0),
+          ),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 3)],
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 3,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.textPrimary)),
+              Text(
+                name,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w600,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
+                  color: AppColors.textPrimary,
+                ),
+              ),
               if (price != null)
-                Text(price!, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.textPrimary)),
+                Text(
+                  price!,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w500,
+                    fontSize: (14 * scale).clamp(11.0, 17.0),
+                    color: AppColors.textPrimary,
+                  ),
+                ),
             ],
           ),
         ),
@@ -312,6 +371,7 @@ class _CommentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     if (comments.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -322,14 +382,14 @@ class _CommentList extends StatelessWidget {
             comment: comments[i],
             onOption: () => onOption(comments[i].id, comments[i].isMyComment),
           ),
-          if (i < comments.length - 1) const SizedBox(height: 20),
+          if (i < comments.length - 1) SizedBox(height: (20 * scale).clamp(15.0, 25.0)),
         ],
       ],
     );
   }
 }
 
-class _DetailCommentItem extends StatefulWidget {
+class _DetailCommentItem extends StatelessWidget {
   const _DetailCommentItem({
     required this.comment,
     required this.onOption,
@@ -339,20 +399,17 @@ class _DetailCommentItem extends StatefulWidget {
   final VoidCallback onOption;
 
   @override
-  State<_DetailCommentItem> createState() => _DetailCommentItemState();
-}
-
-class _DetailCommentItemState extends State<_DetailCommentItem> {
-  bool _optionPressed = false;
-
-  @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SvgPicture.asset('assets/images/user_profile.svg', width: 43, height: 45),
-        const SizedBox(width: 11),
+        SvgPicture.asset(
+          'assets/images/user_profile.svg',
+          width: (43 * scale).clamp(34.0, 52.0),
+          height: (45 * scale).clamp(36.0, 54.0),
+        ),
+        SizedBox(width: (11 * scale).clamp(8.0, 14.0)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,37 +417,49 @@ class _DetailCommentItemState extends State<_DetailCommentItem> {
               Row(
                 children: [
                   Text(
-                    widget.comment.authorName,
-                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.textSecondary),
+                    comment.authorName,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
-                    widget.comment.createdAt,
-                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w400, fontSize: 15, color: AppColors.textDate),
+                    comment.createdAt,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w400,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
+                      color: AppColors.textDate,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
-                widget.comment.content,
-                style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textDark, height: 1.5),
+                comment.content,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w500,
+                  fontSize: (16 * scale).clamp(13.0, 19.0),
+                  color: AppColors.textDark,
+                  height: 1.5,
+                ),
               ),
             ],
           ),
         ),
         GestureDetector(
-          onTapDown: (_) => setState(() => _optionPressed = true),
-          onTapUp: (_) {
-            setState(() => _optionPressed = false);
-            widget.onOption();
-          },
-          onTapCancel: () => setState(() => _optionPressed = false),
+          onTap: onOption,
           child: Padding(
-            padding: const EdgeInsets.only(top: 3, left: 8),
+            padding: EdgeInsets.only(
+              top: (3 * scale).clamp(2.0, 4.0),
+              left: (8 * scale).clamp(6.0, 10.0),
+            ),
             child: SvgPicture.asset(
-              _optionPressed
-                  ? 'assets/images/option_clicked.svg'
-                  : 'assets/images/option.svg',
+              'assets/images/comment_option.svg',
               width: (20 * scale).clamp(16.0, 24.0),
               height: (20 * scale).clamp(16.0, 24.0),
             ),
@@ -434,99 +503,101 @@ class _BottomCommentBarState extends State<_BottomCommentBar> {
     if (!_hasText) return;
     widget.onSubmit(_controller.text.trim());
     _controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
+    final iconSize = (54 * scale).clamp(43.0, 65.0);
+    final iconRight = (16 * scale).clamp(12.0, 20.0);
+
     return Container(
       color: AppColors.background,
       padding: EdgeInsets.fromLTRB(
-        28,
-        19,
-        28,
-        MediaQuery.of(context).padding.bottom + 19,
+        (26 * scale).clamp(20.0, 32.0),
+        (19 * scale).clamp(14.0, 24.0),
+        (26 * scale).clamp(20.0, 32.0),
+        MediaQuery.of(context).padding.bottom + (19 * scale).clamp(14.0, 24.0),
       ),
-      child: Container(
-        padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(59),
-          border: Border.all(color: const Color(0xFFADADAD)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              (28 * scale).clamp(22.0, 34.0),
+              (26 * scale).clamp(20.0, 32.0),
+              iconSize + iconRight + (8 * scale).clamp(6.0, 10.0),
+              (26 * scale).clamp(20.0, 32.0),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular((59 * scale).clamp(47.0, 72.0)),
+              border: Border.all(color: const Color(0xFFADADAD)),
+            ),
+            child: TextField(
+              controller: _controller,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
+                color: AppColors.textDark,
+                height: 1.548,
+              ),
+              decoration: InputDecoration(
+                hintText: '댓글을 입력해주세요',
+                hintStyle: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: AppColors.textDark,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
+                  color: const Color(0xFFADADAD),
+                  height: 1.548,
                 ),
-                decoration: const InputDecoration(
-                  hintText: '댓글을 입력해주세요',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Color(0xFFADADAD),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isDense: true,
-                ),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submit(),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
               ),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
             ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: _hasText
-                  ? GestureDetector(
-                      key: const ValueKey('upload'),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: _hasText
+                ? Padding(
+                    key: const ValueKey('upload'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: GestureDetector(
                       onTapDown: (_) => setState(() => _uploadPressed = true),
                       onTapUp: (_) {
                         setState(() => _uploadPressed = false);
                         _submit();
                       },
                       onTapCancel: () => setState(() => _uploadPressed = false),
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Container(
-                          width: (38 * scale).clamp(32.0, 44.0),
-                          height: (38 * scale).clamp(32.0, 44.0),
-                          decoration: BoxDecoration(
-                            color: AppColors.skyBlue_100,
-                            borderRadius: BorderRadius.circular((19 * scale).clamp(16.0, 22.0)),
-                          ),
-                          alignment: Alignment.center,
-                          child: SvgPicture.asset(
-                            _uploadPressed
-                                ? 'assets/images/comment_upload_clicked.svg'
-                                : 'assets/images/comment_upload.svg',
-                            width: (20 * scale).clamp(16.0, 24.0),
-                            height: (20 * scale).clamp(16.0, 24.0),
-                          ),
-                        ),
-                      ),
-                    )
-                  : Opacity(
-                      key: const ValueKey('send'),
-                      opacity: 0.3,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Icon(
-                          Icons.send_rounded,
-                          size: (22 * scale).clamp(18.0, 26.0),
-                          color: AppColors.skyBlue_200,
-                        ),
+                      child: SvgPicture.asset(
+                        _uploadPressed
+                            ? 'assets/images/comment_upload_clicked.svg'
+                            : 'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
                       ),
                     ),
-            ),
-          ],
-        ),
+                  )
+                : Padding(
+                    key: const ValueKey('empty'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: Opacity(
+                      opacity: 0,
+                      child: SvgPicture.asset(
+                        'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
