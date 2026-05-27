@@ -21,6 +21,7 @@ class _ReportDialogState extends State<_ReportDialog> {
   final _controller = TextEditingController();
   bool _hasText = false;
   bool _cancelPressed = false;
+  bool _submitPressed = false;
 
   @override
   void initState() {
@@ -41,14 +42,16 @@ class _ReportDialogState extends State<_ReportDialog> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 31;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset),
+      alignment: Alignment.bottomCenter,
+      insetPadding: EdgeInsets.fromLTRB(horizontalInset, 0, horizontalInset, bottomPadding),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular((22 * scale).clamp(17.0, 27.0)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -65,7 +68,7 @@ class _ReportDialogState extends State<_ReportDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+              padding: EdgeInsets.symmetric(horizontal: (7 * scale).clamp(5.0, 9.0)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -79,7 +82,7 @@ class _ReportDialogState extends State<_ReportDialog> {
                       height: 1.29,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
                   Text(
                     '※ 운영 원칙에 위배되는 게시물인지 확인 후 조치됩니다.\n허위 신고 시 서비스 이용에 제한이 있을 수 있습니다.',
                     style: TextStyle(
@@ -93,12 +96,12 @@ class _ReportDialogState extends State<_ReportDialog> {
                 ],
               ),
             ),
-            const SizedBox(height: 27),
+            SizedBox(height: (27 * scale).clamp(21.0, 33.0)),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  padding: EdgeInsets.symmetric(horizontal: (7 * scale).clamp(5.0, 9.0)),
                   child: Text(
                     '신고하시는 이유를 작성해주세요',
                     style: TextStyle(
@@ -110,11 +113,11 @@ class _ReportDialogState extends State<_ReportDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular((30 * scale).clamp(23.0, 37.0)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
@@ -150,7 +153,7 @@ class _ReportDialogState extends State<_ReportDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 27),
+            SizedBox(height: (27 * scale).clamp(21.0, 33.0)),
             Row(
               children: [
                 Expanded(
@@ -181,15 +184,22 @@ class _ReportDialogState extends State<_ReportDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: (6 * scale).clamp(4.0, 8.0)),
                 Expanded(
                   child: GestureDetector(
-                    onTap: _hasText ? () => Navigator.of(context).pop(true) : null,
+                    onTapDown: _hasText ? (_) => setState(() => _submitPressed = true) : null,
+                    onTapUp: _hasText ? (_) {
+                      setState(() => _submitPressed = false);
+                      Navigator.of(context).pop(true);
+                    } : null,
+                    onTapCancel: () => setState(() => _submitPressed = false),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
+                      duration: const Duration(milliseconds: 100),
                       height: (57 * scale).clamp(46.0, 68.0),
                       decoration: BoxDecoration(
-                        color: _hasText ? AppColors.red_600 : AppColors.grey_100,
+                        color: _hasText
+                            ? (_submitPressed ? AppColors.red_500 : AppColors.red_600)
+                            : AppColors.grey_100,
                         borderRadius: BorderRadius.circular(57),
                       ),
                       alignment: Alignment.center,

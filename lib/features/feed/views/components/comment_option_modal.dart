@@ -22,20 +22,22 @@ class _CommentOptionContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
-    final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 27;
+    final double leftInset;
+    final double bottomPadding;
+    if (isMyComment) {
+      leftInset = MediaQuery.of(context).size.width * 21 / 412;
+      bottomPadding = MediaQuery.of(context).padding.bottom + 31;
+    } else {
+      leftInset = MediaQuery.of(context).size.width * 21 / 412;
+      bottomPadding = MediaQuery.of(context).padding.bottom + 25;
+    }
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        horizontalInset,
-        0,
-        horizontalInset,
-        bottomPadding,
-      ),
+      padding: EdgeInsets.fromLTRB(leftInset, 0, leftInset, bottomPadding),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular((22 * scale).clamp(17.0, 27.0)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.25),
@@ -54,7 +56,7 @@ class _CommentOptionContent extends StatelessWidget {
                   _PressableButton(
                     label: '삭제하기',
                     defaultColor: AppColors.red_600,
-                    pressedColor: AppColors.red_600,
+                    pressedColor: AppColors.red_500,
                     textColor: AppColors.white,
                     onTap: () => Navigator.of(context).pop('delete'),
                   ),
@@ -63,11 +65,11 @@ class _CommentOptionContent extends StatelessWidget {
                   _PressableButton(
                     label: '신고하기',
                     defaultColor: AppColors.red_600,
-                    pressedColor: AppColors.red_600,
+                    pressedColor: AppColors.red_500,
                     textColor: AppColors.white,
                     onTap: () => Navigator.of(context).pop('report'),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
                   _PressableButton(
                     label: '차단하기',
                     defaultColor: AppColors.grey_100,

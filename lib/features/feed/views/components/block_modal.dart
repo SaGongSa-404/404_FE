@@ -25,14 +25,16 @@ class _BlockDialogState extends State<_BlockDialog> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 31;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset),
+      alignment: Alignment.bottomCenter,
+      insetPadding: EdgeInsets.fromLTRB(horizontalInset, 0, horizontalInset, bottomPadding),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular((22 * scale).clamp(17.0, 27.0)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -49,7 +51,7 @@ class _BlockDialogState extends State<_BlockDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+              padding: EdgeInsets.symmetric(horizontal: (7 * scale).clamp(5.0, 9.0)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -63,7 +65,7 @@ class _BlockDialogState extends State<_BlockDialog> {
                       height: 1.29,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
                   Text(
                     '차단 후에는 이 사용자가 작성한 모든 게시글과\n댓글을 더 이상 볼 수 없습니다.',
                     style: TextStyle(
@@ -77,7 +79,7 @@ class _BlockDialogState extends State<_BlockDialog> {
                 ],
               ),
             ),
-            const SizedBox(height: 27),
+            SizedBox(height: (27 * scale).clamp(21.0, 33.0)),
             Row(
               children: [
                 Expanded(
@@ -108,7 +110,7 @@ class _BlockDialogState extends State<_BlockDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: (6 * scale).clamp(4.0, 8.0)),
                 Expanded(
                   child: GestureDetector(
                     onTapDown: (_) => setState(() => _blockPressed = true),
@@ -122,7 +124,7 @@ class _BlockDialogState extends State<_BlockDialog> {
                       height: (57 * scale).clamp(46.0, 68.0),
                       decoration: BoxDecoration(
                         color: _blockPressed
-                            ? AppColors.red_600.withValues(alpha: 0.75)
+                            ? AppColors.red_500
                             : AppColors.red_600,
                         borderRadius: BorderRadius.circular(57),
                       ),
