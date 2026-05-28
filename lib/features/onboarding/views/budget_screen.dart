@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_header.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_pill_text_field.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 
-class BudgetScreen extends StatefulWidget {
+class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
 
   @override
-  State<BudgetScreen> createState() => _BudgetScreenState();
+  ConsumerState<BudgetScreen> createState() => _BudgetScreenState();
 }
 
-class _BudgetScreenState extends State<BudgetScreen> {
-  static const _designWidth = 402.0;
+class _BudgetScreenState extends ConsumerState<BudgetScreen> {
+  static const _designWidth = 412.0;
 
   final _controller = TextEditingController();
   bool _hasValue = false;
@@ -39,6 +41,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
+    final digits = _controller.text.replaceAll(',', '');
+    final amount = int.tryParse(digits) ?? 0;
+    ref.read(onboardingProvider.notifier).setMonthlyBudget(amount);
     context.push('/onboarding/survey');
   }
 
@@ -49,6 +54,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final scale = constraints.maxWidth / _designWidth;
             final horizontalPadding =
                 (constraints.maxWidth * (24 / _designWidth)).clamp(20.0, 48.0);
             final innerWidth =
@@ -79,13 +85,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   : context.go('/'),
                             ),
                             const Spacer(flex: 118),
-                            const OnboardingHeader(
+                            OnboardingHeader(
                               title: '이번 달 나를 위한 소비,\n얼마까지 괜찮아요?',
                               subtitle: '매달 예산을 설정하고,\n합리적인 소비를 관리해보세요',
                               textAlign: TextAlign.left,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              titleFontSize: 25,
+                              titleFontSize: (25 * scale).clamp(18.0, 32.0),
                               titleHeight: 1.36,
+                              subtitleFontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
                             Align(
@@ -100,7 +107,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             OnboardingPillTextField(
                               controller: _controller,
                               hintText: '예) 500,000',
-                              hintFontSize: 20,
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
+                              hintFontSize: (20 * scale).clamp(15.0, 26.0),
                               keyboardType: TextInputType.number,
                               inputFormatters: [
                                 _BudgetFormatter(maxDigits: 9),
@@ -110,6 +118,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             OnboardingPrimaryButton(
                               label: '다음',
                               onPressed: _hasValue ? _onNext : null,
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
                           ],

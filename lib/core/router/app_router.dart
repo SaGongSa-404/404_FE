@@ -6,6 +6,9 @@ import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
+import 'package:fe_app/features/onboarding/views/privacy_policy_screen.dart';
+import 'package:fe_app/features/onboarding/views/service_terms_screen.dart';
+import 'package:fe_app/features/onboarding/views/terms_screen.dart';
 import 'package:fe_app/features/home/views/home_screen.dart';
 import 'package:fe_app/features/notification/views/notification_screen.dart';
 import 'package:fe_app/features/onboarding/views/budget_screen.dart';
@@ -63,6 +66,7 @@ bool _isAllowedPathForGuest(String location) {
   return false;
 }
 
+/// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
@@ -198,8 +202,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         redirect: (context, state) =>
-        state.uri.path == '/onboarding' ? '/onboarding/nickname' : null,
+            state.uri.path == '/onboarding' ? '/onboarding/terms' : null,
         routes: [
+          GoRoute(
+            path: 'terms',
+            builder: (context, state) => const TermsScreen(),
+          ),
           GoRoute(
             path: 'nickname',
             builder: (context, state) => const NicknameScreen(),
@@ -215,6 +223,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'nugul-intro',
             builder: (context, state) => const NugulIntroScreen(),
+          ),
+          GoRoute(
+            path: 'service-terms',
+            builder: (context, state) => const ServiceTermsScreen(),
+          ),
+          GoRoute(
+            path: 'privacy-policy',
+            builder: (context, state) => const PrivacyPolicyScreen(),
           ),
         ],
       ),
@@ -252,12 +268,14 @@ class _RouterNotifier extends ChangeNotifier {
 
     if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
 
+    // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
 
-    if (isLoggedIn && location == '/') return '/home';
-
-    if (isLoggedIn && isAuthPage) {
-      return '/onboarding/nickname';
+    // 로그인 완료 + 스플래시 또는 인증 페이지 → onboardingStatus 확인 후 분기
+    if (isLoggedIn && (location == '/' || isAuthPage)) {
+      final isCompleted =
+          authState.value?.onboardingStatus == 'COMPLETED';
+      return isCompleted ? '/home' : '/onboarding/terms';
     }
 
     return null;

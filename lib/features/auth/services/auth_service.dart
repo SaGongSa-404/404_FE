@@ -15,10 +15,22 @@ class AuthService {
   const AuthService(this._dio);
   final Dio _dio;
 
-  /// 현재 로그인된 유저 정보 조회 (GET /api/auth/me)
+  /// 현재 로그인된 유저 정보 조회
+  /// GET /api/auth/me 로 기본 정보를, GET /api/v1/users/me 로 onboardingStatus 를 가져와 병합합니다.
   Future<UserModel> getMe() async {
-    final res = await _dio.get<Map<String, dynamic>>(ApiEndpoints.me);
-    return UserModel.fromJson(res.data!);
+    final authRes = await _dio.get<Map<String, dynamic>>(ApiEndpoints.me);
+    final data = Map<String, dynamic>.from(authRes.data!);
+
+    try {
+      final profileRes =
+          await _dio.get<Map<String, dynamic>>(ApiEndpoints.usersMe);
+      data['onboardingStatus'] = profileRes.data?['onboardingStatus'];
+    } on DioException catch (e) {
+      // 404: 신규 유저 — 프로필 미생성 → onboardingStatus null 유지
+      if (e.response?.statusCode != 404) rethrow;
+    }
+
+    return UserModel.fromJson(data);
   }
 
   /// 로그아웃 (POST /api/logout)

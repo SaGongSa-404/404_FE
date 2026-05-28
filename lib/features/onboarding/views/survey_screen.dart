@@ -15,7 +15,7 @@ class SurveyScreen extends ConsumerStatefulWidget {
 }
 
 class _SurveyScreenState extends ConsumerState<SurveyScreen> {
-  static const _designWidth = 402.0;
+  static const _designWidth = 412.0;
 
   static const _options = <String>[
     '거의 없었어요 (월 1회 미만)',
@@ -23,14 +23,17 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
     '자주 있었어요 (월 4회 이상)',
   ];
 
+  static const _enumValues = <String>[
+    'LESS_THAN_ONCE',
+    'ONE_TO_THREE',
+    'FOUR_OR_MORE',
+  ];
+
   int? _selectedIndex;
 
   void _onSelect(int index) {
     setState(() => _selectedIndex = index);
-    ref.read(onboardingProvider.notifier).selectSurveyOption(
-          index,
-          _options[index],
-        );
+    ref.read(onboardingProvider.notifier).setRegretFrequency(_enumValues[index]);
   }
 
   void _onNext() {
@@ -47,6 +50,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final scale = constraints.maxWidth / _designWidth;
             final horizontalPadding =
                 (constraints.maxWidth * (24 / _designWidth)).clamp(20.0, 48.0);
 
@@ -74,11 +78,11 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                                   : context.go('/'),
                             ),
                             const Spacer(flex: 118),
-                            const Text(
+                            Text(
                               '최근 한 달 동안,\n물건을 사고 나서 후회한 적이\n얼마나 있었나요?',
                               textAlign: TextAlign.left,
                               style: TextStyle(
-                                fontSize: 25,
+                                fontSize: (25 * scale).clamp(18.0, 32.0),
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
                                 height: 1.36,
@@ -91,12 +95,14 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                                 text: _options[i],
                                 selected: _selectedIndex == i,
                                 onTap: () => _onSelect(i),
+                                scale: scale,
                               ),
                             ],
                             const Spacer(flex: 97),
                             OnboardingPrimaryButton(
                               label: '다음',
                               onPressed: hasSelection ? _onNext : null,
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
                           ],
@@ -119,11 +125,13 @@ class _SurveyOption extends StatelessWidget {
     required this.text,
     required this.selected,
     required this.onTap,
+    required this.scale,
   });
 
   final String text;
   final bool selected;
   final VoidCallback onTap;
+  final double scale;
 
   static const _activeBgColor = AppColors.skyBlue_000_clicked;
   static const _activeBorderColor = AppColors.skyBlue_100;
@@ -156,8 +164,8 @@ class _SurveyOption extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   text,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: (18 * scale).clamp(14.0, 23.0),
                     fontWeight: FontWeight.w500,
                     color: _textColor,
                     height: 1.548,

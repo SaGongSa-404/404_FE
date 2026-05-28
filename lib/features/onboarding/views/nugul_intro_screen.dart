@@ -6,7 +6,7 @@ import 'package:fe_app/features/onboarding/views/components/onboarding_primary_b
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 
-class NugulIntroScreen extends ConsumerWidget {
+class NugulIntroScreen extends ConsumerStatefulWidget {
   const NugulIntroScreen({
     super.key,
     this.currentStep = 6,
@@ -16,12 +16,33 @@ class NugulIntroScreen extends ConsumerWidget {
   final int currentStep;
   final int totalSteps;
 
-  // 피그마 기준 프레임 너비 (Android Compact 390px)
-  static const _designW = 390.0;
+  @override
+  ConsumerState<NugulIntroScreen> createState() => _NugulIntroScreenState();
+}
+
+class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
+  static const _designW = 412.0;
+
+  Future<void> _onNext() async {
+    final success =
+        await ref.read(onboardingProvider.notifier).completeOnboarding();
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/home');
+    } else {
+      final msg = ref.read(onboardingProvider).errorMessage ??
+          '온보딩 완료 중 오류가 발생했습니다.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nickname = ref.watch(onboardingProvider).nickname;
+  Widget build(BuildContext context) {
+    final state = ref.watch(onboardingProvider);
+    final mascotName = state.mascotName;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -29,10 +50,9 @@ class NugulIntroScreen extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
-            // 수평 패딩: 24/390 비율, 20~48px clamp
+            final scale = w / _designW;
             final hPad = (w * 24 / _designW).clamp(20.0, 48.0);
             final innerW = w - hPad * 2;
-            // 캐릭터 너비: 피그마 208/342(innerW) ≈ 61%, 140~210px clamp
             final charW = (innerW * 0.61).clamp(140.0, 210.0);
 
             return Center(
@@ -48,55 +68,46 @@ class NugulIntroScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 상단 여백: 피그마 65/844 비율
                             const Spacer(flex: 65),
-
                             OnboardingProgressIndicator(
-                              currentStep: currentStep,
-                              totalSteps: totalSteps,
+                              currentStep: widget.currentStep,
+                              totalSteps: widget.totalSteps,
                               onBack: () {
                                 if (context.canPop()) context.pop();
                               },
                             ),
-
-                            // 인디케이터 ↔ 텍스트: gap 23 + 텍스트 상단 패딩 74 = 97/844 비율
                             const Spacer(flex: 97),
-
-                            const Text(
+                            Text(
                               '위시템을 담으면\n솜사탕이 생겨요.',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 26,
+                                fontSize: (26 * scale).clamp(19.0, 33.0),
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
                                 height: 1.36,
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
-                            const Text(
+                            Text(
                               '맑은 날엔 너굴이가 솜사탕을 맛있게\n먹을 수 있어요!',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 18,
+                                fontSize: (18 * scale).clamp(14.0, 23.0),
                                 fontWeight: FontWeight.w400,
                                 color: AppColors.textPrimary,
                                 height: 1.45,
                               ),
                             ),
-
-                            // 텍스트↔캐릭터 여백: 87/844 비율
                             const Spacer(flex: 87),
-
                             Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _SpeechBubble(
                                     nickname:
-                                        nickname.isEmpty ? '친구' : nickname,
+                                        mascotName.isEmpty ? '친구' : mascotName,
                                     width: charW,
+                                    scale: scale,
                                   ),
                                   const SizedBox(height: 11),
                                   Image.asset(
@@ -108,16 +119,12 @@ class NugulIntroScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-
-                            // 캐릭터 ↔ 버튼 여백: 12/844 비율
                             const Spacer(flex: 12),
-
                             OnboardingPrimaryButton(
-                              label: '다음',
-                              onPressed: () => context.go('/home'),
+                              label: '시작하기',
+                              onPressed: state.isLoading ? null : _onNext,
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
-
-                            // 하단 여백: 40/844 비율
                             const Spacer(flex: 40),
                           ],
                         ),
@@ -135,10 +142,15 @@ class NugulIntroScreen extends ConsumerWidget {
 }
 
 class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.nickname, required this.width});
+  const _SpeechBubble({
+    required this.nickname,
+    required this.width,
+    required this.scale,
+  });
 
   final String nickname;
   final double width;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -147,14 +159,13 @@ class _SpeechBubble extends StatelessWidget {
       child: CustomPaint(
         painter: const _BubblePainter(),
         child: Padding(
-          // 좌우 24px + 상 16px + 하 30px (내용 패딩 16 + 꼬리 공간 14)
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
           child: Text(
             '안녕하세요, $nickname님!\n저는 너굴이에요.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Pretendard',
-              fontSize: 16,
+              fontSize: (16 * scale).clamp(12.0, 21.0),
               fontWeight: FontWeight.w400,
               color: AppColors.textPrimary,
               height: 1.2,
@@ -196,7 +207,6 @@ class _BubblePainter extends CustomPainter {
       ..arcToPoint(Offset(r, 0), radius: const Radius.circular(r))
       ..close();
 
-    // 피그마 drop-shadow(0 0 3px rgba(0,0,0,0.2)) 재현
     canvas.drawPath(
       path,
       Paint()

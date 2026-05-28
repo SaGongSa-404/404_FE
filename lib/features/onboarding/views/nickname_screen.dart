@@ -19,7 +19,7 @@ class NicknameScreen extends ConsumerStatefulWidget {
 }
 
 class _NicknameScreenState extends ConsumerState<NicknameScreen> {
-  static const _designWidth = 402.0;
+  static const _designWidth = 412.0;
 
   final _controller = TextEditingController();
   NicknameValidationResult _result = const NicknameEmpty();
@@ -51,7 +51,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
-    ref.read(onboardingProvider.notifier).setNickname(_controller.text);
+    ref.read(onboardingProvider.notifier).setMascotName(_controller.text);
     context.push('/onboarding/budget');
   }
 
@@ -64,6 +64,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final scale = constraints.maxWidth / _designWidth;
             final horizontalPadding =
                 (constraints.maxWidth * (24 / _designWidth)).clamp(20.0, 48.0);
             final innerWidth =
@@ -94,11 +95,13 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
                                   : context.go('/'),
                             ),
                             const Spacer(flex: 122),
-                            const OnboardingHeader(
+                            OnboardingHeader(
                               title: '환영합니다!',
                               subtitle: '사용하실 닉네임을\n선택해주세요',
                               textAlign: TextAlign.left,
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              titleFontSize: (30 * scale).clamp(22.0, 38.0),
+                              subtitleFontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 54),
                             TweenAnimationBuilder<double>(
@@ -125,6 +128,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
                             OnboardingPrimaryButton(
                               label: '다음',
                               onPressed: isValid ? _onNext : null,
+                              fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
                           ],

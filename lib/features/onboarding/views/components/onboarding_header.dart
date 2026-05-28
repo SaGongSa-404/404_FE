@@ -10,6 +10,7 @@ class OnboardingHeader extends StatelessWidget {
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.titleFontSize = 30,
     this.titleHeight = 1.548,
+    this.subtitleFontSize = 18,
     this.gap = 22,
   });
 
@@ -19,6 +20,7 @@ class OnboardingHeader extends StatelessWidget {
   final CrossAxisAlignment crossAxisAlignment;
   final double titleFontSize;
   final double titleHeight;
+  final double subtitleFontSize;
   final double gap;
 
   @override
@@ -41,8 +43,8 @@ class OnboardingHeader extends StatelessWidget {
         Text(
           subtitle,
           textAlign: textAlign,
-          style: const TextStyle(
-            fontSize: 18,
+          style: TextStyle(
+            fontSize: subtitleFontSize,
             fontWeight: FontWeight.w400,
             color: AppColors.textPrimary,
             height: 1.45,
