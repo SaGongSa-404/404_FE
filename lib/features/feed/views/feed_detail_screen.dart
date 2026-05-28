@@ -1,7 +1,9 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
+import 'package:fe_app/features/feed/models/vote_type.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
@@ -22,7 +24,17 @@ class FeedDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
-  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = ref.read(feedProvider.notifier);
+      vm.refreshPost(widget.postId);
+      vm.loadComments(widget.postId, refresh: true);
+    });
+  }
+
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorNickname) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
@@ -36,7 +48,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       final blocked = await showBlockModal(context);
       if (!mounted) return;
       if (blocked) {
-        ref.read(feedProvider.notifier).blockUser(authorName);
+        ref.read(feedProvider.notifier).blockUser(authorNickname);
         _showCommentToast('차단되었습니다');
       }
     }
@@ -130,7 +142,9 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       );
     }
 
-    final comments = state.commentsMap[widget.postId] ?? [];
+    final commentsPage = state.commentsMap[widget.postId];
+    final comments = commentsPage?.items ?? const <FeedComment>[];
+    final commentTotal = commentsPage?.total ?? post.commentCount;
     final currentPost = post;
 
     return Scaffold(
@@ -153,7 +167,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                     0,
                   ),
                   child: Text(
-                    '댓글 ${comments.length}개',
+                    '댓글 $commentTotal개',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
@@ -223,7 +237,7 @@ class _DetailPostCard extends StatelessWidget {
               ),
               SizedBox(width: (5 * scale).clamp(4.0, 6.0)),
               Text(
-                post.authorName,
+                post.authorNickname,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
@@ -233,7 +247,7 @@ class _DetailPostCard extends StatelessWidget {
               ),
               SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
               Text(
-                post.createdAt,
+                formatFeedTimestamp(post.createdAt),
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w400,
@@ -245,7 +259,7 @@ class _DetailPostCard extends StatelessWidget {
           ),
           SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
           Text(
-            post.content,
+            post.body ?? '',
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w500,
@@ -255,26 +269,26 @@ class _DetailPostCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
-          if (post.productName != null) ...[
+          if (post.product != null) ...[
             GestureDetector(
               onTap: () => showProductLinkDialog(
                 context: context,
-                productUrl: post.productUrl,
+                productUrl: post.product?.link,
               ),
               child: _DetailProductCard(
-                name: post.productName!,
-                price: post.productPrice,
-                imageUrl: post.productImageUrl,
+                name: post.product!.name,
+                price: post.product!.price,
+                imageUrl: post.imageUrl,
               ),
             ),
             SizedBox(height: (17 * scale).clamp(13.0, 21.0)),
           ],
           VoteButtons(
             myVote: post.myVote,
-            goCount: post.goVoteCount,
-            stopCount: post.stopVoteCount,
+            goCount: post.goCount,
+            stopCount: post.stopCount,
             onVote: onVote,
-            isDisabled: post.isMyPost,
+            isDisabled: post.mine,
           ),
         ],
       ),
@@ -290,7 +304,7 @@ class _DetailProductCard extends StatelessWidget {
   });
 
   final String name;
-  final String? price;
+  final int? price;
   final String? imageUrl;
 
   @override
@@ -347,7 +361,7 @@ class _DetailProductCard extends StatelessWidget {
               ),
               if (price != null)
                 Text(
-                  price!,
+                  _formatKrw(price!),
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
@@ -363,6 +377,14 @@ class _DetailProductCard extends StatelessWidget {
   }
 }
 
+String _formatKrw(int price) {
+  final body = price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '$body원';
+}
+
 class _CommentList extends StatelessWidget {
   const _CommentList({
     required this.comments,
@@ -370,7 +392,7 @@ class _CommentList extends StatelessWidget {
   });
 
   final List<FeedComment> comments;
-  final void Function(String commentId, bool isMyComment, String authorName) onOption;
+  final void Function(String commentId, bool isMyComment, String authorNickname) onOption;
 
   @override
   Widget build(BuildContext context) {
@@ -383,7 +405,7 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onOption: () => onOption(comments[i].id, comments[i].isMyComment, comments[i].authorName),
+            onOption: () => onOption(comments[i].id, comments[i].mine, comments[i].authorNickname),
           ),
           if (i < comments.length - 1) SizedBox(height: (20 * scale).clamp(15.0, 25.0)),
         ],
@@ -420,7 +442,7 @@ class _DetailCommentItem extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    comment.authorName,
+                    comment.authorNickname,
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
@@ -430,7 +452,7 @@ class _DetailCommentItem extends StatelessWidget {
                   ),
                   SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
-                    comment.createdAt,
+                    formatFeedTimestamp(comment.createdAt),
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
@@ -442,7 +464,7 @@ class _DetailCommentItem extends StatelessWidget {
               ),
               SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
-                comment.content,
+                comment.body,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,

@@ -1,26 +1,18 @@
-import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-@immutable
-class FeedComment {
-  const FeedComment({
-    required this.id,
-    required this.authorName,
-    required this.createdAt,
-    required this.content,
-    this.isMyComment = false,
-  });
+part 'feed_comment.freezed.dart';
+part 'feed_comment.g.dart';
 
-  final String id;
-  final String authorName;
-  final String createdAt;
-  final String content;
-  final bool isMyComment;
+@freezed
+class FeedComment with _$FeedComment {
+  const factory FeedComment({
+    required String id,
+    required String body,
+    required String authorNickname,
+    required DateTime createdAt,
+    @Default(false) bool mine,
+  }) = _FeedComment;
 
-  FeedComment copyWith({bool? isMyComment}) => FeedComment(
-        id: id,
-        authorName: authorName,
-        createdAt: createdAt,
-        content: content,
-        isMyComment: isMyComment ?? this.isMyComment,
-      );
+  factory FeedComment.fromJson(Map<String, dynamic> json) =>
+      _$FeedCommentFromJson(json);
 }

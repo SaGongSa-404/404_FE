@@ -1,10 +1,19 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
+FeedPost? _findPostById(List<FeedPost> posts, String id) {
+  for (final p in posts) {
+    if (p.id == id) return p;
+  }
+  return null;
+}
 
 class FeedEditScreen extends ConsumerStatefulWidget {
   const FeedEditScreen({super.key, required this.postId});
@@ -22,12 +31,10 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
   @override
   void initState() {
     super.initState();
-    final post = ref
-        .read(feedProvider)
-        .posts
-        .firstWhere((p) => p.id == widget.postId);
-    _controller = TextEditingController(text: post.content);
-    _hasContent = post.content.trim().isNotEmpty;
+    final post = _findPostById(ref.read(feedProvider).posts, widget.postId);
+    final initial = post?.body ?? '';
+    _controller = TextEditingController(text: initial);
+    _hasContent = initial.trim().isNotEmpty;
     _controller.addListener(() {
       final hasContent = _controller.text.trim().isNotEmpty;
       if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
@@ -50,21 +57,33 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
     if (shouldDiscard == true && mounted) context.pop();
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
     if (!_hasContent) return;
-    ref
-        .read(feedProvider.notifier)
-        .updatePost(widget.postId, _controller.text.trim());
-    context.pop('edited');
+    final updated = await ref.read(feedProvider.notifier).updatePost(
+          widget.postId,
+          UpdatePostRequest(body: _controller.text.trim()),
+        );
+    if (!mounted) return;
+    if (updated != null) context.pop('edited');
   }
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
-    final post = ref
-        .watch(feedProvider)
-        .posts
-        .firstWhere((p) => p.id == widget.postId);
+    final FeedPost? post =
+        _findPostById(ref.watch(feedProvider).posts, widget.postId);
+
+    if (post == null) {
+      return Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          title: const Text('게시글 수정하기'),
+        ),
+        body: const Center(child: Text('게시글을 찾을 수 없어요')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -128,12 +147,12 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  if (post.productName != null) ...[
+                  if (post.product != null) ...[
                     SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                     _ProductCard(
-                      name: post.productName!,
-                      price: post.productPrice,
-                      imageUrl: post.productImageUrl,
+                      name: post.product!.name,
+                      price: post.product!.price,
+                      imageUrl: post.imageUrl,
                     ),
                   ],
                 ],
@@ -159,7 +178,7 @@ class _ProductCard extends StatelessWidget {
   });
 
   final String name;
-  final String? price;
+  final int? price;
   final String? imageUrl;
 
   @override
@@ -216,7 +235,7 @@ class _ProductCard extends StatelessWidget {
               ),
               if (price != null)
                 Text(
-                  price!,
+                  _formatKrw(price!),
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
@@ -230,6 +249,14 @@ class _ProductCard extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatKrw(int price) {
+  final body = price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '$body원';
 }
 
 class _BottomButtons extends StatefulWidget {

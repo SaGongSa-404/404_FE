@@ -26,6 +26,14 @@ class _WishlistPickerDialogState
     extends ConsumerState<_WishlistPickerDialog> {
   WishlistPlaceholder? _selected;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen();
+    });
+  }
+
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),

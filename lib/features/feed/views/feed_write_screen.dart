@@ -1,6 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
-import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -40,7 +40,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     final shouldDiscard = await showConfirmBottomSheet(
       context: context,
       title: '게시글 작성을\n정말 그만두실 건가요?',
-      subtitle: '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
+      subtitle: '작성 중인 내용은 저장되지 않아요',
       actionLabel: '그만두기',
     );
     if (shouldDiscard == true && mounted) context.pop();
@@ -51,25 +51,17 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     if (selected != null) setState(() => _selectedItem = selected);
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
     if (!_hasContent) return;
-    ref.read(feedProvider.notifier).addPost(FeedPost(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: '익명의 너굴',
-      createdAt: '방금 전',
-      content: _controller.text.trim(),
-      productName: _selectedItem?.title,
-      productPrice: _selectedItem != null
-          ? '${_formatPrice(_selectedItem!.price)}원'
-          : null,
-      productImageUrl: _selectedItem?.imageUrl,
-      productUrl: _selectedItem?.link,
-      goVoteCount: 0,
-      stopVoteCount: 0,
-      commentCount: 0,
-      isMyPost: true,
-    ));
-    context.pop(true);
+    final body = _controller.text.trim();
+    final created = await ref.read(feedProvider.notifier).addPost(
+          CreatePostRequest(
+            body: body,
+            itemId: _selectedItem?.id,
+          ),
+        );
+    if (!mounted) return;
+    if (created != null) context.pop(true);
   }
 
   String _formatPrice(int price) {

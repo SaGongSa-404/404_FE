@@ -6,6 +6,7 @@ import 'package:fe_app/features/feed/views/components/comment_option_modal.dart'
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -38,12 +39,27 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
   Timer? _toastTimer;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(feedProvider.notifier).loadComments(widget.postId, refresh: true);
+    });
+  }
+
+  @override
   void dispose() {
     _toastTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 200) {
+      ref.read(feedProvider.notifier).loadMoreComments(widget.postId);
+    }
+    return false;
+  }
+
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorNickname) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
@@ -57,7 +73,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
       final blocked = await showBlockModal(context);
       if (!mounted) return;
       if (blocked) {
-        ref.read(feedProvider.notifier).blockUser(authorName);
+        ref.read(feedProvider.notifier).blockUser(authorNickname);
         _triggerToast('차단되었습니다');
       }
     }
@@ -75,7 +91,10 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
   Widget build(BuildContext context) {
     final feedState = ref.watch(feedProvider);
     final vm = ref.read(feedProvider.notifier);
-    final comments = feedState.commentsMap[widget.postId] ?? [];
+    final commentsPage = feedState.commentsMap[widget.postId];
+    final comments = commentsPage?.items ?? const <FeedComment>[];
+    final commentTotal = commentsPage?.total ?? 0;
+    final isLoading = commentsPage?.isLoading ?? false;
     final scale = MediaQuery.of(context).size.width / 412.0;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
@@ -117,7 +136,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                         Expanded(
                           child: Center(
                             child: Text(
-                              '댓글 ${comments.length}',
+                              '댓글 $commentTotal',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontWeight: FontWeight.w600,
@@ -133,22 +152,37 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                   ),
                   SizedBox(height: (30 * scale).clamp(22.0, 38.0)),
                   Expanded(
-                    child: ListView.separated(
-                      controller: scrollController,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: (24 * scale).clamp(18.0, 30.0),
-                      ),
-                      itemCount: comments.length,
-                      separatorBuilder: (_, __) => SizedBox(height: (26 * scale).clamp(20.0, 32.0)),
-                      itemBuilder: (_, index) => _CommentItem(
-                        comment: comments[index],
-                        onOption: () => _handleCommentOption(
-                          comments[index].id,
-                          comments[index].isMyComment,
-                          comments[index].authorName,
-                        ),
-                      ),
-                    ),
+                    child: comments.isEmpty && isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: _onScrollNotification,
+                            child: ListView.separated(
+                              controller: scrollController,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: (24 * scale).clamp(18.0, 30.0),
+                              ),
+                              itemCount: comments.length +
+                                  (isLoading && comments.isNotEmpty ? 1 : 0),
+                              separatorBuilder: (_, __) => SizedBox(
+                                  height: (26 * scale).clamp(20.0, 32.0)),
+                              itemBuilder: (_, index) {
+                                if (index >= comments.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    child: Center(child: CircularProgressIndicator()),
+                                  );
+                                }
+                                return _CommentItem(
+                                  comment: comments[index],
+                                  onOption: () => _handleCommentOption(
+                                    comments[index].id,
+                                    comments[index].mine,
+                                    comments[index].authorNickname,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                   ),
                   _CommentInput(
                     onSubmit: (text) => vm.addComment(widget.postId, text),
@@ -237,7 +271,7 @@ class _CommentItem extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    comment.authorName,
+                    comment.authorNickname,
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
@@ -247,7 +281,7 @@ class _CommentItem extends StatelessWidget {
                   ),
                   SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
-                    comment.createdAt,
+                    formatFeedTimestamp(comment.createdAt),
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
@@ -259,7 +293,7 @@ class _CommentItem extends StatelessWidget {
               ),
               SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
-                comment.content,
+                comment.body,
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
