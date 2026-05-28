@@ -1,91 +1,82 @@
-import 'dart:math' as math;
-
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/views/components/block_modal.dart';
+import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
+import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class FeedDetailScreen extends ConsumerWidget {
+class FeedDetailScreen extends ConsumerStatefulWidget {
   const FeedDetailScreen({super.key, required this.postId});
 
   final String postId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(feedProvider);
-    final vm = ref.read(feedProvider.notifier);
+  ConsumerState<FeedDetailScreen> createState() => _FeedDetailScreenState();
+}
 
-    FeedPost? post;
-    for (final p in state.posts) {
-      if (p.id == postId) {
-        post = p;
-        break;
+class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
+    final result = await showCommentOptionModal(context, isMyComment: isMyComment);
+    if (!mounted) return;
+    if (result == 'delete') {
+      ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
+      _showCommentToast('삭제되었습니다');
+    } else if (result == 'report') {
+      final reported = await showReportModal(context);
+      if (!mounted) return;
+      if (reported) _showCommentToast('신고가 완료되었습니다');
+    } else if (result == 'block') {
+      final blocked = await showBlockModal(context);
+      if (!mounted) return;
+      if (blocked) {
+        ref.read(feedProvider.notifier).blockUser(authorName);
+        _showCommentToast('차단되었습니다');
       }
     }
+  }
 
-    if (post == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: _buildAppBar(context),
-        body: const Center(child: Text('게시글을 찾을 수 없어요')),
-      );
-    }
-
-    final comments = state.commentsMap[postId] ?? [];
-    final currentPost = post;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(context),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                _DetailPostCard(
-                  post: currentPost,
-                  onVote: (vote) => vm.vote(postId, vote),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 21, 30, 0),
-                  child: Text(
-                    '댓글 ${comments.length}개',
-                    style: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 21),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: _CommentList(
-                    comments: comments,
-                    onLike: (commentId) =>
-                        vm.toggleCommentLike(postId, commentId),
-                  ),
-                ),
-                const SizedBox(height: 100),
-              ],
-            ),
+  void _showCommentToast(String message) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w500,
+            fontSize: (18 * scale).clamp(14.0, 22.0),
+            color: Colors.white,
           ),
-          _BottomCommentBar(
-            onSubmit: (text) => vm.addComment(postId, text),
-          ),
-        ],
+        ),
+        backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(47)),
+        margin: EdgeInsets.fromLTRB(
+          (26 * scale).clamp(20.0, 32.0),
+          0,
+          (26 * scale).clamp(20.0, 32.0),
+          (134 * scale).clamp(100.0, 168.0),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: (24 * scale).clamp(18.0, 30.0),
+          vertical: (9 * scale).clamp(7.0, 12.0),
+        ),
+        elevation: 6,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  AppBar _buildAppBar(BuildContext context) {
+  AppBar _buildAppBar() {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return AppBar(
       backgroundColor: AppColors.white,
       elevation: 0,
@@ -94,28 +85,101 @@ class FeedDetailScreen extends ConsumerWidget {
       leading: GestureDetector(
         onTap: () => context.pop(),
         child: Center(
-          child: Transform.rotate(
-            angle: math.pi,
-            child: SvgPicture.asset(
-              'assets/images/arrow_forward.svg',
-              width: 19,
-              height: 19,
-              colorFilter: const ColorFilter.mode(
-                AppColors.brown,
-                BlendMode.srcIn,
-              ),
+          child: SvgPicture.asset(
+            'assets/images/arrow_forward.svg',
+            width: (19 * scale).clamp(15.0, 23.0),
+            height: (19 * scale).clamp(15.0, 23.0),
+            colorFilter: const ColorFilter.mode(
+              AppColors.brown,
+              BlendMode.srcIn,
             ),
           ),
         ),
       ),
-      title: const Text(
+      title: Text(
         '게시글',
         style: TextStyle(
           fontFamily: 'Pretendard',
           fontWeight: FontWeight.w600,
-          fontSize: 20,
+          fontSize: (20 * scale).clamp(16.0, 24.0),
           color: AppColors.brown,
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final state = ref.watch(feedProvider);
+    final vm = ref.read(feedProvider.notifier);
+
+    FeedPost? post;
+    for (final p in state.posts) {
+      if (p.id == widget.postId) {
+        post = p;
+        break;
+      }
+    }
+
+    if (post == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _buildAppBar(),
+        body: const Center(child: Text('게시글을 찾을 수 없어요')),
+      );
+    }
+
+    final comments = state.commentsMap[widget.postId] ?? [];
+    final currentPost = post;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              children: [
+                _DetailPostCard(
+                  post: currentPost,
+                  onVote: (vote) => vm.vote(widget.postId, vote),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    (30 * scale).clamp(24.0, 36.0),
+                    (21 * scale).clamp(16.0, 26.0),
+                    (30 * scale).clamp(24.0, 36.0),
+                    0,
+                  ),
+                  child: Text(
+                    '댓글 ${comments.length}개',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      fontSize: (16 * scale).clamp(13.0, 19.0),
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                SizedBox(height: (21 * scale).clamp(16.0, 26.0)),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: (30 * scale).clamp(24.0, 36.0),
+                  ),
+                  child: _CommentList(
+                    comments: comments,
+                    onOption: _handleCommentOption,
+                  ),
+                ),
+                SizedBox(height: (100 * scale).clamp(80.0, 120.0)),
+              ],
+            ),
+          ),
+          _BottomCommentBar(
+            onSubmit: (text) => vm.addComment(widget.postId, text),
+          ),
+        ],
       ),
     );
   }
@@ -132,13 +196,21 @@ class _DetailPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+        ),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 25, 24, 25),
+      padding: EdgeInsets.fromLTRB(
+        (24 * scale).clamp(18.0, 30.0),
+        (25 * scale).clamp(19.0, 31.0),
+        (24 * scale).clamp(18.0, 30.0),
+        (25 * scale).clamp(19.0, 31.0),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -146,43 +218,43 @@ class _DetailPostCard extends StatelessWidget {
             children: [
               SvgPicture.asset(
                 'assets/images/user_profile.svg',
-                width: 31,
-                height: 32,
+                width: (31 * scale).clamp(25.0, 37.0),
+                height: (32 * scale).clamp(26.0, 38.0),
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: (5 * scale).clamp(4.0, 6.0)),
               Text(
                 post.authorName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
               Text(
                 post.createdAt,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w400,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textDate,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
           Text(
             post.content,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w500,
-              fontSize: 18,
+              fontSize: (18 * scale).clamp(14.0, 22.0),
               color: AppColors.textDark,
               height: 1.43,
             ),
           ),
-          const SizedBox(height: 19),
+          SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
           if (post.productName != null) ...[
             GestureDetector(
               onTap: () => showProductLinkDialog(
@@ -195,7 +267,7 @@ class _DetailPostCard extends StatelessWidget {
                 imageUrl: post.productImageUrl,
               ),
             ),
-            const SizedBox(height: 17),
+            SizedBox(height: (17 * scale).clamp(13.0, 21.0)),
           ],
           VoteButtons(
             myVote: post.myVote,
@@ -223,28 +295,66 @@ class _DetailProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+          ),
           child: imageUrl != null
-              ? Image.network(imageUrl!, height: 150, width: double.infinity, fit: BoxFit.cover)
-              : Container(height: 150, width: double.infinity, color: AppColors.skyBlue_100.withValues(alpha: 0.4)),
+              ? Image.network(
+                  imageUrl!,
+                  height: (150 * scale).clamp(120.0, 180.0),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  height: (150 * scale).clamp(120.0, 180.0),
+                  width: double.infinity,
+                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
+                ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: (12 * scale).clamp(9.0, 15.0),
+            vertical: (10 * scale).clamp(8.0, 12.0),
+          ),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 3)],
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 3,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.textPrimary)),
+              Text(
+                name,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w600,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
+                  color: AppColors.textPrimary,
+                ),
+              ),
               if (price != null)
-                Text(price!, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.textPrimary)),
+                Text(
+                  price!,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w500,
+                    fontSize: (14 * scale).clamp(11.0, 17.0),
+                    color: AppColors.textPrimary,
+                  ),
+                ),
             ],
           ),
         ),
@@ -256,14 +366,15 @@ class _DetailProductCard extends StatelessWidget {
 class _CommentList extends StatelessWidget {
   const _CommentList({
     required this.comments,
-    required this.onLike,
+    required this.onOption,
   });
 
   final List<FeedComment> comments;
-  final ValueChanged<String> onLike;
+  final void Function(String commentId, bool isMyComment, String authorName) onOption;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     if (comments.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -272,9 +383,9 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onLike: () => onLike(comments[i].id),
+            onOption: () => onOption(comments[i].id, comments[i].isMyComment, comments[i].authorName),
           ),
-          if (i < comments.length - 1) const SizedBox(height: 20),
+          if (i < comments.length - 1) SizedBox(height: (20 * scale).clamp(15.0, 25.0)),
         ],
       ],
     );
@@ -284,19 +395,24 @@ class _CommentList extends StatelessWidget {
 class _DetailCommentItem extends StatelessWidget {
   const _DetailCommentItem({
     required this.comment,
-    required this.onLike,
+    required this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback onLike;
+  final VoidCallback onOption;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SvgPicture.asset('assets/images/user_profile.svg', width: 43, height: 45),
-        const SizedBox(width: 11),
+        SvgPicture.asset(
+          'assets/images/user_profile.svg',
+          width: (43 * scale).clamp(34.0, 52.0),
+          height: (45 * scale).clamp(36.0, 54.0),
+        ),
+        SizedBox(width: (11 * scale).clamp(8.0, 14.0)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,39 +421,50 @@ class _DetailCommentItem extends StatelessWidget {
                 children: [
                   Text(
                     comment.authorName,
-                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
                     comment.createdAt,
-                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w400, fontSize: 15, color: AppColors.textDate),
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w400,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
+                      color: AppColors.textDate,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
                 comment.content,
-                style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textDark, height: 1.5),
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w500,
+                  fontSize: (16 * scale).clamp(13.0, 19.0),
+                  color: AppColors.textDark,
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 3),
-              const Text('답글', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.textSecondary)),
             ],
           ),
         ),
         GestureDetector(
-          onTap: onLike,
+          onTap: onOption,
           child: Padding(
-            padding: const EdgeInsets.only(top: 3, left: 8),
+            padding: EdgeInsets.only(
+              top: (3 * scale).clamp(2.0, 4.0),
+              left: (8 * scale).clamp(6.0, 10.0),
+            ),
             child: SvgPicture.asset(
-              comment.isLiked
-                  ? 'assets/images/heart_filled.svg'
-                  : 'assets/images/heart.svg',
-              width: 20,
-              height: 20,
-              colorFilter: ColorFilter.mode(
-                comment.isLiked ? AppColors.red_600 : AppColors.textDate,
-                BlendMode.srcIn,
-              ),
+              'assets/images/comment_option.svg',
+              width: (20 * scale).clamp(16.0, 24.0),
+              height: (20 * scale).clamp(16.0, 24.0),
             ),
           ),
         ),
@@ -358,6 +485,7 @@ class _BottomCommentBar extends StatefulWidget {
 class _BottomCommentBarState extends State<_BottomCommentBar> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _uploadPressed = false;
 
   @override
   void initState() {
@@ -378,69 +506,101 @@ class _BottomCommentBarState extends State<_BottomCommentBar> {
     if (!_hasText) return;
     widget.onSubmit(_controller.text.trim());
     _controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final iconSize = (54 * scale).clamp(43.0, 65.0);
+    final iconRight = (16 * scale).clamp(12.0, 20.0);
+
     return Container(
       color: AppColors.background,
       padding: EdgeInsets.fromLTRB(
-        28,
-        19,
-        28,
-        MediaQuery.of(context).padding.bottom + 19,
+        (26 * scale).clamp(20.0, 32.0),
+        (19 * scale).clamp(14.0, 24.0),
+        (26 * scale).clamp(20.0, 32.0),
+        MediaQuery.of(context).padding.bottom + (19 * scale).clamp(14.0, 24.0),
       ),
-      child: Container(
-        padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(59),
-          border: Border.all(color: const Color(0xFFADADAD)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              (28 * scale).clamp(22.0, 34.0),
+              (26 * scale).clamp(20.0, 32.0),
+              iconSize + iconRight + (8 * scale).clamp(6.0, 10.0),
+              (26 * scale).clamp(20.0, 32.0),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular((59 * scale).clamp(47.0, 72.0)),
+              border: Border.all(color: const Color(0xFFADADAD)),
+            ),
+            child: TextField(
+              controller: _controller,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
+                color: AppColors.textDark,
+                height: 1.548,
+              ),
+              decoration: InputDecoration(
+                hintText: '댓글을 입력해주세요',
+                hintStyle: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: AppColors.textDark,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
+                  color: const Color(0xFFADADAD),
+                  height: 1.548,
                 ),
-                decoration: const InputDecoration(
-                  hintText: '댓글을 입력해주세요',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Color(0xFFADADAD),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isDense: true,
-                ),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submit(),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
               ),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
             ),
-            AnimatedOpacity(
-              opacity: _hasText ? 1.0 : 0.3,
-              duration: const Duration(milliseconds: 150),
-              child: GestureDetector(
-                onTap: _submit,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.send_rounded,
-                    size: 22,
-                    color: AppColors.skyBlue_200,
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: _hasText
+                ? Padding(
+                    key: const ValueKey('upload'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: GestureDetector(
+                      onTapDown: (_) => setState(() => _uploadPressed = true),
+                      onTapUp: (_) {
+                        setState(() => _uploadPressed = false);
+                        _submit();
+                      },
+                      onTapCancel: () => setState(() => _uploadPressed = false),
+                      child: SvgPicture.asset(
+                        _uploadPressed
+                            ? 'assets/images/comment_upload_clicked.svg'
+                            : 'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
+                      ),
+                    ),
+                  )
+                : Padding(
+                    key: const ValueKey('empty'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: Opacity(
+                      opacity: 0,
+                      child: SvgPicture.asset(
+                        'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

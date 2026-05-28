@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/block_modal.dart';
+import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
+import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +34,7 @@ class _CommentSheetContent extends ConsumerStatefulWidget {
 }
 
 class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
-  bool _showDeleteToast = false;
+  String? _toastMessage;
   Timer? _toastTimer;
 
   @override
@@ -41,24 +43,31 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     super.dispose();
   }
 
-  Future<void> _handleDeleteComment(String commentId) async {
-    final confirmed = await showConfirmBottomSheet(
-      context: context,
-      title: '작성한 댓글을\n정말 삭제하실 건가요?',
-      subtitle: '한 번 삭제된 댓글은 되돌릴 수 없어요',
-      actionLabel: '삭제하기',
-    );
-    if (confirmed == true && mounted) {
+  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorName) async {
+    final result = await showCommentOptionModal(context, isMyComment: isMyComment);
+    if (!mounted) return;
+    if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
-      _triggerToast();
+      _triggerToast('삭제되었습니다');
+    } else if (result == 'report') {
+      final reported = await showReportModal(context);
+      if (!mounted) return;
+      if (reported) _triggerToast('신고가 완료되었습니다');
+    } else if (result == 'block') {
+      final blocked = await showBlockModal(context);
+      if (!mounted) return;
+      if (blocked) {
+        ref.read(feedProvider.notifier).blockUser(authorName);
+        _triggerToast('차단되었습니다');
+      }
     }
   }
 
-  void _triggerToast() {
-    setState(() => _showDeleteToast = true);
+  void _triggerToast(String message) {
+    setState(() => _toastMessage = message);
     _toastTimer?.cancel();
     _toastTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _showDeleteToast = false);
+      if (mounted) setState(() => _toastMessage = null);
     });
   }
 
@@ -67,108 +76,126 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     final feedState = ref.watch(feedProvider);
     final vm = ref.read(feedProvider.notifier);
     final comments = feedState.commentsMap[widget.postId] ?? [];
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 1.0,
-      minChildSize: 0.5,
-      maxChildSize: 1.0,
-      snap: true,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 23, 24, 0),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: SvgPicture.asset(
-                        'assets/images/close.svg',
-                        width: 24,
-                        height: 24,
-                      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          snap: true,
+          builder: (sheetContext, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+              ),
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      (24 * scale).clamp(18.0, 30.0),
+                      (23 * scale).clamp(17.0, 29.0),
+                      (24 * scale).clamp(18.0, 30.0),
+                      0,
                     ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          '댓글 ${comments.length}',
-                          style: const TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 20,
-                            color: AppColors.textPrimary,
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(sheetContext).pop(),
+                          child: SvgPicture.asset(
+                            'assets/images/close.svg',
+                            width: (14 * scale).clamp(11.0, 17.0),
+                            height: (14 * scale).clamp(11.0, 17.0),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 16),
-                  itemCount: comments.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 26),
-                  itemBuilder: (_, index) => _CommentItem(
-                    comment: comments[index],
-                    onLike: () => vm.toggleCommentLike(
-                        widget.postId, comments[index].id),
-                    onDelete: comments[index].isMyComment
-                        ? () {
-                            _handleDeleteComment(comments[index].id);
-                          }
-                        : null,
-                  ),
-                ),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _showDeleteToast
-                    ? Padding(
-                        key: const ValueKey('toast'),
-                        padding: const EdgeInsets.fromLTRB(26, 0, 26, 8),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: AppColors.red_600.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(47),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                blurRadius: 6,
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              '댓글 ${comments.length}',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w600,
+                                fontSize: (20 * scale).clamp(16.0, 24.0),
+                                color: AppColors.textPrimary,
                               ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '삭제되었습니다',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                              color: AppColors.white,
                             ),
                           ),
                         ),
-                      )
-                    : const SizedBox.shrink(key: ValueKey('no-toast')),
+                        SizedBox(width: (14 * scale).clamp(11.0, 17.0)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: (30 * scale).clamp(22.0, 38.0)),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (24 * scale).clamp(18.0, 30.0),
+                      ),
+                      itemCount: comments.length,
+                      separatorBuilder: (_, __) => SizedBox(height: (26 * scale).clamp(20.0, 32.0)),
+                      itemBuilder: (_, index) => _CommentItem(
+                        comment: comments[index],
+                        onOption: () => _handleCommentOption(
+                          comments[index].id,
+                          comments[index].isMyComment,
+                          comments[index].authorName,
+                        ),
+                      ),
+                    ),
+                  ),
+                  _CommentInput(
+                    onSubmit: (text) => vm.addComment(widget.postId, text),
+                  ),
+                ],
               ),
-              _CommentInput(
-                onSubmit: (text) => vm.addComment(widget.postId, text),
-              ),
-            ],
+            );
+          },
+        ),
+        Positioned(
+          bottom: (134 * scale).clamp(100.0, 168.0),
+          left: (26 * scale).clamp(20.0, 32.0),
+          right: (26 * scale).clamp(20.0, 32.0),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _toastMessage != null
+                ? Container(
+                    key: const ValueKey('toast'),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: (24 * scale).clamp(18.0, 30.0),
+                      vertical: (9 * scale).clamp(7.0, 12.0),
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.red_600.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(47),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _toastMessage!,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w500,
+                        fontSize: (18 * scale).clamp(14.0, 22.0),
+                        color: AppColors.white,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('no-toast')),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -176,25 +203,25 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
 class _CommentItem extends StatelessWidget {
   const _CommentItem({
     required this.comment,
-    required this.onLike,
-    this.onDelete,
+    required this.onOption,
   });
 
   final FeedComment comment;
-  final VoidCallback onLike;
-  final VoidCallback? onDelete;
+  final VoidCallback onOption;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 18,
-          height: 18,
+          width: (18 * scale).clamp(14.0, 22.0),
+          height: (18 * scale).clamp(14.0, 22.0),
           decoration: BoxDecoration(
             color: AppColors.grey_200,
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular((9 * scale).clamp(7.0, 11.0)),
           ),
           clipBehavior: Clip.antiAlias,
           child: SvgPicture.asset(
@@ -202,7 +229,7 @@ class _CommentItem extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-        const SizedBox(width: 7),
+        SizedBox(width: (7 * scale).clamp(5.0, 9.0)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,85 +238,50 @@ class _CommentItem extends StatelessWidget {
                 children: [
                   Text(
                     comment.authorName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
                   Text(
                     comment.createdAt,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
-                      fontSize: 15,
+                      fontSize: (15 * scale).clamp(12.0, 18.0),
                       color: AppColors.textDate,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: (3 * scale).clamp(2.0, 4.0)),
               Text(
                 comment.content,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
                   color: AppColors.textDark,
                   height: 1.5,
                 ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  const Text(
-                    '답글',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  if (comment.isMyComment && onDelete != null) ...[
-                    const SizedBox(width: 3),
-                    GestureDetector(
-                      onTap: onDelete,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 7),
-                        child: Text(
-                          '삭제',
-                          style: TextStyle(
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: AppColors.red_600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
               ),
             ],
           ),
         ),
         GestureDetector(
-          onTap: onLike,
+          onTap: onOption,
           child: Padding(
-            padding: const EdgeInsets.only(top: 3, left: 8),
+            padding: EdgeInsets.only(
+              top: (3 * scale).clamp(2.0, 4.0),
+              left: (8 * scale).clamp(6.0, 10.0),
+            ),
             child: SvgPicture.asset(
-              comment.isLiked
-                  ? 'assets/images/heart_filled.svg'
-                  : 'assets/images/heart.svg',
-              width: 20,
-              height: 20,
-              colorFilter: ColorFilter.mode(
-                comment.isLiked ? AppColors.red_600 : AppColors.textDate,
-                BlendMode.srcIn,
-              ),
+              'assets/images/comment_option.svg',
+              width: (20.0 * scale).clamp(16.0, 24.0),
+              height: (20.0 * scale).clamp(16.0, 24.0),
             ),
           ),
         ),
@@ -310,6 +302,7 @@ class _CommentInput extends StatefulWidget {
 class _CommentInputState extends State<_CommentInput> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _uploadPressed = false;
 
   @override
   void initState() {
@@ -330,64 +323,92 @@ class _CommentInputState extends State<_CommentInput> {
     if (!_hasText) return;
     widget.onSubmit(_controller.text.trim());
     _controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final iconSize = (54 * scale).clamp(43.0, 65.0);
+    final iconRight = (16 * scale).clamp(12.0, 20.0);
+
     return Container(
       color: AppColors.background,
-      padding: const EdgeInsets.fromLTRB(28, 19, 28, 40),
-      child: Container(
-        padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(59),
-          border: Border.all(color: const Color(0xFFADADAD)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(
+      padding: EdgeInsets.fromLTRB(
+        (26 * scale).clamp(20.0, 32.0),
+        (19 * scale).clamp(14.0, 24.0),
+        (26 * scale).clamp(20.0, 32.0),
+        safeBottom + (19 * scale).clamp(14.0, 24.0),
+      ),
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              (28 * scale).clamp(22.0, 34.0),
+              (26 * scale).clamp(20.0, 32.0),
+              (iconSize + iconRight + (8 * scale).clamp(6.0, 10.0)),
+              (26 * scale).clamp(20.0, 32.0),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(
+                  (59 * scale).clamp(47.0, 72.0)),
+              border: Border.all(color: const Color(0xFFADADAD)),
+            ),
+            child: TextField(
+              controller: _controller,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
+                color: AppColors.textDark,
+                height: 1.548,
+              ),
+              decoration: InputDecoration(
+                hintText: '댓글을 입력해주세요',
+                hintStyle: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: AppColors.textDark,
+                  fontSize: (18 * scale).clamp(14.0, 22.0),
+                  color: const Color(0xFFADADAD),
+                  height: 1.548,
                 ),
-                decoration: const InputDecoration(
-                  hintText: '댓글을 입력해주세요',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                    color: Color(0xFFADADAD),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isDense: true,
-                ),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submit(),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
               ),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
             ),
-            AnimatedOpacity(
-              opacity: _hasText ? 1.0 : 0.3,
-              duration: const Duration(milliseconds: 150),
-              child: GestureDetector(
-                onTap: _submit,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.send_rounded,
-                    size: 22,
-                    color: AppColors.skyBlue_200,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: _hasText
+                ? Padding(
+                    key: const ValueKey('upload'),
+                    padding: EdgeInsets.only(right: iconRight),
+                    child: GestureDetector(
+                      onTapDown: (_) => setState(() => _uploadPressed = true),
+                      onTapUp: (_) {
+                        setState(() => _uploadPressed = false);
+                        _submit();
+                      },
+                      onTapCancel: () => setState(() => _uploadPressed = false),
+                      child: SvgPicture.asset(
+                        _uploadPressed
+                            ? 'assets/images/comment_upload_clicked.svg'
+                            : 'assets/images/comment_upload.svg',
+                        width: iconSize,
+                        height: iconSize,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('empty')),
+          ),
+        ],
       ),
     );
   }
