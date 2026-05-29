@@ -15,48 +15,40 @@ class NotificationScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
-  bool _unreadOnly = false;
-
   Future<void> _onTapNotification(NotificationModel notification) async {
     try {
-      await ref
-          .read(notificationListProvider(_unreadOnly).notifier)
-          .markAsRead(notification.id);
+      // 1. 서버 및 로컬 읽음 처리 (전체 목록 기준이므로 unreadOnly: false)
+      await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
       await ref.read(notificationLiveProvider.notifier).markAsRead(notification.id);
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('읽음 처리에 실패했어요: $error')),
-        );
-      }
+    } catch (e) {
+      debugPrint('읽음 처리 실패: $e');
     }
 
     if (!mounted) return;
 
-    final targetPath = notification.targetPath.trim().isEmpty
-        ? '/home'
-        : notification.targetPath;
-
+    // 2. 타겟 페이지로 이동
+    final path = notification.targetPath.trim();
+    if (path.isEmpty || path == '/notifications') {
+      return;
+    }
     try {
-      context.go(targetPath);
-    } catch (error) {
-      debugPrint('notification routing error: $error');
-      if (mounted) {
-        context.go('/home');
-      }
+      context.push(path);
+    } catch (e) {
+      debugPrint('이동 실패: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final notificationsAsync = ref.watch(notificationListProvider(_unreadOnly));
+    final notificationsAsync = ref.watch(notificationListProvider(false));
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F5F5), // 연그레이 배경
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF5F5F5),
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18 * scale),
           onPressed: () => context.pop(),
@@ -65,220 +57,160 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           '알림',
           style: TextStyle(
             color: Colors.black,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             fontSize: 18 * scale,
           ),
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(20 * scale, 8 * scale, 20 * scale, 12 * scale),
-            child: Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('전체'),
-                  selected: !_unreadOnly,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _unreadOnly = false);
-                    }
-                  },
-                ),
-                SizedBox(width: 8 * scale),
-                ChoiceChip(
-                  label: const Text('안 읽음'),
-                  selected: _unreadOnly,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _unreadOnly = true);
-                    }
-                  },
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => ref.read(notificationListProvider(_unreadOnly).notifier).refresh(),
-                  child: const Text('새로고침'),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: notificationsAsync.when(
-              data: (notifications) {
-                if (notifications.isEmpty) {
-                  return _EmptyNotificationState(
-                    scale: scale,
-                    unreadOnly: _unreadOnly,
-                  );
-                }
-
-                return ListView.separated(
-                  padding: EdgeInsets.fromLTRB(20 * scale, 0, 20 * scale, 20 * scale),
-                  itemCount: notifications.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 12 * scale),
-                  itemBuilder: (context, index) {
-                    final notification = notifications[index];
-                    return _buildNotificationCard(
-                      context,
-                      notification: notification,
-                      scale: scale,
-                      onTap: () => _onTapNotification(notification),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => _ErrorNotificationState(
-                scale: scale,
-                message: error.toString(),
-                onRetry: () => ref.read(notificationListProvider(_unreadOnly).notifier).refresh(),
+      body: notificationsAsync.when(
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return Center(
+              child: Text(
+                '알림이 아직 없어요.',
+                style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
               ),
-            ),
-          ),
-        ],
+            );
+          }
+
+          // 안 읽은 알림과 읽은 알림 분리
+          final unread = notifications.where((n) => !n.isRead).toList();
+          final read = notifications.where((n) => n.isRead).toList();
+
+          return ListView(
+            padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
+            children: [
+              if (unread.isNotEmpty) ...[
+                _buildSectionTitle('읽지 않은 알림', scale),
+                ...unread.map((n) => _NotificationCapsule(
+                      notification: n,
+                      scale: scale,
+                      onTap: () => _onTapNotification(n),
+                    )),
+                const SizedBox(height: 24),
+              ],
+              if (read.isNotEmpty) ...[
+                _buildSectionTitle('읽은 알림', scale),
+                ...read.map((n) => _NotificationCapsule(
+                      notification: n,
+                      scale: scale,
+                      onTap: () => _onTapNotification(n),
+                    )),
+              ],
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('알림을 불러오지 못했습니다: $e')),
       ),
     );
   }
 
-  Widget _buildNotificationCard(
-    BuildContext context, {
-    required NotificationModel notification,
-    required double scale,
-    required VoidCallback onTap,
-  }) {
-    final isNew = !notification.isRead;
+  Widget _buildSectionTitle(String title, double scale) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4 * scale, bottom: 12 * scale),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16 * scale,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF8E8E8E),
+        ),
+      ),
+    );
+  }
+}
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24 * scale),
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 18 * scale, vertical: 16 * scale),
-      decoration: BoxDecoration(
-            color: isNew ? const Color(0xFFFDF1C7) : Colors.white,
-            borderRadius: BorderRadius.circular(24 * scale),
-            border: Border.all(
-              color: isNew ? Colors.transparent : const Color(0xFFE0E0E0),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification.title,
-                      style: TextStyle(
-                        fontSize: 15 * scale,
-                        color: AppColors.textPrimary,
-                        fontWeight: isNew ? FontWeight.w700 : FontWeight.w500,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (notification.body != null && notification.body!.isNotEmpty) ...[
-                      SizedBox(height: 6 * scale),
-                      Text(
-                        notification.body!,
-                        style: TextStyle(
-                          fontSize: 13 * scale,
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+class _NotificationCapsule extends StatelessWidget {
+  final NotificationModel notification;
+  final double scale;
+  final VoidCallback onTap;
+
+  const _NotificationCapsule({
+    required this.notification,
+    required this.scale,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isUnread = !notification.isRead;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12 * scale),
+        padding: EdgeInsets.symmetric(horizontal: 22 * scale, vertical: 16 * scale),
+        decoration: BoxDecoration(
+          color: isUnread ? const Color(0xFFFFEEA0) : Colors.white, // 노란색(안읽음) / 흰색(읽음)
+          borderRadius: BorderRadius.circular(30 * scale), // 캡슐형 둥근 모서리
+          border: isUnread ? null : Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          boxShadow: [
+            if (isUnread)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              SizedBox(width: 10 * scale),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    notification.time,
-                    style: TextStyle(fontSize: 12 * scale, color: Colors.grey),
+                    notification.title,
+                    style: TextStyle(
+                      fontSize: 14 * scale,
+                      fontWeight: isUnread ? FontWeight.w600 : FontWeight.w400,
+                      color: AppColors.textPrimary,
+                      height: 1.3,
+                    ),
                   ),
-                  if (isNew) ...[
-                    SizedBox(height: 8 * scale),
-                    Icon(Icons.circle, size: 6 * scale, color: const Color(0xFFE58D8D)),
+                  if (notification.body != null && notification.body!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.body!,
+                      style: TextStyle(
+                        fontSize: 12 * scale,
+                        fontWeight: FontWeight.w400,
+                        color: isUnread ? AppColors.textPrimary : const Color(0xFF8E8E8E),
+                        height: 1.3,
+                      ),
+                    ),
                   ],
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyNotificationState extends StatelessWidget {
-  const _EmptyNotificationState({required this.scale, required this.unreadOnly});
-
-  final double scale;
-  final bool unreadOnly;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24 * scale),
-        child: Text(
-          unreadOnly ? '안 읽은 알림이 없어요.' : '알림이 아직 없어요.',
-          style: TextStyle(
-            fontSize: 14 * scale,
-            color: AppColors.textSecondary,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorNotificationState extends StatelessWidget {
-  const _ErrorNotificationState({
-    required this.scale,
-    required this.message,
-    required this.onRetry,
-  });
-
-  final double scale;
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24 * scale),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '알림을 불러오지 못했어요.',
-              style: TextStyle(
-                fontSize: 14 * scale,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
             ),
-            SizedBox(height: 8 * scale),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 12 * scale,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
+            const SizedBox(width: 12),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  notification.time,
+                  style: TextStyle(
+                    fontSize: 12 * scale,
+                    color: const Color(0xFFADADAD),
+                  ),
+                ),
+                if (isUnread) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 6 * scale,
+                    height: 6 * scale,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE58D8D), // 안 읽음 표시 레드 닷
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            SizedBox(height: 12 * scale),
-            TextButton(onPressed: onRetry, child: const Text('다시 시도')),
           ],
         ),
       ),

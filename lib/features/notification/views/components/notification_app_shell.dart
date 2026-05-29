@@ -69,7 +69,10 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     await ref.read(notificationLiveProvider.notifier).markAsRead(banner.id);
     ref.read(notificationLiveProvider.notifier).consumeBanner(banner.id);
     if (!mounted) return;
-    final path = banner.targetPath.trim().isEmpty ? '/notifications' : banner.targetPath;
+    final path = banner.targetPath.trim();
+    if (path.isEmpty || path == '/notifications') {
+      return;
+    }
     if (_isExternalUrl(path)) {
       final uri = Uri.parse(path);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -91,6 +94,10 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     if (!mounted) return;
     if (_isExternalUrl(intent.targetPath)) {
       await launchUrl(Uri.parse(intent.targetPath), mode: LaunchMode.externalApplication);
+      ref.read(notificationDeepLinkProvider.notifier).consume();
+      return;
+    }
+    if (intent.targetPath.trim().isEmpty || intent.targetPath == '/notifications') {
       ref.read(notificationDeepLinkProvider.notifier).consume();
       return;
     }
@@ -213,6 +220,7 @@ class _NotificationBanner extends StatelessWidget {
     );
   }
 }
+
 
 
 

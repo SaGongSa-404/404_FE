@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/home/models/home_summary.dart';
+import 'package:fe_app/features/home/models/balloon_message.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
+import 'package:fe_app/features/home/services/home_balloon_service.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
+import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
@@ -24,32 +27,23 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
+  static const _balloonDuration = Duration(seconds: 3);
+
   final PageController _pageController = PageController();
   VideoPlayerController? _videoController;
   int _currentPage = 0;
   String _currentVideoPath = '';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
-  bool _isBudgetBubbleDialogShowing = false;
   bool _hasUserInteractedWithMascot = false;
-  String? _lastBudgetBubbleKey;
   VoidCallback? _specialListener;
-
-  final List<String> _safeMessages = [
-    '잘하고 있어요! 예산이 넉넉해요 :)',
-    '이대로만 소비하면 이번 달은 성공이에요!',
-    '당신은 정말 현명한 소비왕!',
-    '너구리도 당신의 절약 정신에 감동했어요!',
-  ];
-
-  final List<String> _warningMessages = [
-    '앗! 예산이 얼마 남지 않았어요. 주의하세요!',
-    '지갑이 울고 있어요... 조금만 참아볼까요?',
-    '경고! 충동구매의 기운이 느껴집니다!',
-  ];
-
-  late String _currentMessage;
+  Timer? _balloonDismissTimer;
+  String? _visibleBalloonMessage;
+  BalloonMessageType? _visibleBalloonType;
+  ConsiderCaseType? _lastSpecialCaseType;
+  bool _requestLaunchBalloonEvaluation = false;
 
   String _getDefaultVideoPath(bool isBudgetExhausted) {
     return isBudgetExhausted
@@ -135,17 +129,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       Future.delayed(const Duration(milliseconds: 200), () => oldController.dispose());
     }
 
+    // 영상의 개수를 비교하여 한 번만 재생되도록 처리
+    bool alreadyReturned = false;
+    
     void onTick() async {
-      if (!mounted || _videoController != preloadedController) {
+      if (alreadyReturned || !mounted || _videoController != preloadedController) {
         preloadedController.removeListener(onTick);
         return;
       }
       
       final value = preloadedController.value;
-      if (!value.isInitialized) return;
+      if (!value.isInitialized || value.duration <= Duration.zero) return;
 
-      final isAtEnd = value.position >= value.duration && value.duration > Duration.zero;
-      if (isAtEnd && !value.isPlaying) {
+      // 정확한 종료 감지: position이 duration과 거의 같을 때
+      // (duration - 100ms 이내)
+      final remainingMs = value.duration.inMilliseconds - value.position.inMilliseconds;
+      
+      if (remainingMs <= 100 && !value.isPlaying) {
+        alreadyReturned = true;
         preloadedController.removeListener(onTick);
         _specialListener = null;
 
@@ -162,9 +163,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     preloadedController.addListener(onTick);
   }
 
-  void _onNugulTap(bool isExceeded) {
+  void _onNugulTap() {
     _hasUserInteractedWithMascot = true;
-    _changeMessage(isExceeded);
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
       controller.seekTo(Duration.zero);
@@ -172,23 +172,143 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _changeMessage(bool isExceeded) {
-    final random = Random();
-    final messageList = isExceeded ? _warningMessages : _safeMessages;
-    setState(() {
-      _currentMessage = messageList[random.nextInt(messageList.length)];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _currentVideoPath = 'assets/videos/nugul_home.mp4';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen());
+      _requestLaunchBalloonEvaluation = true;
+      unawaited(_processBalloonQueue());
     });
   }
 
   @override
-  void initState() {
-    super.initState();
-    _currentMessage = _safeMessages[0];
-    _currentVideoPath = 'assets/videos/nugul_home.mp4';
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _videoController == null) {
+      return;
+    }
+  }
+
+  void _hideBalloon() {
+    _balloonDismissTimer?.cancel();
+    _balloonDismissTimer = null;
+    if (!mounted) return;
+    setState(() {
+      _visibleBalloonMessage = null;
+      _visibleBalloonType = null;
+    });
+  }
+
+  Future<void> _showBalloon(String message, BalloonMessageType type) async {
+    if (_visibleBalloonMessage != null && _visibleBalloonType == type) {
+      return;
+    }
+
+    _balloonDismissTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _visibleBalloonMessage = message;
+      _visibleBalloonType = type;
+    });
+
+    _balloonDismissTimer = Timer(_balloonDuration, () {
+      if (!mounted) return;
+      _hideBalloon();
+    });
+  }
+
+  Future<void> _showBalloonForType(BalloonMessageType type) async {
+    final message = HomeBalloonService.pickRandomText(type);
+    if (message == null) return;
+    await _showBalloon(message, type);
+  }
+
+  Future<void> _processBalloonQueue() async {
+    if (!mounted || _visibleBalloonMessage != null) return;
+
+    final specialState = ref.read(homeSpecialEffectProvider);
+    final specialCaseType = specialState.caseType;
+    if (specialCaseType != null && specialCaseType != _lastSpecialCaseType) {
+      _lastSpecialCaseType = specialCaseType;
+      HomeBalloonService.markLaunchEvaluatedThisSession();
+      final balloonType = HomeBalloonService.balloonTypeForDecisionCase(specialCaseType);
+      if (balloonType != null) {
+        await _showBalloonForType(balloonType);
+      }
+      return;
+    }
+
+    if (await HomeBalloonService.consumePendingOnboarding()) {
+      HomeBalloonService.markLaunchEvaluatedThisSession();
+      await _showBalloonForType(BalloonMessageType.onboarding);
+      return;
+    }
+
+    if (await HomeBalloonService.consumePendingFirstWish()) {
+      HomeBalloonService.markLaunchEvaluatedThisSession();
+      await _showBalloonForType(BalloonMessageType.firstWishAdded);
+      return;
+    }
+
+    if (HomeBalloonService.launchEvaluatedThisSession || !_requestLaunchBalloonEvaluation) {
+      return;
+    }
+
+    final summary = ref.read(homeSummaryProvider).valueOrNull;
+    final authUser = ref.read(authProvider).valueOrNull;
+    final wishlistState = ref.read(wishlistViewModelProvider);
+    if (summary == null || authUser == null || wishlistState.isLoading) return;
+
+    HomeBalloonService.markLaunchEvaluatedThisSession();
+
+    final budget = summary.budget;
+    if (budget.remainingAmount < 0) {
+      await _showBalloonForType(BalloonMessageType.budgetNegative);
+      return;
+    }
+
+    if (budget.remainingAmount == 0) {
+      await _showBalloonForType(BalloonMessageType.budgetExhausted);
+      return;
+    }
+
+    final wishCount = wishlistState.items.length;
+    final hasWishlistData = wishlistState.listErrorMessage == null;
+    final hasPostsAwaitingVote = summary.notifications.latestNotifications.any(
+      (item) => (item.type ?? '').toUpperCase() == 'SOCIAL_VOTE',
+    );
+
+    if (hasWishlistData && wishCount == 0) {
+      await _showBalloonForType(BalloonMessageType.emptyWishlist);
+      return;
+    }
+
+    if (!hasWishlistData) {
+      await _showBalloonForType(BalloonMessageType.normalHome);
+      return;
+    }
+
+    final random = Random();
+    if (random.nextDouble() < 0.7) {
+      await _showBalloonForType(BalloonMessageType.undecidedWish);
+      return;
+    }
+
+    if (hasPostsAwaitingVote) {
+      await _showBalloonForType(BalloonMessageType.awaitingVote);
+      return;
+    }
+
+    await _showBalloonForType(BalloonMessageType.normalHome);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _balloonDismissTimer?.cancel();
     _pageController.dispose();
     if (_videoController != null && _specialListener != null) {
       _videoController!.removeListener(_specialListener!);
@@ -197,65 +317,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  void _syncMascotMessage(HomeSummaryResponse? summary) {
-    if (_hasUserInteractedWithMascot) return;
-
-    final serverMessage = summary?.mascot.lastReactionMessage;
-    if (serverMessage == null || serverMessage.trim().isEmpty) return;
-    if (_currentMessage != _safeMessages[0]) return;
-    if (_currentMessage == serverMessage) return;
-
-    setState(() {
-      _currentMessage = serverMessage;
-    });
-  }
-
-  Future<void> _showBudgetBubbleIfNeeded(HomeSummaryResponse? summary) async {
-    final budget = summary?.budget;
-    if (budget == null || !budget.showBudgetExhaustionBubble) return;
-    if (_isBudgetBubbleDialogShowing || _lastBudgetBubbleKey == budget.yearMonth) return;
-
-    _lastBudgetBubbleKey = budget.yearMonth;
-    _isBudgetBubbleDialogShowing = true;
-
-    try {
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder: (dialogContext) {
-          final dialogScale = responsiveScale(dialogContext);
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20 * dialogScale),
-            ),
-            title: const Text('예산이 모두 소진되었어요'),
-            content: const Text('예산 소진 말풍선을 확인했습니다.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('닫기'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (error) {
-      debugPrint('budget bubble dialog error: $error');
-    } finally {
-      _isBudgetBubbleDialogShowing = false;
-      if (mounted) {
-        await ref.read(homeSummaryProvider.notifier).acknowledgeBudgetBubbleSeen();
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
     final summaryAsync = ref.watch(homeSummaryProvider);
     final summary = summaryAsync.valueOrNull;
-    final isExceeded = summary?.budget.isBudgetExhausted ?? false;
+    final wishlistState = ref.watch(wishlistViewModelProvider);
 
     final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
@@ -264,11 +332,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final preloadedController = specialState.preloadedController;
     final hasSpecial = specialState.caseType != null && preloadedController != null;
 
+    ref.listen<HomeSpecialEffectState>(homeSpecialEffectProvider, (previous, next) {
+      if (next.caseType == null) {
+        _lastSpecialCaseType = null;
+        return;
+      }
+      if (previous?.caseType != next.caseType) {
+        _lastSpecialCaseType = next.caseType;
+        HomeBalloonService.markLaunchEvaluatedThisSession();
+        unawaited(HomeBalloonService.consumePendingDecisionCase());
+        final balloonType = HomeBalloonService.balloonTypeForDecisionCase(next.caseType!);
+        if (balloonType != null) {
+          unawaited(_showBalloonForType(balloonType));
+        }
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      _syncMascotMessage(summary);
-      unawaited(_showBudgetBubbleIfNeeded(summary));
+      if (!_requestLaunchBalloonEvaluation) {
+        _requestLaunchBalloonEvaluation = true;
+      }
+      unawaited(_processBalloonQueue());
 
       if (hasSpecial && !_isPlayingSpecialOnce) {
         if (preloadedController == null) return;
@@ -292,7 +378,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Stack(
         children: [
           GestureDetector(
-            onTap: () => _onNugulTap(isExceeded),
+            onTap: _onNugulTap,
             behavior: HitTestBehavior.opaque,
             child: videoController != null && videoController.value.isInitialized
                 ? SizedBox.expand(
@@ -328,31 +414,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 SizedBox(height: 20 * scale),
                 GestureDetector(
-                  onTap: () => _onNugulTap(isExceeded),
+                  onTap: _onNugulTap,
                   child: Column(
                     children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 40 * scale,
-                          vertical: 16 * scale,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(217),
-                          borderRadius: BorderRadius.circular(40 * scale),
-                        ),
-                        child: Text(
-                          _currentMessage,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16 * scale,
-                            fontWeight: FontWeight.w500,
+                      if (_visibleBalloonMessage != null) ...[
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 40 * scale,
+                            vertical: 16 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(217),
+                            borderRadius: BorderRadius.circular(40 * scale),
+                          ),
+                          child: Text(
+                            _visibleBalloonMessage!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16 * scale,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      CustomPaint(
-                        size: Size(20 * scale, 10 * scale),
-                        painter: TrianglePainter(),
-                      ),
+                        CustomPaint(
+                          size: Size(20 * scale, 10 * scale),
+                          painter: TrianglePainter(),
+                        ),
+                      ] else
+                        SizedBox(height: 10 * scale),
                     ],
                   ),
                 ),

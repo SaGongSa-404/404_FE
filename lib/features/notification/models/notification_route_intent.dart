@@ -83,7 +83,7 @@ extension NotificationKindX on NotificationKind {
 	  case NotificationKind.appUpdate:
 		return 'https://play.google.com/store/apps/details?id=fe_app';
 	  case NotificationKind.maintenance:
-		return '/notifications';
+		return '';
 	}
   }
 }

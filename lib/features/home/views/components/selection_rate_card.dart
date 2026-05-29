@@ -16,40 +16,53 @@ class SelectionRateCard extends ConsumerWidget {
             final rate = (summary?.rationalChoiceRate ?? 0).clamp(0.0, 100.0);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '합리적 선택률',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14 * scale,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '합리적 선택률',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14 * scale,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: AppColors.textSecondary,
+                      size: 14 * scale,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 20 * scale),
-                Center(
-                  child: SizedBox(
-                    width: 100 * scale,
-                    height: 100 * scale,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CircularProgressIndicator(
-                          value: rate / 100,
-                          strokeWidth: 12 * scale,
-                          backgroundColor: const Color(0xFFF2F2F2),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8BA9C2)),
-                        ),
-                        Center(
-                          child: Text(
-                            '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : 1)}%',
-                            style: TextStyle(
-                              fontSize: 20 * scale,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                SizedBox(height: 12 * scale),
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: 80 * scale,
+                      height: 80 * scale,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CircularProgressIndicator(
+                            value: rate / 100,
+                            strokeWidth: 10 * scale,
+                            backgroundColor: const Color(0xFFF2F2F2),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8BA9C2)),
+                          ),
+                          Center(
+                            child: Text(
+                              '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : 1)}%',
+                              style: TextStyle(
+                                fontSize: 16 * scale,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -62,17 +75,14 @@ class SelectionRateCard extends ConsumerWidget {
   }
 
   Widget _placeholder(double scale, String message) {
-    return SizedBox(
-      height: 140 * scale,
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13 * scale,
-          ),
-          textAlign: TextAlign.center,
+    return Center(
+      child: Text(
+        message,
+        style: TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 12 * scale,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }

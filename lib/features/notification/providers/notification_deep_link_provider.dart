@@ -23,6 +23,12 @@ class NotificationDeepLinkNotifier extends StateNotifier<NotificationRouteIntent
   Future<void> _init() async {
     final appLinks = AppLinks();
     await _subscription?.cancel();
+    try {
+      final initial = await appLinks.getInitialAppLink();
+      if (initial != null) {
+        _handleUri(initial);
+      }
+    } catch (_) {}
     _subscription = appLinks.allUriLinkStream.listen(_handleUri);
     _ref.onDispose(() {
       _subscription?.cancel();

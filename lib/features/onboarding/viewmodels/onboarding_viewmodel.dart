@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/home/services/home_balloon_service.dart';
 import 'package:fe_app/features/onboarding/models/onboarding_complete_request.dart';
 import 'package:fe_app/features/onboarding/repositories/onboarding_repository.dart';
 
@@ -70,6 +71,7 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
       );
 
       await _repository.complete(request);
+      await HomeBalloonService.markPendingOnboarding();
       state = state.copyWith(isLoading: false);
       return true;
     } on ApiException catch (e) {

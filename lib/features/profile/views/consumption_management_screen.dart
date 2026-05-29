@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -31,23 +32,27 @@ class ConsumptionManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        backgroundColor: _backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          '소비 관리',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18 * scale,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
+       appBar: AppBar(
+         backgroundColor: _backgroundColor,
+         elevation: 0,
+         leading: IconButton(
+           icon: Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18 * scale),
+           onPressed: () {
+             // 뒤로갈 때 홈화면의 예산 데이터 새로고침
+             ref.read(homeSummaryProvider.notifier).refresh();
+             context.pop();
+           },
+         ),
+         title: Text(
+           '소비 관리',
+           style: TextStyle(
+             color: AppColors.textPrimary,
+             fontSize: 18 * scale,
+             fontWeight: FontWeight.bold,
+           ),
+         ),
+         centerTitle: true,
+       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24 * scale),
         child: Column(
@@ -436,6 +441,8 @@ class ConsumptionManagementScreen extends ConsumerWidget {
                           final newBudget = int.tryParse(controller.text.replaceAll(',', ''));
                           if (newBudget != null) {
                             ref.read(profileNotifierProvider.notifier).updateBudget(newBudget);
+                            // 홈화면의 예산 데이터를 즉시 새로고침해서 UI에 반영
+                            ref.read(homeSummaryProvider.notifier).refresh();
                             Navigator.of(sheetContext).pop();
                           }
                         },

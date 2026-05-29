@@ -46,9 +46,10 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
   Timer? _timer;
   bool _started = false;
   bool _disposed = false;
+  bool _initialized = false;
   final Set<String> _seenIds = <String>{};
 
-  static const Duration _pollInterval = Duration(seconds: 45);
+  static const Duration _pollInterval = Duration(seconds: 5);
   static const int _expireDays = 30;
 
   Future<void> start() async {
@@ -62,7 +63,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     if (_disposed) return;
     _timer?.cancel();
     _timer = Timer.periodic(_pollInterval, (_) => sync(queueNewBanners: true));
-    await sync(queueNewBanners: true);
+    await sync(queueNewBanners: false);
   }
 
   void pause() {
@@ -88,7 +89,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
         });
 
       final newIds = fresh.map((e) => e.id).toList(growable: false);
-      final shouldQueue = queueNewBanners && _seenIds.isNotEmpty;
+      final shouldQueue = queueNewBanners && _initialized;
       final newlyArrived = shouldQueue
           ? fresh.where((item) => !_seenIds.contains(item.id)).toList(growable: false)
           : const <NotificationModel>[];
@@ -107,6 +108,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
         bannerQueue: mergedQueue,
         isSyncing: false,
       );
+      _initialized = true;
     } catch (error, stackTrace) {
       debugPrint('notification live sync failed: $error\n$stackTrace');
       state = state.copyWith(isSyncing: false);

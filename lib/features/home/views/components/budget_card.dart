@@ -11,159 +11,195 @@ class BudgetCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scale = responsiveScale(context);
-    final state = ref.watch(homeSummaryProvider);
+    final summaryAsync = ref.watch(homeSummaryProvider);
 
-    if (state.isLoading) {
-      return _Placeholder(scale: scale, message: '예산 정보를 불러오는 중이에요.');
-    }
+    return summaryAsync.when(
+      data: (summary) {
+        if (summary == null) {
+          return _ErrorPlaceholder(
+            scale: scale,
+            message: '예산 정보를 불러오지 못했어요.',
+          );
+        }
 
-    final error = state.error;
-    if (error != null) {
-      return _ErrorView(
-        scale: scale,
-        onRetry: () => ref.read(homeSummaryProvider.notifier).refresh(),
-      );
-    }
+        final budget = summary.budget;
+        final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
+        String format(int val) =>
+            val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    final summary = state.valueOrNull;
-    final budget = summary?.budget;
-    if (budget == null) {
-      return _Placeholder(scale: scale, message: '예산 정보를 불러오지 못했어요.');
-    }
+        final isExceeded = budget.isBudgetExhausted;
 
-    final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
-    String format(int val) => val.toString().replaceAllMapped(numberFormat, (m) => ',');
+        // 게이지 바 비율 계산 (0.0 ~ 1.0)
+        final progress = budget.monthlyBudgetAmount <= 0
+            ? 0.0
+            : (budget.spentAmount / budget.monthlyBudgetAmount).clamp(0.0, 1.0);
 
-    final isExceeded = budget.isBudgetExhausted;
-    final progress = budget.monthlyBudgetAmount <= 0
-        ? 0.0
-        : (budget.spentAmount / budget.monthlyBudgetAmount).clamp(0.0, 1.0);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '이번 달 예산',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14 * scale,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 12 * scale),
-        Text(
-          '${format(budget.remainingAmount)}원 남았어요',
-          style: TextStyle(
-            color: isExceeded ? AppColors.red_200 : AppColors.textPrimary,
-            fontSize: 22 * scale,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: 6 * scale),
-        Text(
-          '${budget.yearMonth} · 총 ${format(budget.monthlyBudgetAmount)}원',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12 * scale,
-          ),
-        ),
-        SizedBox(height: 14 * scale),
-        Container(
-          height: 12 * scale,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
-            borderRadius: BorderRadius.circular(8 * scale),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: progress,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isExceeded ? AppColors.red_200 : AppColors.skyBlue_200,
-                borderRadius: BorderRadius.circular(8 * scale),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 8 * scale),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 타이틀 + 화살표
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '이번 달 예산 현황',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14 * scale,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => context.go('/my/consumption'),
+                  child: Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.textSecondary,
+                    size: 14 * scale,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8 * scale),
+
+            // 남은 금액
             Text(
-              '${format(budget.spentAmount)}원',
+              '${format(budget.remainingAmount)}원 남음',
               style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12 * scale,
+                color: isExceeded ? AppColors.red_200 : AppColors.textPrimary,
+                fontSize: 24 * scale,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              '${format(budget.monthlyBudgetAmount)}원',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12 * scale,
+            SizedBox(height: 20 * scale),
+
+            // 이미지 맞춤형 구현: 예산 진척도 바 (Progress Bar)
+            Container(
+              height: 12 * scale, // 이미지 속 얇고 정교한 바 높이 반영
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBEBEB), // 뒷배경 연한 회색 바 색상
+                borderRadius: BorderRadius.circular(6 * scale), // 완벽한 라운딩 처리
               ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: [
+                      // ClipRRect를 사용하여 채워지는 바도 모서리가 잘 깎이도록 처리
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6 * scale),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: progress, // 백엔드에서 받아온 소비 비율 대입
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isExceeded
+                                    ? AppColors.red_200
+                                    : const Color(0xFF7B97B1), // 이미지의 차분한 블루그레이 톤 반영
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 12 * scale),
+
+            // 금액 표시 (양쪽 정렬)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${format(budget.spentAmount)}원',
+                  style: TextStyle(
+                    color: const Color(0xFF7A7A7A), // 이미지와 유사한 회색조 폰트 컬러
+                    fontSize: 13 * scale,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${format(budget.monthlyBudgetAmount)}원',
+                  style: TextStyle(
+                    color: const Color(0xFF7A7A7A),
+                    fontSize: 13 * scale,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        SizedBox(height: 10 * scale),
-        TextButton(
-          onPressed: () => context.go('/my/consumption'),
-          style: TextButton.styleFrom(padding: EdgeInsets.zero),
-          child: Text(
-            '소비관리 자세히 보기',
-            style: TextStyle(
-              fontSize: 12 * scale,
-              color: AppColors.skyBlue_100,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
+      loading: () => _LoadingPlaceholder(scale: scale),
+      error: (error, stackTrace) => _ErrorPlaceholder(
+        scale: scale,
+        message: '예산 정보를 불러오지 못했어요.',
+        onRetry: () => ref.refresh(homeSummaryProvider),
+      ),
     );
   }
 }
 
-class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.scale, required this.message});
+// 공용 컴포넌트: 로딩 상태
+class _LoadingPlaceholder extends StatelessWidget {
+  const _LoadingPlaceholder({required this.scale});
 
   final double scale;
-  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 140 * scale,
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13 * scale,
-          ),
-          textAlign: TextAlign.center,
+    return Center(
+      child: SizedBox(
+        width: 24 * scale,
+        height: 24 * scale,
+        child: const CircularProgressIndicator(
+          strokeWidth: 2,
         ),
       ),
     );
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.scale, required this.onRetry});
+// 공용 컴포넌트: 에러 상태
+class _ErrorPlaceholder extends StatelessWidget {
+  const _ErrorPlaceholder({
+    required this.scale,
+    required this.message,
+    this.onRetry,
+  });
 
   final double scale;
-  final VoidCallback onRetry;
+  final String message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 140 * scale,
-      child: Center(
-        child: TextButton(
-          onPressed: onRetry,
-          child: Text(
-            '예산 정보를 다시 불러오기',
-            style: TextStyle(fontSize: 13 * scale),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            message,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12 * scale,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
+          if (onRetry != null) ...[
+            SizedBox(height: 12 * scale),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                '다시 시도',
+                style: TextStyle(fontSize: 12 * scale),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

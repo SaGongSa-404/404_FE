@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/home/services/home_balloon_service.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_link_request.dart';
 import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
@@ -314,6 +315,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   Future<bool> addItem(WishlistPlaceholder draft) async {
+    final isFirstWish = state.items.isEmpty;
     state = state.copyWith(
       isSubmitting: true,
       clearSubmitErrorMessage: true,
@@ -322,6 +324,9 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     try {
       final request = _buildSaveRequestForAdd(draft);
       await _wishlistService.createItem(request);
+      if (isFirstWish) {
+        await HomeBalloonService.markPendingFirstWish();
+      }
 
       state = state.copyWith(
         isSubmitting: false,
