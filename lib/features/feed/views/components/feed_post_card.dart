@@ -1,5 +1,7 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/vote_type.dart';
+import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -70,16 +72,16 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   ),
                   SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
                   _ExpandableText(
-                    text: post.content,
+                    text: post.body ?? '',
                     isExpanded: _isExpanded,
                     onExpand: () => setState(() => _isExpanded = true),
                   ),
                   SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
-                  if (post.productName != null) ...[
+                  if (post.product != null) ...[
                     _ProductCard(
-                      name: post.productName!,
-                      price: post.productPrice,
-                      imageUrl: post.productImageUrl,
+                      name: post.product!.name,
+                      price: post.product!.price,
+                      imageUrl: post.imageUrl,
                     ),
                     SizedBox(height: (15 * scale).clamp(12.0, 18.0)),
                   ],
@@ -88,10 +90,10 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     behavior: HitTestBehavior.opaque,
                     child: VoteButtons(
                       myVote: post.myVote,
-                      goCount: post.goVoteCount,
-                      stopCount: post.stopVoteCount,
+                      goCount: post.goCount,
+                      stopCount: post.stopCount,
                       onVote: widget.onVote,
-                      isDisabled: post.isMyPost,
+                      isDisabled: post.mine,
                     ),
                   ),
                   SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
@@ -136,7 +138,7 @@ class _PostHeaderState extends State<_PostHeader> {
     return Row(
       children: [
         Text(
-          widget.post.authorName,
+          widget.post.authorNickname,
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
@@ -147,7 +149,7 @@ class _PostHeaderState extends State<_PostHeader> {
         SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
         Expanded(
           child: Text(
-            widget.post.createdAt,
+            formatFeedTimestamp(widget.post.createdAt),
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w400,
@@ -275,7 +277,7 @@ class _ProductCard extends StatelessWidget {
   });
 
   final String name;
-  final String? price;
+  final int? price;
   final String? imageUrl;
 
   @override
@@ -330,7 +332,7 @@ class _ProductCard extends StatelessWidget {
               ),
               if (price != null)
                 Text(
-                  price!,
+                  _formatKrw(price!),
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
@@ -344,6 +346,14 @@ class _ProductCard extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatKrw(int price) {
+  final body = price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '$body원';
 }
 
 class _CommentPreviewRow extends StatelessWidget {
