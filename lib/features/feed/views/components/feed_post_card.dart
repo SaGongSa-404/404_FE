@@ -1,5 +1,7 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/vote_type.dart';
+import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +35,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final scale = MediaQuery.of(context).size.width / 412.0;
 
     return GestureDetector(
       onTap: widget.onCardTap,
@@ -40,7 +43,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular((22 * scale).clamp(17.0, 27.0)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -48,16 +51,16 @@ class _FeedPostCardState extends State<FeedPostCard> {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all((16 * scale).clamp(13.0, 19.0)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SvgPicture.asset(
               'assets/images/user_profile.svg',
-              width: 33,
-              height: 35,
+              width: (33 * scale).clamp(26.0, 40.0),
+              height: (35 * scale).clamp(28.0, 42.0),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: (8 * scale).clamp(6.0, 10.0)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,35 +70,35 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     isOptionActive: widget.isOptionActive,
                     onOptionTap: widget.onOptionTap,
                   ),
-                  const SizedBox(height: 7),
+                  SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
                   _ExpandableText(
-                    text: post.content,
+                    text: post.body ?? '',
                     isExpanded: _isExpanded,
                     onExpand: () => setState(() => _isExpanded = true),
                   ),
-                  const SizedBox(height: 16),
-                  if (post.productName != null) ...[
+                  SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
+                  if (post.product != null) ...[
                     _ProductCard(
-                      name: post.productName!,
-                      price: post.productPrice,
-                      imageUrl: post.productImageUrl,
+                      name: post.product!.name,
+                      price: post.product!.price,
+                      imageUrl: post.imageUrl,
                     ),
-                    const SizedBox(height: 15),
+                    SizedBox(height: (15 * scale).clamp(12.0, 18.0)),
                   ],
                   GestureDetector(
                     onTap: () {},
                     behavior: HitTestBehavior.opaque,
                     child: VoteButtons(
                       myVote: post.myVote,
-                      goCount: post.goVoteCount,
-                      stopCount: post.stopVoteCount,
+                      goCount: post.goCount,
+                      stopCount: post.stopCount,
                       onVote: widget.onVote,
-                      isDisabled: post.isMyPost,
+                      isDisabled: post.mine,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
                   const Divider(height: 1, thickness: 1, color: Color(0xFFE8E8E8)),
-                  const SizedBox(height: 6),
+                  SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
                   GestureDetector(
                     onTap: widget.onCommentTap,
                     behavior: HitTestBehavior.opaque,
@@ -111,7 +114,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 }
 
-class _PostHeader extends StatelessWidget {
+class _PostHeader extends StatefulWidget {
   const _PostHeader({
     required this.post,
     required this.isOptionActive,
@@ -123,44 +126,66 @@ class _PostHeader extends StatelessWidget {
   final VoidCallback onOptionTap;
 
   @override
+  State<_PostHeader> createState() => _PostHeaderState();
+}
+
+class _PostHeaderState extends State<_PostHeader> {
+  bool _optionPressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Row(
       children: [
         Text(
-          post.authorName,
-          style: const TextStyle(
+          widget.post.authorNickname,
+          style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
-            fontSize: 15,
+            fontSize: (15 * scale).clamp(12.0, 18.0),
             color: AppColors.textSecondary,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
         Expanded(
           child: Text(
-            post.createdAt,
-            style: const TextStyle(
+            formatFeedTimestamp(widget.post.createdAt),
+            style: TextStyle(
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w400,
-              fontSize: 15,
+              fontSize: (15 * scale).clamp(12.0, 18.0),
               color: AppColors.textDate,
             ),
           ),
         ),
-        if (post.isMyPost)
-          GestureDetector(
-            onTap: onOptionTap,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
+        GestureDetector(
+          onTapDown: (_) => setState(() => _optionPressed = true),
+          onTapUp: (_) {
+            setState(() => _optionPressed = false);
+            widget.onOptionTap();
+          },
+          onTapCancel: () => setState(() => _optionPressed = false),
+          child: Padding(
+            padding: EdgeInsets.only(left: (8 * scale).clamp(6.0, 10.0)),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              width: (28 * scale).clamp(22.0, 34.0),
+              height: (28 * scale).clamp(22.0, 34.0),
+              decoration: BoxDecoration(
+                color: _optionPressed ? AppColors.grey_300 : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
               child: SvgPicture.asset(
-                isOptionActive
+                widget.isOptionActive
                     ? 'assets/images/option_clicked.svg'
                     : 'assets/images/option.svg',
-                width: 20,
-                height: 20,
+                width: (20 * scale).clamp(16.0, 24.0),
+                height: (20 * scale).clamp(16.0, 24.0),
               ),
             ),
           ),
+        ),
       ],
     );
   }
@@ -177,43 +202,47 @@ class _ExpandableText extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onExpand;
 
-  static const _contentStyle = TextStyle(
-    fontFamily: 'Pretendard',
-    fontWeight: FontWeight.w400,
-    fontSize: 17,
-    color: AppColors.textDark,
-    height: 1.3,
-  );
+  TextStyle _contentStyle(double scale) => TextStyle(
+        fontFamily: 'Pretendard',
+        fontWeight: FontWeight.w400,
+        fontSize: (17 * scale).clamp(14.0, 20.0),
+        color: AppColors.textDark,
+        height: 1.3,
+      );
 
-  static const _moreStyle = TextStyle(
-    fontFamily: 'Pretendard',
-    fontWeight: FontWeight.w400,
-    fontSize: 18,
-    color: AppColors.textPrimary,
-    height: 1.3,
-  );
+  TextStyle _moreStyle(double scale) => TextStyle(
+        fontFamily: 'Pretendard',
+        fontWeight: FontWeight.w400,
+        fontSize: (18 * scale).clamp(14.0, 22.0),
+        color: AppColors.textPrimary,
+        height: 1.3,
+      );
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final contentStyle = _contentStyle(scale);
+    final moreStyle = _moreStyle(scale);
+
     if (isExpanded) {
-      return Text(text, style: _contentStyle);
+      return Text(text, style: contentStyle);
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final tp = TextPainter(
-          text: TextSpan(text: text, style: _contentStyle),
+          text: TextSpan(text: text, style: contentStyle),
           maxLines: 3,
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: constraints.maxWidth);
 
         if (!tp.didExceedMaxLines) {
-          return Text(text, style: _contentStyle);
+          return Text(text, style: contentStyle);
         }
 
         const moreText = '  더보기';
         final moreTp = TextPainter(
-          text: const TextSpan(text: moreText, style: _moreStyle),
+          text: TextSpan(text: moreText, style: moreStyle),
           textDirection: TextDirection.ltr,
         )..layout();
 
@@ -224,12 +253,12 @@ class _ExpandableText extends StatelessWidget {
 
         return RichText(
           text: TextSpan(
-            style: _contentStyle,
+            style: contentStyle,
             children: [
               TextSpan(text: truncated),
               TextSpan(
                 text: moreText,
-                style: _moreStyle,
+                style: moreStyle,
                 recognizer: TapGestureRecognizer()..onTap = onExpand,
               ),
             ],
@@ -248,34 +277,40 @@ class _ProductCard extends StatelessWidget {
   });
 
   final String name;
-  final String? price;
+  final int? price;
   final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular((22 * scale).clamp(17.0, 27.0))),
           child: imageUrl != null
               ? Image.network(
                   imageUrl!,
-                  height: 150,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
                   fit: BoxFit.cover,
                 )
               : Container(
-                  height: 150,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
                   color: AppColors.skyBlue_100.withValues(alpha: 0.4),
                 ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: (12 * scale).clamp(9.0, 15.0),
+            vertical: (10 * scale).clamp(8.0, 12.0),
+          ),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+            borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular((22 * scale).clamp(17.0, 27.0))),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -288,20 +323,20 @@ class _ProductCard extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textPrimary,
                 ),
               ),
               if (price != null)
                 Text(
-                  price!,
-                  style: const TextStyle(
+                  _formatKrw(price!),
+                  style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    fontSize: (14 * scale).clamp(11.0, 17.0),
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -313,6 +348,14 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
+String _formatKrw(int price) {
+  final body = price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '$body원';
+}
+
 class _CommentPreviewRow extends StatelessWidget {
   const _CommentPreviewRow({required this.post});
 
@@ -320,36 +363,37 @@ class _CommentPreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Row(
       children: [
         SvgPicture.asset(
           'assets/images/comment_icon.svg',
-          width: 23,
-          height: 23,
+          width: (23 * scale).clamp(18.0, 28.0),
+          height: (23 * scale).clamp(18.0, 28.0),
           colorFilter: const ColorFilter.mode(
             AppColors.textSecondary,
             BlendMode.srcIn,
           ),
         ),
-        const SizedBox(width: 3),
+        SizedBox(width: (3 * scale).clamp(2.0, 4.0)),
         Text(
           '${post.commentCount}',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
-            fontSize: 16,
+            fontSize: (16 * scale).clamp(13.0, 19.0),
             color: AppColors.textSecondary,
           ),
         ),
         if (post.latestCommentText != null) ...[
-          const SizedBox(width: 13),
+          SizedBox(width: (13 * scale).clamp(10.0, 16.0)),
           Expanded(
             child: Text(
               post.latestCommentText!,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                fontSize: 16,
+                fontSize: (16 * scale).clamp(13.0, 19.0),
                 color: AppColors.textPrimary.withValues(alpha: 0.8),
               ),
               overflow: TextOverflow.ellipsis,

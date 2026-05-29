@@ -1,157 +1,344 @@
-import 'package:fe_app/features/feed/models/feed_comment.dart';
-import 'package:fe_app/features/feed/models/feed_post.dart';
-import 'package:fe_app/features/feed/viewmodels/feed_state.dart';
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/feed/models/create_post_request.dart';
+import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/update_post_request.dart';
+import 'package:fe_app/features/feed/models/vote_type.dart';
+import 'package:fe_app/features/feed/services/feed_service.dart';
+import 'package:fe_app/features/feed/viewmodels/feed_state.dart';
+
 class FeedViewModel extends StateNotifier<FeedState> {
-  FeedViewModel() : super(const FeedState()) {
-    _loadMockData();
+  FeedViewModel(this._service) : super(const FeedState());
+
+  final FeedService _service;
+
+  String _errorMessage(Object error) =>
+      apiExceptionFrom(error)?.message ?? '요청을 처리하지 못했습니다.';
+
+  Future<void> loadInitial({bool force = false}) async {
+    if (state.isLoading) return;
+    if (!force && state.posts.isNotEmpty) return;
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+    );
+    try {
+      final page = await _service.listPosts();
+      state = state.copyWith(
+        posts: page.items,
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: _errorMessage(e),
+      );
+    }
   }
 
-  void _loadMockData() {
-    final mockComments = <String, List<FeedComment>>{
-      '1': const [
-        FeedComment(id: 'c1', authorName: '너굴1', createdAt: '26.05.06 11:01', content: '나는 저거 그래서 별로라고 생각함', isMyComment: true),
-        FeedComment(id: 'c2', authorName: '너굴2', createdAt: '26.05.06 11:01', content: '나는 저거 그래서 별로라고 생각함'),
-        FeedComment(id: 'c3', authorName: '너굴위굴', createdAt: '10분 전', content: '나는 저거 그래서 별로라고 생각함'),
-      ],
-      '2': const [
-        FeedComment(id: 'c4', authorName: '너굴1', createdAt: '26.05.06 11:01', content: '나는 저거 그래서 별로라고 생각함'),
-        FeedComment(id: 'c5', authorName: '너굴2', createdAt: '26.05.06 11:01', content: '나는 저거 그래서 별로라고 생각함'),
-        FeedComment(id: 'c6', authorName: '너굴3', createdAt: '26.05.06 11:01', content: '나는 저거 그래서 별로라고 생각함'),
-      ],
-    };
-
+  Future<void> refresh() async {
+    if (state.isLoading) return;
     state = state.copyWith(
-      posts: const [
-        FeedPost(
-          id: '1',
-          authorName: '익명의 너굴',
-          createdAt: '26.05.06 11:01',
-          content: '이 자켓 계속 장바구니에 담아놨다가 뺐다가 하는 중이에요… 😭 비슷한 거 있긴 한데 색이 너무 너무 너무 너무 예뻐서요..',
-          productName: 'PWC PIBBED EVERYDAY SHORT',
-          productPrice: '29,000원',
-          productUrl: 'https://www.musinsa.com',
-          goVoteCount: 7,
-          stopVoteCount: 3,
-          commentCount: 3,
-          latestCommentText: '저거 하나쯤 있으면 자주 입을 것 같음',
-          isMyPost: true,
-        ),
-        FeedPost(
-          id: '2',
-          authorName: '익명의 너굴',
-          createdAt: '26.05.06 11:01',
-          content: '이 자켓 계속 장바구니에 담아놨다가 뺐다가 하는 중이에요… 😭 비슷한 거 있긴 한데 색이 너무 너무 너무 너무 예뻐서요...',
-          productName: 'PWC PIBBED EVERYDAY SHORT',
-          productPrice: '29,000원',
-          productUrl: 'https://www.musinsa.com',
-          goVoteCount: 7,
-          stopVoteCount: 3,
-          commentCount: 3,
-          latestCommentText: '저거 하나쯤 있으면 자주 입을 것 같음',
-          isMyPost: false,
-        ),
-      ],
-      commentsMap: mockComments,
+      isLoading: true,
+      errorMessage: null,
+      nextCursor: null,
+      hasMore: true,
     );
+    try {
+      final page = await _service.listPosts();
+      state = state.copyWith(
+        posts: page.items,
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: _errorMessage(e),
+      );
+    }
   }
 
-  // 같은 버튼 재클릭 시 무시, 변경 시 카운트도 함께 업데이트
-  void vote(String postId, VoteType voteType) {
-    state = state.copyWith(
-      posts: state.posts.map((p) {
-        if (p.id != postId) return p;
-        final prev = p.myVote;
-        if (prev == voteType) return p;
-        var go = p.goVoteCount;
-        var stop = p.stopVoteCount;
-        if (prev == VoteType.go) go--;
-        if (prev == VoteType.stop) stop--;
-        if (voteType == VoteType.go) go++;
-        if (voteType == VoteType.stop) stop++;
-        return p.copyWith(
-          myVote: voteType,
-          goVoteCount: go.clamp(0, 99999),
-          stopVoteCount: stop.clamp(0, 99999),
-        );
-      }).toList(),
-    );
+  Future<void> loadMore() async {
+    if (state.isLoading || state.isLoadingMore) return;
+    if (!state.hasMore || state.nextCursor == null) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final page = await _service.listPosts(cursor: state.nextCursor);
+      state = state.copyWith(
+        posts: [...state.posts, ...page.items],
+        nextCursor: page.nextCursor,
+        hasMore: page.hasMore,
+        isLoadingMore: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingMore: false,
+        errorMessage: _errorMessage(e),
+      );
+    }
+  }
+
+  /// 같은 표 재탭 시 BE가 취소(`myVote=null`) 처리하므로 클라이언트에서 차단하지 않습니다.
+  Future<void> vote(String postId, VoteType voteType) async {
+    try {
+      final res = await _service.votePost(postId, voteType);
+      state = state.copyWith(
+        posts: state.posts
+            .map((p) => p.id == postId
+                ? p.copyWith(
+                    myVote: res.myVote,
+                    goCount: res.goCount,
+                    stopCount: res.stopCount,
+                  )
+                : p)
+            .toList(),
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+    }
   }
 
   void setActiveOption(String? postId) {
     state = state.copyWith(activeOptionPostId: postId);
   }
 
-  void deletePost(String postId) {
+  Future<FeedPost?> addPost(CreatePostRequest request) async {
+    try {
+      final created = await _service.createPost(request);
+      state = state.copyWith(posts: [created, ...state.posts]);
+      return created;
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+      return null;
+    }
+  }
+
+  Future<FeedPost?> updatePost(String postId, UpdatePostRequest request) async {
+    try {
+      final updated = await _service.updatePost(postId, request);
+      state = state.copyWith(
+        posts: state.posts
+            .map((p) => p.id == postId ? updated : p)
+            .toList(),
+      );
+      return updated;
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+      return null;
+    }
+  }
+
+  Future<bool> deletePost(String postId) async {
+    try {
+      await _service.deletePost(postId);
+      final commentsMap = Map<String, CommentsPage>.from(state.commentsMap)
+        ..remove(postId);
+      state = state.copyWith(
+        posts: state.posts.where((p) => p.id != postId).toList(),
+        commentsMap: commentsMap,
+        activeOptionPostId: null,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+      return false;
+    }
+  }
+
+  /// 상세 진입 시 단건 최신화 (실패해도 무시 — 캐시 사용).
+  Future<void> refreshPost(String postId) async {
+    try {
+      final fresh = await _service.getPost(postId);
+      final exists = state.posts.any((p) => p.id == postId);
+      state = state.copyWith(
+        posts: exists
+            ? state.posts.map((p) => p.id == postId ? fresh : p).toList()
+            : [fresh, ...state.posts],
+      );
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  Future<void> loadComments(String postId, {bool refresh = false}) async {
+    final existing = state.commentsMap[postId];
+    if (!refresh && existing != null && existing.items.isNotEmpty) return;
+    final current = existing ?? const CommentsPage();
+    state = state.copyWith(commentsMap: {
+      ...state.commentsMap,
+      postId: current.copyWith(isLoading: true, errorMessage: null),
+    });
+    try {
+      final page = await _service.listComments(postId, page: 1);
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: CommentsPage(
+          items: page.items,
+          total: page.total,
+          page: page.page,
+          size: page.size,
+        ),
+        // commentCount/preview 동기화
+      });
+      _syncCommentMetaFromPage(postId);
+    } catch (e) {
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: current.copyWith(
+          isLoading: false,
+          errorMessage: _errorMessage(e),
+        ),
+      });
+    }
+  }
+
+  Future<void> loadMoreComments(String postId) async {
+    final existing = state.commentsMap[postId];
+    if (existing == null || existing.isLoading || !existing.hasMore) return;
+    state = state.copyWith(commentsMap: {
+      ...state.commentsMap,
+      postId: existing.copyWith(isLoading: true),
+    });
+    try {
+      final nextPage = await _service.listComments(
+        postId,
+        page: existing.page + 1,
+      );
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: existing.copyWith(
+          items: [...existing.items, ...nextPage.items],
+          total: nextPage.total,
+          page: nextPage.page,
+          size: nextPage.size,
+          isLoading: false,
+        ),
+      });
+    } catch (e) {
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: existing.copyWith(
+          isLoading: false,
+          errorMessage: _errorMessage(e),
+        ),
+      });
+    }
+  }
+
+  Future<void> addComment(String postId, String content) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      final created = await _service.createComment(postId, trimmed);
+      final existing = state.commentsMap[postId] ?? const CommentsPage();
+      final updated = existing.copyWith(
+        items: [...existing.items, created],
+        total: existing.total + 1,
+      );
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: updated,
+      });
+      _applyCommentMeta(
+        postId,
+        commentCount: updated.total,
+        latestCommentText: created.body,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+    }
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    try {
+      await _service.deleteComment(postId, commentId);
+      final existing = state.commentsMap[postId];
+      if (existing == null) return;
+      final items = existing.items.where((c) => c.id != commentId).toList();
+      final updated = existing.copyWith(
+        items: items,
+        total: (existing.total - 1).clamp(0, 1 << 31),
+      );
+      state = state.copyWith(commentsMap: {
+        ...state.commentsMap,
+        postId: updated,
+      });
+      _applyCommentMeta(
+        postId,
+        commentCount: updated.total,
+        latestCommentText: items.isEmpty ? null : items.last.body,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+    }
+  }
+
+  void blockUser(String authorNickname) {
+    final updatedMap = state.commentsMap.map(
+      (postId, page) => MapEntry(
+        postId,
+        page.copyWith(
+          items: page.items.where((c) => c.authorNickname != authorNickname).toList(),
+        ),
+      ),
+    );
+    final filteredPosts = state.posts
+        .where((p) => p.authorNickname != authorNickname)
+        .map((p) {
+      final page = updatedMap[p.id];
+      if (page == null) return p;
+      return p.copyWith(
+        commentCount: page.items.length,
+        latestCommentText: page.items.isEmpty ? null : page.items.last.body,
+      );
+    }).toList();
     state = state.copyWith(
-      posts: state.posts.where((p) => p.id != postId).toList(),
-      commentsMap: Map.from(state.commentsMap)..remove(postId),
+      posts: filteredPosts,
+      commentsMap: updatedMap,
+      blockedAuthorNames: {...state.blockedAuthorNames, authorNickname},
       activeOptionPostId: null,
     );
   }
 
-  void addPost(FeedPost post) {
-    state = state.copyWith(posts: [post, ...state.posts]);
+  Future<String?> uploadImage(File file) async {
+    try {
+      return await _service.uploadImage(file);
+    } catch (e) {
+      state = state.copyWith(errorMessage: _errorMessage(e));
+      return null;
+    }
   }
 
-  void updatePost(String postId, String content) {
-    state = state.copyWith(
-      posts: state.posts.map((p) {
-        if (p.id != postId) return p;
-        return p.copyWith(content: content);
-      }).toList(),
+  void _syncCommentMetaFromPage(String postId) {
+    final page = state.commentsMap[postId];
+    if (page == null) return;
+    _applyCommentMeta(
+      postId,
+      commentCount: page.total,
+      latestCommentText: page.items.isEmpty ? null : page.items.last.body,
     );
   }
 
-  void addComment(String postId, String content) {
-    final trimmed = content.trim();
-    if (trimmed.isEmpty) return;
-    final newComment = FeedComment(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: '익명의 너굴',
-      createdAt: '방금 전',
-      content: trimmed,
-    );
-    final existing = state.commentsMap[postId] ?? [];
-    final updated = [...existing, newComment];
+  void _applyCommentMeta(
+    String postId, {
+    required int commentCount,
+    required String? latestCommentText,
+  }) {
     state = state.copyWith(
-      commentsMap: {...state.commentsMap, postId: updated},
       posts: state.posts.map((p) {
         if (p.id != postId) return p;
         return p.copyWith(
-          commentCount: updated.length,
-          latestCommentText: trimmed,
+          commentCount: commentCount,
+          latestCommentText: latestCommentText,
         );
       }).toList(),
-    );
-  }
-
-  void deleteComment(String postId, String commentId) {
-    final comments = state.commentsMap[postId];
-    if (comments == null) return;
-    final updated = comments.where((c) => c.id != commentId).toList();
-    state = state.copyWith(
-      commentsMap: {...state.commentsMap, postId: updated},
-      posts: state.posts.map((p) {
-        if (p.id != postId) return p;
-        return p.copyWith(
-          commentCount: updated.length,
-          latestCommentText: updated.isEmpty ? null : updated.last.content,
-        );
-      }).toList(),
-    );
-  }
-
-  void toggleCommentLike(String postId, String commentId) {
-    final comments = state.commentsMap[postId];
-    if (comments == null) return;
-    final updated = comments.map((c) {
-      if (c.id != commentId) return c;
-      return c.copyWith(isLiked: !c.isLiked);
-    }).toList();
-    state = state.copyWith(
-      commentsMap: {...state.commentsMap, postId: updated},
     );
   }
 }

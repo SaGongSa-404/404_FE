@@ -1,6 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
-import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -40,7 +40,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     final shouldDiscard = await showConfirmBottomSheet(
       context: context,
       title: '게시글 작성을\n정말 그만두실 건가요?',
-      subtitle: '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
+      subtitle: '작성 중인 내용은 저장되지 않아요',
       actionLabel: '그만두기',
     );
     if (shouldDiscard == true && mounted) context.pop();
@@ -51,25 +51,17 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     if (selected != null) setState(() => _selectedItem = selected);
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
     if (!_hasContent) return;
-    ref.read(feedProvider.notifier).addPost(FeedPost(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: '익명의 너굴',
-      createdAt: '방금 전',
-      content: _controller.text.trim(),
-      productName: _selectedItem?.title,
-      productPrice: _selectedItem != null
-          ? '${_formatPrice(_selectedItem!.price)}원'
-          : null,
-      productImageUrl: _selectedItem?.imageUrl,
-      productUrl: _selectedItem?.link,
-      goVoteCount: 0,
-      stopVoteCount: 0,
-      commentCount: 0,
-      isMyPost: true,
-    ));
-    context.pop(true);
+    final body = _controller.text.trim();
+    final created = await ref.read(feedProvider.notifier).addPost(
+          CreatePostRequest(
+            body: body,
+            itemId: _selectedItem?.id,
+          ),
+        );
+    if (!mounted) return;
+    if (created != null) context.pop(true);
   }
 
   String _formatPrice(int price) {
@@ -81,6 +73,8 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       resizeToAvoidBottomInset: true,
@@ -94,8 +88,8 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
           child: Center(
             child: SvgPicture.asset(
               'assets/images/close.svg',
-              width: 16,
-              height: 16,
+              width: (16 * scale).clamp(13.0, 19.0),
+              height: (16 * scale).clamp(13.0, 19.0),
               colorFilter: const ColorFilter.mode(
                 AppColors.brown,
                 BlendMode.srcIn,
@@ -103,12 +97,12 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
             ),
           ),
         ),
-        title: const Text(
+        title: Text(
           '게시글 작성하기',
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: (20 * scale).clamp(16.0, 24.0),
             color: AppColors.brown,
           ),
         ),
@@ -117,7 +111,12 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              padding: EdgeInsets.fromLTRB(
+                (24 * scale).clamp(18.0, 30.0),
+                (20 * scale).clamp(15.0, 25.0),
+                (24 * scale).clamp(18.0, 30.0),
+                (16 * scale).clamp(12.0, 20.0),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -126,19 +125,19 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
                     maxLines: null,
                     minLines: 6,
                     autofocus: true,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
-                      fontSize: 20,
+                      fontSize: (20 * scale).clamp(16.0, 24.0),
                       color: AppColors.textDark,
                       height: 1.3,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '다른 사람과 함께 고민하고 싶은 걸 적어보세요',
                       hintStyle: TextStyle(
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w500,
-                        fontSize: 20,
+                        fontSize: (20 * scale).clamp(16.0, 24.0),
                         color: AppColors.textSecondary,
                         height: 1.5,
                       ),
@@ -147,7 +146,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
                     ),
                   ),
                   if (_selectedItem != null) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                     _AttachedProductCard(
                       item: _selectedItem!,
                       formatPrice: _formatPrice,
@@ -170,7 +169,6 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   }
 }
 
-// 위시리스트에서 선택된 상품의 풀 이미지 카드 (피그마 553:2151 기준)
 class _AttachedProductCard extends StatelessWidget {
   const _AttachedProductCard({
     required this.item,
@@ -182,28 +180,31 @@ class _AttachedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+          ),
           child: item.imageUrl != null
               ? Image.network(
                   item.imageUrl!,
-                  height: 150,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
                   fit: BoxFit.cover,
                 )
               : Container(
-                  height: 150,
+                  height: (150 * scale).clamp(120.0, 180.0),
                   width: double.infinity,
                   color: AppColors.skyBlue_100.withValues(alpha: 0.4),
                   alignment: Alignment.center,
                   child: Text(
                     item.category.substring(0, 1),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w700,
-                      fontSize: 40,
+                      fontSize: (40 * scale).clamp(32.0, 48.0),
                       color: AppColors.skyBlue_200,
                     ),
                   ),
@@ -211,11 +212,15 @@ class _AttachedProductCard extends StatelessWidget {
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: (12 * scale).clamp(9.0, 15.0),
+            vertical: (10 * scale).clamp(8.0, 12.0),
+          ),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(22)),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -228,10 +233,10 @@ class _AttachedProductCard extends StatelessWidget {
             children: [
               Text(
                 item.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: (15 * scale).clamp(12.0, 18.0),
                   color: AppColors.textPrimary,
                 ),
                 maxLines: 1,
@@ -239,10 +244,10 @@ class _AttachedProductCard extends StatelessWidget {
               ),
               Text(
                 '${formatPrice(item.price)}원',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: (14 * scale).clamp(11.0, 17.0),
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -271,15 +276,16 @@ class _BottomButtonSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final hasItem = selectedItem != null;
 
     return Container(
       color: AppColors.white,
       padding: EdgeInsets.fromLTRB(
-        24,
-        8,
-        24,
-        MediaQuery.of(context).padding.bottom + 16,
+        (24 * scale).clamp(18.0, 30.0),
+        (8 * scale).clamp(6.0, 10.0),
+        (24 * scale).clamp(18.0, 30.0),
+        MediaQuery.of(context).padding.bottom + (16 * scale).clamp(12.0, 20.0),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -289,7 +295,7 @@ class _BottomButtonSection extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 15),
+              padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
               decoration: BoxDecoration(
                 color: hasItem ? AppColors.yellow_200 : AppColors.yellow,
                 borderRadius: BorderRadius.circular(40),
@@ -304,26 +310,26 @@ class _BottomButtonSection extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w500,
-                        fontSize: 20,
+                        fontSize: (20 * scale).clamp(16.0, 24.0),
                         color: AppColors.textDark,
                       ),
                     )
-                  : const Text(
+                  : Text(
                       '위시 목록에서 가져오기',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w500,
-                        fontSize: 20,
+                        fontSize: (20 * scale).clamp(16.0, 24.0),
                         color: AppColors.textDark,
                       ),
                     ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
           AnimatedOpacity(
             opacity: canSubmit ? 1.0 : 0.5,
             duration: const Duration(milliseconds: 200),
@@ -331,18 +337,18 @@ class _BottomButtonSection extends StatelessWidget {
               onTap: canSubmit ? onSubmit : null,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
                 decoration: BoxDecoration(
                   color: AppColors.skyBlue_100,
                   borderRadius: BorderRadius.circular(40),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
+                child: Text(
                   '완료',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w500,
-                    fontSize: 20,
+                    fontSize: (20 * scale).clamp(16.0, 24.0),
                     color: AppColors.textDark,
                   ),
                 ),

@@ -1,5 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/vote_type.dart';
 import 'package:flutter/material.dart';
 
 class VoteButtons extends StatelessWidget {
@@ -12,7 +12,7 @@ class VoteButtons extends StatelessWidget {
     this.isDisabled = false,
   });
 
-  final VoteType myVote;
+  final VoteType? myVote;
   final int goCount;
   final int stopCount;
   final ValueChanged<VoteType> onVote;
@@ -21,14 +21,17 @@ class VoteButtons extends StatelessWidget {
   int get _total => goCount + stopCount;
 
   String _percent(int count) {
-    if (_total == 0) return '';
+    if (_total == 0) {
+      // 본인 글(투표 비활성)은 0표여도 항상 카운트 노출
+      return isDisabled ? '$count명' : '';
+    }
     return '${(count / _total * 100).round()}%($count명)';
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasVoted = myVote != VoteType.none;
-
+    final scale = MediaQuery.of(context).size.width / 412.0;
+    final hasVoted = myVote != null;
     final showPercent = isDisabled || hasVoted;
 
     final buttons = Row(
@@ -43,7 +46,7 @@ class VoteButtons extends StatelessWidget {
             onTap: () => onVote(VoteType.go),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: (12 * scale).clamp(9.0, 15.0)),
         Expanded(
           child: _VoteButton(
             label: 'STOP',
@@ -83,13 +86,17 @@ class _VoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 412.0;
     final bgColor = isDimmed ? AppColors.background : activeColor;
     final border = isDimmed ? null : Border.all(color: activeColor, width: 2);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: (10 * scale).clamp(8.0, 12.0),
+          horizontal: (8 * scale).clamp(6.0, 10.0),
+        ),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(100),
@@ -100,22 +107,22 @@ class _VoteButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                fontSize: 18,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
                 color: AppColors.textDark,
               ),
             ),
             if (percentText.isNotEmpty) ...[
-              const SizedBox(width: 12),
+              SizedBox(width: (12 * scale).clamp(9.0, 15.0)),
               Flexible(
                 child: Text(
                   percentText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w400,
-                    fontSize: 12,
+                    fontSize: (12 * scale).clamp(9.0, 15.0),
                     color: AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
