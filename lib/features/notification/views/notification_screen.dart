@@ -19,7 +19,10 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     try {
       // 1. 서버 및 로컬 읽음 처리 (전체 목록 기준이므로 unreadOnly: false)
       await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
-      await ref.read(notificationLiveProvider.notifier).markAsRead(notification.id);
+      await ref.read(notificationLiveProvider.notifier).markAsRead(
+        notification.id,
+        syncRemote: false,
+      );
     } catch (e) {
       debugPrint('읽음 처리 실패: $e');
     }

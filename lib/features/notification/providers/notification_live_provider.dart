@@ -115,11 +115,13 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     }
   }
 
-  Future<void> markAsRead(String id) async {
-    try {
-      await _service.markAsRead(id);
-    } catch (error, stackTrace) {
-      debugPrint('notification markAsRead failed: $error\n$stackTrace');
+  Future<void> markAsRead(String id, {bool syncRemote = true}) async {
+    if (syncRemote) {
+      try {
+        await _service.markAsRead(id);
+      } catch (error, stackTrace) {
+        debugPrint('notification markAsRead failed: $error\n$stackTrace');
+      }
     }
 
     final updatedItems = [
@@ -146,4 +148,3 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     super.dispose();
   }
 }
-
