@@ -29,7 +29,6 @@ class BalloonDisplayState {
 /// 3. 확률 기반 분기 (70/30%)
 /// 4. 최초 1회 처리 (SharedPreferences 사용)
 class BalloonMessageManager {
-  static const String _keyOnboardingShown = 'balloon_onboarding_shown';
   static const String _keyFirstWishShown = 'balloon_first_wish_shown';
   static const int _displayDurationMs = 3000; // 3초
 
@@ -127,15 +126,7 @@ class BalloonMessageManager {
     return _random.nextDouble() < probability;
   }
 
-  /// 온보딩 완료 후 첫 메시지가 표시되었는지 확인
-  Future<bool> _hasShownOnboarding() async {
-    return _prefs.getBool(_keyOnboardingShown) ?? false;
-  }
 
-  /// 온보딩 완료 후 첫 메시지를 표시했음 표시
-  Future<void> _markOnboardingShown() async {
-    await _prefs.setBool(_keyOnboardingShown, true);
-  }
 
   /// 위시 첫 추가 후 메시지가 표시되었는지 확인
   Future<bool> _hasShownFirstWish() async {
@@ -147,6 +138,8 @@ class BalloonMessageManager {
     await _prefs.setBool(_keyFirstWishShown, true);
   }
 }
+
+
 
 
 
