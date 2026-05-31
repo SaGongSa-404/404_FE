@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 const Color wishlistSheetBarrierColor = Color(0x59000000);
@@ -16,9 +17,10 @@ Future<void> showWishlistModalBottomSheet(
     isDismissible: isDismissible,
     enableDrag: isDismissible,
     builder: (sheetContext) {
+      final scale = responsiveScale(sheetContext);
       final bottomPad = MediaQuery.paddingOf(sheetContext).bottom;
       return Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 24, bottomPad + 12),
+        padding: EdgeInsets.fromLTRB(24 * scale, 0, 24 * scale, bottomPad + 12 * scale),
         child: child,
       );
     },
@@ -64,23 +66,33 @@ class _WishlistModalPillButtonState extends State<WishlistModalPillButton> {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(widget.borderRadius);
+    final scale = responsiveScale(context);
+    final radius = BorderRadius.circular(widget.borderRadius * scale);
     final bg = _pressed ? widget.pressedBackground : widget.background;
+    final resolvedPadding = widget.padding.resolve(Directionality.of(context));
+    final padding = EdgeInsets.fromLTRB(
+      resolvedPadding.left * scale,
+      resolvedPadding.top * scale,
+      resolvedPadding.right * scale,
+      resolvedPadding.bottom * scale,
+    );
+    final fontSize = widget.fontSize * scale;
+    final fixedHeight = widget.fixedHeight != null ? widget.fixedHeight! * scale : null;
 
     final content = Padding(
-      padding: widget.padding,
+      padding: padding,
       child: SizedBox(
         width: widget.fullWidth ? double.infinity : null,
-        height: widget.fixedHeight,
+        height: fixedHeight,
         child: Align(
           alignment: widget.alignLeft ? Alignment.centerLeft : Alignment.center,
           child: Transform.translate(
-            offset: const Offset(0, 1.5),
+            offset: Offset(0, 1.5 * scale),
             child: Text(
               widget.label,
               textAlign: widget.alignLeft ? TextAlign.left : TextAlign.center,
               strutStyle: StrutStyle(
-                fontSize: widget.fontSize,
+                fontSize: fontSize,
                 height: 1.0,
                 leading: 0,
                 forceStrutHeight: true,
@@ -92,7 +104,7 @@ class _WishlistModalPillButtonState extends State<WishlistModalPillButton> {
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: widget.fontWeight,
-                fontSize: widget.fontSize,
+                fontSize: fontSize,
                 height: 1.0,
                 color: widget.foreground,
               ),

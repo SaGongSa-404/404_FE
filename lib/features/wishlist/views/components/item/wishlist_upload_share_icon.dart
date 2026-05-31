@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:path_parsing/path_parsing.dart';
 
@@ -38,8 +39,11 @@ class WishlistUploadShareIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final scaledSize = size * scale;
+
     return CustomPaint(
-      size: Size.square(size),
+      size: Size.square(scaledSize),
       painter: _WishlistUploadPainter(_path24),
     );
   }

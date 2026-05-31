@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 /// 화면 하단(바텀 네비 위쪽)에 잠깐 띄우는 캡슐 토스트.
@@ -7,7 +8,7 @@ void showCapsuleToast(
   required Color backgroundColor,
   required String text,
   Duration duration = const Duration(milliseconds: 2000),
-  double bottomOffset = 88, // 필수 파라미터에서 선택 파라미터(기본값 88)로 변경
+  double bottomOffset = 88,
 }) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
@@ -15,11 +16,12 @@ void showCapsuleToast(
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (ctx) {
+      final scale = responsiveScale(ctx);
       final bottomPad = MediaQuery.paddingOf(ctx).bottom;
       return Positioned(
         left: 0,
         right: 0,
-        bottom: bottomPad + bottomOffset,
+        bottom: bottomPad + bottomOffset * scale,
         child: Material(
           color: Colors.transparent,
           child: CapsuleToast(
@@ -60,10 +62,11 @@ class CapsuleToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxW = MediaQuery.sizeOf(context).width - 40;
+    final scale = responsiveScale(context);
+    final maxW = MediaQuery.sizeOf(context).width - 40 * scale;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20 * scale),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxW),
         child: DecoratedBox(
@@ -73,16 +76,16 @@ class CapsuleToast extends StatelessWidget {
             boxShadow: _elevationShadow,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
+            padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 9 * scale),
             child: SizedBox(
               width: double.infinity,
               child: Text(
                 text,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
+                  fontSize: 18 * scale,
                   height: 1.2,
                   color: AppColors.white,
                 ),

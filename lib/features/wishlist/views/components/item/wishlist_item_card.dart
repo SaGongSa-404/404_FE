@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/item/wishlist_upload_share_icon.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_item_action_modal.dart';
@@ -38,10 +39,12 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(_cardBorderRadius),
+        borderRadius: BorderRadius.circular(_cardBorderRadius * scale),
         boxShadow: [
           BoxShadow(
             color: _cardShadowColor,
@@ -52,7 +55,7 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(_cardBorderRadius),
+        borderRadius: BorderRadius.circular(_cardBorderRadius * scale),
         clipBehavior: Clip.antiAlias,
         child: Listener(
           behavior: HitTestBehavior.translucent,
@@ -76,20 +79,29 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                        padding: EdgeInsets.fromLTRB(
+                          16 * scale,
+                          14 * scale,
+                          16 * scale,
+                          14 * scale,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            _thumbnail(),
-                            const SizedBox(width: 20),
-                            Expanded(child: _titleAndPrice()),
+                            _thumbnail(scale),
+                            SizedBox(width: 20 * scale),
+                            Expanded(child: _titleAndPrice(scale)),
                           ],
                         ),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(right: 6, top: 8, bottom: 8),
-                      child: _actionIcons(context),
+                      padding: EdgeInsets.only(
+                        right: 6 * scale,
+                        top: 8 * scale,
+                        bottom: 8 * scale,
+                      ),
+                      child: _actionIcons(context, scale),
                     ),
                   ],
                 ),
@@ -101,41 +113,41 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
     );
   }
 
-  Widget _thumbnail() {
+  Widget _thumbnail(double scale) {
     final url = widget.item.imageUrl?.trim();
     if (url != null && url.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10 * scale),
         child: Image.network(
           url,
-          width: _thumbSize,
-          height: _thumbSize,
+          width: _thumbSize * scale,
+          height: _thumbSize * scale,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _thumbnailPlaceholder(),
+          errorBuilder: (_, __, ___) => _thumbnailPlaceholder(scale),
         ),
       );
     }
-    return _thumbnailPlaceholder();
+    return _thumbnailPlaceholder(scale);
   }
 
-  Widget _thumbnailPlaceholder() {
+  Widget _thumbnailPlaceholder(double scale) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(10 * scale),
       child: Container(
-        width: _thumbSize,
-        height: _thumbSize,
+        width: _thumbSize * scale,
+        height: _thumbSize * scale,
         alignment: Alignment.center,
         color: const Color(0xFFE8E8E8),
-        child: const Icon(
+        child: Icon(
           Icons.photo_camera,
-          size: 45,
+          size: 45 * scale,
           color: AppColors.textSecondary,
         ),
       ),
     );
   }
 
-  Widget _titleAndPrice() {
+  Widget _titleAndPrice(double scale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -144,18 +156,18 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
           widget.item.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 15,
+          style: TextStyle(
+            fontSize: 15 * scale,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
             height: 1.25,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12 * scale),
         Text(
           '${_formatPrice(widget.item.price)}원',
-          style: const TextStyle(
-            fontSize: 13,
+          style: TextStyle(
+            fontSize: 13 * scale,
             fontWeight: FontWeight.w500,
             color: AppColors.textPrimary,
           ),
@@ -164,7 +176,7 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
     );
   }
 
-  Widget _actionIcons(BuildContext context) {
+  Widget _actionIcons(BuildContext context, double scale) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -184,19 +196,27 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
                 highlightColor: Colors.transparent,
                 hoverColor: Colors.transparent,
                 customBorder: const CircleBorder(),
-                child: const SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Icon(Icons.more_vert, size: 22, color: AppColors.brown),
+                child: SizedBox(
+                  width: 40 * scale,
+                  height: 40 * scale,
+                  child: Icon(
+                    Icons.more_vert,
+                    size: 22 * scale,
+                    color: AppColors.brown,
+                  ),
                 ),
               ),
             ),
           )
         else
-          const SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(Icons.more_vert, size: 22, color: AppColors.brown),
+          SizedBox(
+            width: 40 * scale,
+            height: 40 * scale,
+            child: Icon(
+              Icons.more_vert,
+              size: 22 * scale,
+              color: AppColors.brown,
+            ),
           ),
         Tooltip(
           message: '공유',
@@ -209,8 +229,8 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
               hoverColor: Colors.transparent,
               customBorder: const CircleBorder(),
               child: SizedBox(
-                width: 40,
-                height: 40,
+                width: 40 * scale,
+                height: 40 * scale,
                 child: Center(
                   child: WishlistUploadShareIcon(),
                 ),

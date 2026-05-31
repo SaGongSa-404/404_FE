@@ -1,5 +1,4 @@
-// [에시] 앱 전역에서 쓰는 기본 버튼
-
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
@@ -16,15 +15,20 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return FilledButton(
       onPressed: isLoading ? null : onPressed,
       child: isLoading
-          ? const SizedBox(
-              height: 22,
-              width: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+          ? SizedBox(
+              height: 22 * scale,
+              width: 22 * scale,
+              child: CircularProgressIndicator(strokeWidth: 2 * scale),
             )
-          : Text(label),
+          : Text(
+              label,
+              style: TextStyle(fontSize: 16 * scale),
+            ),
     );
   }
 }
