@@ -1,8 +1,12 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_budget_card.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_product_header.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_result_card.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_budget_card.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_checklist.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_insight_cards.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_product_header.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_result_card.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,59 +16,81 @@ class WishlistConsiderScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scale = responsiveScale(context);
+
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppColors.textPrimary,
-            size: 18,
-          ),
-          onPressed: () {
+        toolbarHeight: 56 * scale,
+        leadingWidth: 72 * scale,
+        leading: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
             ref.read(considerViewModelProvider.notifier).reset();
             context.pop();
           },
+          child: Padding(
+            padding: EdgeInsets.only(left: 16 * scale),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 16 * scale,
+                  color: AppColors.brown,
+                ),
+                SizedBox(width: 4 * scale),
+                Text(
+                  '위시',
+                  style: TextStyle(
+                    fontSize: 16 * scale,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.brown,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         title: Text(
-          '살까 말까',
-          style: AppTextStyles.heading.copyWith(
-            fontSize: 18,
+          '너굴과 위시 고민',
+          style: TextStyle(
+            fontSize: 20 * scale,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: AppColors.brown,
           ),
         ),
         centerTitle: true,
       ),
-      body: const SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            ConsiderProductHeader(),
-            Divider(thickness: 1, color: AppColors.grey, indent: 24, endIndent: 24),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConsiderBudgetCard(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(24 * scale, 18 * scale, 24 * scale, 40 * scale),
+            child: Column(
+              children: [
+                const ConsiderProductHeader(),
+                SizedBox(height: 12 * scale),
+                const ConsiderBudgetCard(),
+                SizedBox(height: 12 * scale),
+                const ConsiderInsightCards(),
+                SizedBox(height: 40 * scale),
+                const ConsiderChecklist(),
+                SizedBox(height: 40 * scale),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFC3C3C3),
+                ),
+                SizedBox(height: 26 * scale),
+                const ConsiderResultCard(),
+                SizedBox(height: 24 * scale),
+                _BottomActionButtons(scale: scale),
+                SizedBox(height: 40 * scale),
+              ],
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderChecklistBody(),
-            ),
-            SizedBox(height: 32),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderResultCard(),
-            ),
-            SizedBox(height: 40),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: _BottomActionButtons(),
-            ),
-            SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -72,7 +98,9 @@ class WishlistConsiderScreen extends ConsumerWidget {
 }
 
 class _BottomActionButtons extends ConsumerWidget {
-  const _BottomActionButtons();
+  const _BottomActionButtons({required this.scale});
+
+  final double scale;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,208 +112,77 @@ class _BottomActionButtons extends ConsumerWidget {
           child: GestureDetector(
             onTap: () {
               if (!state.isAllAnswered) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                _showAnswerRequiredToast(context);
                 return;
               }
 
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
-              final resultCase = ref
-                  .read(considerViewModelProvider.notifier)
-                  .recordDecision(PurchaseDecision.refrain);
-              context.push('/wishlist/consider/result', extra: resultCase);
-            },
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border.all(color: AppColors.grey, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text(
-                  '참을게요',
-                  style: AppTextStyles.button.copyWith(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              if (!state.isAllAnswered) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
               final resultCase = ref
                   .read(considerViewModelProvider.notifier)
                   .recordDecision(PurchaseDecision.purchase);
               context.push('/wishlist/consider/result', extra: resultCase);
             },
             child: Container(
-              height: 56,
+              height: 61 * scale,
               decoration: BoxDecoration(
-                color: AppColors.skyBlue_000_clicked,
-                border: Border.all(color: AppColors.skyBlue_300, width: 2),
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.white,
+                border: Border.all(color: AppColors.skyBlue_100, width: 1),
+                borderRadius: BorderRadius.circular(100 * scale),
               ),
               child: Center(
                 child: Text(
                   '살게요',
-                  style: AppTextStyles.button.copyWith(
-                    fontSize: 16,
-                    color: AppColors.skyBlue_300,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class ConsiderChecklistBody extends ConsumerWidget {
-  const ConsiderChecklistBody({super.key});
-
-  static const List<String> _questions = [
-    '1. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '2. \'세일 중\'이라서, 혹은 \'마지막 수량\'이라서 조급함을 느끼고 있지는 않은가요?',
-    '3. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '4. 지금 내 기분이 우울하거나, 피곤하거나, 혹은 너무 들떠있어서 사고 싶은 건 아닌가요?',
-  ];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
-    final viewModel = ref.read(considerViewModelProvider.notifier);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...List.generate(_questions.length, (index) {
-          final question = _questions[index];
-          final currentAnswer = state.answers[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  question,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 20 * scale,
                     fontWeight: FontWeight.w500,
-                    height: 1.4,
-                    color: AppColors.textPrimary,
+                    color: const Color(0xFF333333),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildAnswerButton(viewModel, index, 'Yes', true, currentAnswer == true),
-                    const SizedBox(width: 12),
-                    _buildAnswerButton(viewModel, index, 'No', false, currentAnswer == false),
-                  ],
-                ),
-              ],
-            ),
-          );
-        }),
-        if (state.shouldShowWarning) _buildWarningBanner(),
-      ],
-    );
-  }
-
-  Widget _buildAnswerButton(
-      ConsiderViewModel vm,
-      int index,
-      String label,
-      bool value,
-      bool isSelected,
-      ) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => vm.setAnswer(index, value),
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.grey : AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.textPrimary : AppColors.grey,
-              width: 1,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
               ),
             ),
           ),
         ),
-      ),
+        SizedBox(width: 12 * scale),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              if (!state.isAllAnswered) {
+                _showAnswerRequiredToast(context);
+                return;
+              }
+
+              final resultCase = ref
+                  .read(considerViewModelProvider.notifier)
+                  .recordDecision(PurchaseDecision.refrain);
+              context.push('/wishlist/consider/result', extra: resultCase);
+            },
+            child: Container(
+              height: 61 * scale,
+              decoration: BoxDecoration(
+                color: AppColors.skyBlue_100,
+                borderRadius: BorderRadius.circular(100 * scale),
+              ),
+              child: Center(
+                child: Text(
+                  '참을게요',
+                  style: TextStyle(
+                    fontSize: 20 * scale,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF333333),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildWarningBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEB),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.red_100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🚨', style: TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Text(
-                '잠깐요!',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.red_400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '답변을 보니 지금 이 구매,\n충동적일 수 있어요.',
-            style: AppTextStyles.body.copyWith(
-              fontSize: 13,
-              color: AppColors.textPrimary,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+  void _showAnswerRequiredToast(BuildContext context) {
+    showCapsuleToast(
+      context,
+      backgroundColor: AppColors.red_600,
+      text: '1~4번 질문에 모두 답변해 주세요.',
     );
   }
 }

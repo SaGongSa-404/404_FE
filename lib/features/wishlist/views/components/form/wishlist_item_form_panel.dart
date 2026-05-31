@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -285,12 +286,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
     final mq = MediaQuery.of(context);
     final topInset = mq.padding.top;
     final bottomInset = mq.padding.bottom;
     final screenH = mq.size.height;
-    final spaceBelowStatus = screenH - topInset - _extraTopGap;
-    final maxSheetHeight = math.min(screenH * 0.90, math.max(300.0, spaceBelowStatus));
+    final spaceBelowStatus = screenH - topInset - _extraTopGap * scale;
+    final maxSheetHeight = math.min(screenH * 0.90, math.max(300.0 * scale, spaceBelowStatus));
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -326,23 +328,31 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxHeight: maxSheetHeight),
                   child: DecoratedBox(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.background,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(_sheetTopRadius)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(_sheetTopRadius * scale),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _header(context),
+                        _header(context, scale),
                         Expanded(
                           child: SingleChildScrollView(
-                            padding: EdgeInsets.fromLTRB(24, 56, 24, 88 + bottomInset),
+                            padding: EdgeInsets.fromLTRB(
+                              24 * scale,
+                              56 * scale,
+                              24 * scale,
+                              88 * scale + bottomInset,
+                            ),
                             physics: const BouncingScrollPhysics(),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (_isAdd) ...[
                                   _buildField(
+                                    scale: scale,
                                     label: '링크',
                                     controller: _linkController,
                                     hintText: WishlistItemFormHints.link,
@@ -350,16 +360,18 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showErrorBorder: _linkShowsError,
                                     readOnly: widget.linkReadOnly,
                                   ),
-                                  const SizedBox(height: 24),
+                                  SizedBox(height: 24 * scale),
                                   _buildField(
+                                    scale: scale,
                                     label: '상품명',
                                     controller: _nameController,
                                     hintText: WishlistItemFormHints.productName,
                                     showError: _titleShowsError,
                                     showErrorBorder: _titleShowsError,
                                   ),
-                                  const SizedBox(height: 24),
+                                  SizedBox(height: 24 * scale),
                                   _buildField(
+                                    scale: scale,
                                     label: '가격',
                                     controller: _priceController,
                                     keyboardType: TextInputType.number,
@@ -368,9 +380,10 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showError: _priceShowsError,
                                     showErrorBorder: _priceShowsError,
                                   ),
-                                  const SizedBox(height: 32),
+                                  SizedBox(height: 32 * scale),
                                 ] else ...[
                                   _buildField(
+                                    scale: scale,
                                     label: '링크',
                                     controller: _linkController,
                                     hintText: '',
@@ -378,8 +391,9 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showErrorBorder: false,
                                     readOnly: true,
                                   ),
-                                  const SizedBox(height: 24),
+                                  SizedBox(height: 24 * scale),
                                   _buildField(
+                                    scale: scale,
                                     label: '상품명',
                                     controller: _nameController,
                                     hintText: '',
@@ -387,8 +401,9 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showErrorBorder: false,
                                     readOnly: true,
                                   ),
-                                  const SizedBox(height: 24),
+                                  SizedBox(height: 24 * scale),
                                   _buildField(
+                                    scale: scale,
                                     label: '가격',
                                     controller: _priceController,
                                     keyboardType: TextInputType.number,
@@ -398,13 +413,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                                     showErrorBorder: false,
                                     readOnly: true,
                                   ),
-                                  const SizedBox(height: 32),
+                                  SizedBox(height: 32 * scale),
                                 ],
-                                _categoryLabelRow(),
-                                const SizedBox(height: 12),
-                                _categoryGridThreePerRow(),
-                                SizedBox(height: _beforeSaveButtonGap),
-                                _footerSaveButton(),
+                                _categoryLabelRow(scale),
+                                SizedBox(height: 12 * scale),
+                                _categoryGridThreePerRow(scale),
+                                SizedBox(height: _beforeSaveButtonGap * scale),
+                                _footerSaveButton(scale),
                               ],
                             ),
                           ),
@@ -428,36 +443,36 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _header(BuildContext context, double scale) {
     final title = _isAdd ? '위시 추가' : '카테고리 수정';
     final trailing = widget.onDelete != null
         ? TextButton(
             onPressed: widget.isSubmitting ? null : _delete,
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFFD46868),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
             ),
-            child: const Text(
+            child: Text(
               '삭제하기',
               style: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 16,
+                fontSize: 16 * scale,
                 fontWeight: FontWeight.w600,
               ),
             ),
           )
-        : const SizedBox(width: 72);
+        : SizedBox(width: 72 * scale);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
+      padding: EdgeInsets.fromLTRB(4 * scale, 12 * scale, 4 * scale, 4 * scale),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
             onPressed: _dismiss,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            icon: const Icon(Icons.close, size: 26, color: AppColors.textPrimary),
+            constraints: BoxConstraints(minWidth: 44 * scale, minHeight: 44 * scale),
+            icon: Icon(Icons.close, size: 26 * scale, color: AppColors.textPrimary),
           ),
           Expanded(
             child: Text(
@@ -465,16 +480,16 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 18,
+                fontSize: 18 * scale,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
           ),
           ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 72),
+            constraints: BoxConstraints(minWidth: 72 * scale),
             child: Align(
               alignment: Alignment.centerRight,
               child: trailing,
@@ -485,8 +500,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
-  static const StrutStyle _labelStrut = StrutStyle(
-    fontSize: 16,
+  StrutStyle _labelStrut(double scale) => StrutStyle(
+    fontSize: 16 * scale,
     height: 1.25,
     leading: 0,
     forceStrutHeight: true,
@@ -495,53 +510,53 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     applyHeightToFirstAscent: false,
     applyHeightToLastDescent: false,
   );
-  static const double _labelLineHeight = 16 * 1.25;
+  double _labelLineHeight(double scale) => 16 * scale * 1.25;
 
-  Widget _categoryLabelRow() {
+  Widget _categoryLabelRow(double scale) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           '카테고리',
-          strutStyle: _labelStrut,
+          strutStyle: _labelStrut(scale),
           textHeightBehavior: _labelTextHeightBehavior,
           style: TextStyle(
             fontFamily: 'Pretendard',
-            fontSize: 16,
+            fontSize: 16 * scale,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
             height: 1.25,
           ),
         ),
-        _errorIconTrailing(visible: _categoryShowsError),
+        _errorIconTrailing(visible: _categoryShowsError, scale: scale),
       ],
     );
   }
 
-  Widget _errorIconTrailing({required bool visible}) {
+  Widget _errorIconTrailing({required bool visible, required double scale}) {
     if (!visible) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(left: 6),
+      padding: EdgeInsets.only(left: 6 * scale),
       child: AnimatedBuilder(
         animation: _shakeController,
         builder: (context, child) {
           return Transform.translate(
-            offset: Offset(_shakeDx.value, 0),
+            offset: Offset(_shakeDx.value * scale, 0),
             child: child,
           );
         },
         child: SizedBox(
-          height: _labelLineHeight,
-          width: 20,
-          child: const Center(
-            child: Icon(Icons.error_outline, size: 20, color: AppColors.red_400),
+          height: _labelLineHeight(scale),
+          width: 20 * scale,
+          child: Center(
+            child: Icon(Icons.error_outline, size: 20 * scale, color: AppColors.red_400),
           ),
         ),
       ),
     );
   }
 
-  Widget _footerSaveButton() {
+  Widget _footerSaveButton(double scale) {
     final String label;
     if (widget.isSubmitting) {
       label = _isAdd ? '담는 중...' : '수정 중...';
@@ -553,12 +568,12 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       background: AppColors.skyBlue_100,
       pressedBackground: AppColors.skyBlue_200,
       onPressed: (widget.isSubmitting || widget.isImporting) ? null : _save,
-      fixedHeight: 54,
+      fixedHeight: 54 * scale,
       padding: EdgeInsets.zero,
     );
   }
 
-  Widget _categoryGridThreePerRow() {
+  Widget _categoryGridThreePerRow(double scale) {
     final rows = <Widget>[];
     for (var i = 0; i < _categories.length; i += 3) {
       final end = (i + 3 > _categories.length) ? _categories.length : i + 3;
@@ -566,7 +581,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       final isLastRow = end >= _categories.length;
       rows.add(
         Padding(
-          padding: EdgeInsets.only(bottom: isLastRow ? 0 : _categoryRowGap),
+          padding: EdgeInsets.only(bottom: isLastRow ? 0 : _categoryRowGap * scale),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -574,12 +589,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(
-                      left: j == 0 ? 0 : _categoryChipGap / 2,
-                      right: j == 2 ? 0 : _categoryChipGap / 2,
+                      left: j == 0 ? 0 : _categoryChipGap * scale / 2,
+                      right: j == 2 ? 0 : _categoryChipGap * scale / 2,
                     ),
                     child: j < chunk.length
                         ? _categoryChipFilterStyle(
                             chunk[j],
+                            scale: scale,
                             showErrorBorder: _categoryShowsError,
                           )
                         : const SizedBox.shrink(),
@@ -598,6 +614,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
   Widget _categoryChipFilterStyle(
     String category, {
+    required double scale,
     required bool showErrorBorder,
   }) {
     final isSelected = _selectedCategory == category;
@@ -609,19 +626,19 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       child: Container(
         width: double.infinity,
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 25 * scale, vertical: 8 * scale),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFE8F3F9) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: borderColor, width: 1),
+          borderRadius: BorderRadius.circular(20 * scale),
+          border: Border.all(color: borderColor, width: 1 * scale),
         ),
         child: Text(
           category,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          strutStyle: const StrutStyle(
-            fontSize: 16,
+          strutStyle: StrutStyle(
+            fontSize: 16 * scale,
             height: 1.2,
             leadingDistribution: TextLeadingDistribution.even,
             forceStrutHeight: true,
@@ -630,8 +647,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             applyHeightToFirstAscent: false,
             applyHeightToLastDescent: false,
           ),
-          style: const TextStyle(
-            fontSize: 16,
+          style: TextStyle(
+            fontSize: 16 * scale,
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w400,
           ),
@@ -641,6 +658,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   }
 
   Widget _buildField({
+    required double scale,
     required String label,
     required TextEditingController controller,
     required String hintText,
@@ -658,33 +676,33 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           children: [
             Text(
               label,
-              strutStyle: _labelStrut,
+              strutStyle: _labelStrut(scale),
               textHeightBehavior: _labelTextHeightBehavior,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 16,
+                fontSize: 16 * scale,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
                 height: 1.25,
               ),
             ),
-            _errorIconTrailing(visible: showError),
+            _errorIconTrailing(visible: showError, scale: scale),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10 * scale),
         Container(
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(_fieldPillRadius),
+            borderRadius: BorderRadius.circular(_fieldPillRadius * scale),
             border: showErrorBorder
-                ? Border.all(color: _fieldErrorBorder, width: 1)
+                ? Border.all(color: _fieldErrorBorder, width: 1 * scale)
                 : null,
             boxShadow: showErrorBorder
                 ? null
-                : const [
+                : [
                     BoxShadow(
                       color: _wishlistCardShadowColor,
-                      blurRadius: _wishlistCardShadowBlur,
+                      blurRadius: _wishlistCardShadowBlur * scale,
                       spreadRadius: 0,
                       offset: Offset.zero,
                     ),
@@ -700,9 +718,9 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                     _PriceTextInputFormatter(),
                   ]
                 : null,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Pretendard',
-              fontSize: 16,
+              fontSize: 16 * scale,
               color: AppColors.textPrimary,
             ),
             decoration: InputDecoration(
@@ -710,30 +728,30 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               filled: true,
               fillColor: AppColors.white,
               hintText: hintText.isEmpty ? null : hintText,
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 16,
+                fontSize: 16 * scale,
                 fontWeight: FontWeight.w400,
                 color: AppColors.textSecondary,
               ),
               suffixText: suffix,
-              suffixStyle: const TextStyle(
+              suffixStyle: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 16,
+                fontSize: 16 * scale,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 18 * scale, vertical: 16 * scale),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderRadius: BorderRadius.circular(_fieldPillRadius * scale),
                 borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderRadius: BorderRadius.circular(_fieldPillRadius * scale),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(_fieldPillRadius),
+                borderRadius: BorderRadius.circular(_fieldPillRadius * scale),
                 borderSide: BorderSide.none,
               ),
             ),

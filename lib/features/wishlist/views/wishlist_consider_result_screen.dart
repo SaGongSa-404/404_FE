@@ -14,28 +14,28 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
 
   final ConsiderCaseType caseType;
 
-  Widget _caseImage() {
+  Widget _caseImage(double scale) {
     switch (caseType) {
       case ConsiderCaseType.caseA:
       case ConsiderCaseType.caseC:
         return Image.asset(
           'assets/images/wishlist_consider_case_A.png',
-          width: 140,
-          height: 127,
+          width: 140 * scale,
+          height: 127 * scale,
           fit: BoxFit.contain,
         );
       case ConsiderCaseType.caseB:
         return Image.asset(
           'assets/images/wishlist_consider_case_B.png',
-          width: 140,
-          height: 127,
+          width: 140 * scale,
+          height: 127 * scale,
           fit: BoxFit.contain,
         );
       case ConsiderCaseType.caseD:
         return Image.asset(
           'assets/images/wishlist_consider_case_D.png',
-          width: 140,
-          height: 127,
+          width: 140 * scale,
+          height: 127 * scale,
           fit: BoxFit.contain,
         );
     }
@@ -72,37 +72,55 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
     final scale = responsiveScale(context);
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         toolbarHeight: 56 * scale,
         leadingWidth: 72 * scale,
-        leading: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            ref.read(considerViewModelProvider.notifier).reset();
-            context.go('/wishlist');
-          },
-          child: Padding(
-            padding: EdgeInsets.only(left: 16 * scale),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 16 * scale,
-                  color: AppColors.textPrimary,
+        leading: SizedBox(
+          height: 56 * scale,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              ref.read(considerViewModelProvider.notifier).reset();
+              context.go('/wishlist');
+            },
+            child: Padding(
+              padding: EdgeInsets.only(left: 16 * scale),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 16 * scale,
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 16 * scale,
+                          color: AppColors.brown,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 4 * scale),
+                    Text(
+                      '위시',
+                      style: TextStyle(
+                        fontSize: 16 * scale,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.brown,
+                        height: 1.0,
+                      ),
+                      textHeightBehavior: const TextHeightBehavior(
+                        applyHeightToFirstAscent: false,
+                        applyHeightToLastDescent: false,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 4 * scale),
-                Text(
-                  '위시',
-                  style: TextStyle(
-                    fontSize: 18 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -111,7 +129,7 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 20 * scale,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: AppColors.brown,
           ),
         ),
         centerTitle: true,
@@ -127,7 +145,7 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       SizedBox(height: 84 * scale),
-                      _caseImage(),
+                      _caseImage(scale),
                       SizedBox(height: 18 * scale),
                       Text(
                         _title(),

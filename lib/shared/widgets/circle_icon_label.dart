@@ -1,3 +1,4 @@
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 class CircleIconLabel extends StatefulWidget {
@@ -38,6 +39,11 @@ class _CircleIconLabelFabState extends State<CircleIconLabel> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final diameter = widget.diameter * scale;
+    final iconSize = widget.iconSize * scale;
+    final labelFontSize = widget.labelFontSize * scale;
+
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => setState(() => _pressed = true),
@@ -54,20 +60,20 @@ class _CircleIconLabelFabState extends State<CircleIconLabel> {
           hoverColor: Colors.transparent,
           onTap: widget.onTap,
           child: SizedBox(
-            width: widget.diameter,
-            height: widget.diameter,
+            width: diameter,
+            height: diameter,
             child: Center(
               child: Transform.translate(
-                offset: const Offset(0, _contentNudgeY),
+                offset: Offset(0, _contentNudgeY * scale),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 8 * scale),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         widget.icon,
-                        size: widget.iconSize,
+                        size: iconSize,
                         color: widget.iconColor,
                         weight: 650,
                         grade: 25,
@@ -78,14 +84,14 @@ class _CircleIconLabelFabState extends State<CircleIconLabel> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         strutStyle: StrutStyle(
-                          fontSize: widget.labelFontSize,
+                          fontSize: labelFontSize,
                           height: 1.15,
                           fontWeight: FontWeight.w600,
                           leading: 0,
                           forceStrutHeight: true,
                         ),
                         style: TextStyle(
-                          fontSize: widget.labelFontSize,
+                          fontSize: labelFontSize,
                           fontWeight: FontWeight.w600,
                           height: 1.15,
                           color: widget.labelColor,

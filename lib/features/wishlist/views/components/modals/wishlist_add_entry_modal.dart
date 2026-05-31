@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -51,10 +52,12 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(_radius * scale),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
@@ -64,34 +67,40 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 31, 24, 31),
+        padding: EdgeInsets.fromLTRB(
+          24 * scale,
+          31 * scale,
+          24 * scale,
+          31 * scale,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '링크 붙여넣기',
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w600,
-                fontSize: 20,
+                fontSize: 20 * scale,
                 height: 1.2,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 7),
-            const Text(
+            SizedBox(height: 7 * scale),
+            Text(
               '붙여넣으면 자동으로 정보를 불러와요',
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                fontSize: 16,
+                fontSize: 16 * scale,
                 height: 1.35,
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 19),
+            SizedBox(height: 19 * scale),
             _pillButton(
+              scale: scale,
               label: 'URL을 붙여넣으세요',
               onTap: widget.onPasteUrl,
               backgroundColor: _urlButtonBg,
@@ -101,11 +110,12 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
               textColor: AppColors.textSecondary,
               alignLeft: true,
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28 * scale),
             Align(
               alignment: Alignment.center,
               child: IntrinsicWidth(
                 child: _pillButton(
+                  scale: scale,
                   label: '직접 입력하기',
                   onTap: widget.onManualInput,
                   backgroundColor: AppColors.white,
@@ -114,23 +124,31 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
                   borderWidth: 1.6,
                   textColor: AppColors.textPrimary,
                   useFullWidth: false,
-                  contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                  contentPadding: EdgeInsets.fromLTRB(
+                    20 * scale,
+                    12 * scale,
+                    20 * scale,
+                    12 * scale,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12 * scale),
             Center(
               child: GestureDetector(
                 onTap: widget.onLearnHow,
                 behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: 4 * scale,
+                    horizontal: 8 * scale,
+                  ),
                   child: Text(
                     '담는 방법 보러가기',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 16 * scale,
                       height: 1.0,
                       color: AppColors.skyBlue_300,
                       decoration: TextDecoration.underline,
@@ -147,6 +165,7 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
   }
 
   Widget _pillButton({
+    required double scale,
     required String label,
     required VoidCallback onTap,
     required Color backgroundColor,
@@ -159,6 +178,7 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
     EdgeInsetsGeometry? contentPadding,
   }) {
     return _AddEntryPillButton(
+      scale: scale,
       label: label,
       onTap: onTap,
       backgroundColor: backgroundColor,
@@ -168,13 +188,15 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
       textColor: textColor,
       alignLeft: alignLeft,
       useFullWidth: useFullWidth,
-      contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      contentPadding: contentPadding ??
+          EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 16 * scale),
     );
   }
 }
 
 class _AddEntryPillButton extends StatefulWidget {
   const _AddEntryPillButton({
+    required this.scale,
     required this.label,
     required this.onTap,
     required this.backgroundColor,
@@ -187,6 +209,7 @@ class _AddEntryPillButton extends StatefulWidget {
     required this.contentPadding,
   });
 
+  final double scale;
   final String label;
   final VoidCallback onTap;
   final Color backgroundColor;
@@ -208,12 +231,13 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
   @override
   Widget build(BuildContext context) {
     final bg = _pressed ? widget.pressedBackgroundColor : widget.backgroundColor;
+    final scale = widget.scale;
 
     final button = Material(
       color: bg,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(999 * scale),
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999 * scale),
         onTap: widget.onTap,
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) => setState(() => _pressed = false),
@@ -223,18 +247,21 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
         child: Ink(
           width: widget.useFullWidth ? double.infinity : null,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: widget.borderColor, width: widget.borderWidth),
+            borderRadius: BorderRadius.circular(999 * scale),
+            border: Border.all(
+              color: widget.borderColor,
+              width: widget.borderWidth * scale,
+            ),
           ),
           padding: widget.contentPadding,
           child: Align(
             alignment: widget.alignLeft ? Alignment.centerLeft : Alignment.center,
             child: Transform.translate(
-              offset: const Offset(0, 1.5),
+              offset: Offset(0, 1.5 * scale),
               child: Text(
                 widget.label,
-                strutStyle: const StrutStyle(
-                  fontSize: 18,
+                strutStyle: StrutStyle(
+                  fontSize: 18 * scale,
                   height: 1.0,
                   leading: 0,
                   forceStrutHeight: true,
@@ -246,7 +273,7 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18,
+                  fontSize: 18 * scale,
                   height: 1.0,
                   color: widget.textColor,
                 ),

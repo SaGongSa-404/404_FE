@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 class ReflectCompleteButton extends StatefulWidget {
@@ -24,6 +25,7 @@ class _ReflectCompleteButtonState extends State<ReflectCompleteButton> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
     final radius = BorderRadius.circular(999);
     final bg = !widget.enabled
         ? ReflectCompleteButton._bgDisabled
@@ -48,13 +50,13 @@ class _ReflectCompleteButtonState extends State<ReflectCompleteButton> {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 15),
+            padding: EdgeInsets.symmetric(vertical: 15 * scale),
             child: Center(
               child: Text(
                 '완료하기',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontSize: 18,
+                  fontSize: 18 * scale,
                   fontWeight: FontWeight.w600,
                   color: widget.enabled
                       ? AppColors.textPrimary
