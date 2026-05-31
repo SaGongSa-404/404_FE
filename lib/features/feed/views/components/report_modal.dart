@@ -1,13 +1,13 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-Future<bool> showReportModal(BuildContext context) async {
-  final result = await showDialog<bool>(
+/// 신고 사유를 입력받아 반환합니다. 취소하거나 닫으면 null을 반환합니다.
+Future<String?> showReportModal(BuildContext context) async {
+  return showDialog<String>(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (_) => const _ReportDialog(),
   );
-  return result == true;
 }
 
 class _ReportDialog extends StatefulWidget {
@@ -161,7 +161,7 @@ class _ReportDialogState extends State<_ReportDialog> {
                     onTapDown: (_) => setState(() => _cancelPressed = true),
                     onTapUp: (_) {
                       setState(() => _cancelPressed = false);
-                      Navigator.of(context).pop(false);
+                      Navigator.of(context).pop();
                     },
                     onTapCancel: () => setState(() => _cancelPressed = false),
                     child: AnimatedContainer(
@@ -190,7 +190,7 @@ class _ReportDialogState extends State<_ReportDialog> {
                     onTapDown: _hasText ? (_) => setState(() => _submitPressed = true) : null,
                     onTapUp: _hasText ? (_) {
                       setState(() => _submitPressed = false);
-                      Navigator.of(context).pop(true);
+                      Navigator.of(context).pop(_controller.text.trim());
                     } : null,
                     onTapCancel: () => setState(() => _submitPressed = false),
                     child: AnimatedContainer(

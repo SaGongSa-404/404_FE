@@ -34,23 +34,39 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
     });
   }
 
-  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorNickname) async {
+  Future<void> _handleCommentOption(
+    String commentId,
+    bool isMyComment,
+    String authorUserId,
+  ) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
       _showCommentToast('삭제되었습니다');
     } else if (result == 'report') {
-      final reported = await showReportModal(context);
+      final reason = await showReportModal(context);
+      if (!mounted || reason == null) return;
+      final ok = await ref
+          .read(feedProvider.notifier)
+          .reportComment(widget.postId, commentId, reason);
       if (!mounted) return;
-      if (reported) _showCommentToast('신고가 완료되었습니다');
+      if (ok) _showCommentToast('신고가 완료되었습니다');
     } else if (result == 'block') {
       final blocked = await showBlockModal(context);
-      if (!mounted) return;
-      if (blocked) {
-        ref.read(feedProvider.notifier).blockUser(authorNickname);
-        _showCommentToast('차단되었습니다');
+      if (!mounted || !blocked) return;
+      final ok = await ref
+          .read(feedProvider.notifier)
+          .blockUser(authorUserId: authorUserId);
+      if (!mounted || !ok) return;
+      // 현재 보고 있는 글의 작성자를 차단했다면 글이 사라지므로 피드로 돌아갑니다.
+      final postGone =
+          !ref.read(feedProvider).posts.any((p) => p.id == widget.postId);
+      if (postGone) {
+        context.pop();
+        return;
       }
+      _showCommentToast('차단되었습니다');
     }
   }
 
@@ -392,7 +408,7 @@ class _CommentList extends StatelessWidget {
   });
 
   final List<FeedComment> comments;
-  final void Function(String commentId, bool isMyComment, String authorNickname) onOption;
+  final void Function(String commentId, bool isMyComment, String authorUserId) onOption;
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +421,7 @@ class _CommentList extends StatelessWidget {
         for (int i = 0; i < comments.length; i++) ...[
           _DetailCommentItem(
             comment: comments[i],
-            onOption: () => onOption(comments[i].id, comments[i].mine, comments[i].authorNickname),
+            onOption: () => onOption(comments[i].id, comments[i].mine, comments[i].authorUserId),
           ),
           if (i < comments.length - 1) SizedBox(height: (20 * scale).clamp(15.0, 25.0)),
         ],

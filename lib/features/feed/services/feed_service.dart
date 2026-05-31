@@ -11,6 +11,7 @@ import 'package:fe_app/features/feed/models/create_comment_request.dart';
 import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/feed/models/report_request.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/models/vote_request.dart';
 import 'package:fe_app/features/feed/models/vote_response.dart';
@@ -131,5 +132,31 @@ class FeedService {
     await _dio.delete<void>(
       ApiEndpoints.socialPostComment(postId, commentId),
     );
+  }
+
+  Future<void> reportPost(String postId, String reason) async {
+    await _dio.post<void>(
+      ApiEndpoints.socialPostReports(postId),
+      data: ReportRequest(reason: reason).toJson(),
+    );
+  }
+
+  Future<void> reportComment(
+    String postId,
+    String commentId,
+    String reason,
+  ) async {
+    await _dio.post<void>(
+      ApiEndpoints.socialPostCommentReports(postId, commentId),
+      data: ReportRequest(reason: reason).toJson(),
+    );
+  }
+
+  Future<void> blockUser(String targetUserId) async {
+    await _dio.post<void>(ApiEndpoints.userBlock(targetUserId));
+  }
+
+  Future<void> unblockUser(String targetUserId) async {
+    await _dio.delete<void>(ApiEndpoints.userBlock(targetUserId));
   }
 }
