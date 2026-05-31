@@ -6,6 +6,7 @@ import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/json_response.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/profile/models/notification_settings.dart';
 import 'package:fe_app/shared/models/pagination.dart';
 
 part 'profile_service.g.dart';
@@ -38,5 +39,24 @@ class ProfileService {
       'posts',
       FeedPost.fromJson,
     );
+  }
+
+  /// GET /api/v1/users/me/notification-settings — 알림 수신 설정 조회.
+  Future<NotificationSettings> getNotificationSettings() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      ApiEndpoints.usersMeNotificationSettings,
+    );
+    return NotificationSettings.fromJson(requireJsonMap(res.data));
+  }
+
+  /// PATCH /api/v1/users/me/notification-settings — 알림 수신 설정 수정.
+  Future<NotificationSettings> updateNotificationSettings({
+    required bool notificationEnabled,
+  }) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.usersMeNotificationSettings,
+      data: {'notificationEnabled': notificationEnabled},
+    );
+    return NotificationSettings.fromJson(requireJsonMap(res.data));
   }
 }
