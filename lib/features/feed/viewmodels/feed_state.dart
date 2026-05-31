@@ -56,7 +56,7 @@ class FeedState {
     this.hasMore = true,
     this.activeOptionPostId,
     this.commentsMap = const {},
-    this.blockedAuthorNames = const {},
+    this.blockedUserIds = const {},
   });
 
   final List<FeedPost> posts;
@@ -67,7 +67,7 @@ class FeedState {
   final bool hasMore;
   final String? activeOptionPostId;
   final Map<String, CommentsPage> commentsMap;
-  final Set<String> blockedAuthorNames;
+  final Set<String> blockedUserIds;
 
   FeedState copyWith({
     List<FeedPost>? posts,
@@ -78,7 +78,7 @@ class FeedState {
     bool? hasMore,
     Object? activeOptionPostId = _sentinel,
     Map<String, CommentsPage>? commentsMap,
-    Set<String>? blockedAuthorNames,
+    Set<String>? blockedUserIds,
   }) {
     return FeedState(
       posts: posts ?? this.posts,
@@ -95,7 +95,7 @@ class FeedState {
           ? this.activeOptionPostId
           : activeOptionPostId as String?,
       commentsMap: commentsMap ?? this.commentsMap,
-      blockedAuthorNames: blockedAuthorNames ?? this.blockedAuthorNames,
+      blockedUserIds: blockedUserIds ?? this.blockedUserIds,
     );
   }
 

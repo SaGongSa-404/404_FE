@@ -246,8 +246,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         );
       }
     } else if (result == 'report') {
-      final reported = await showReportModal(context);
-      if (reported && context.mounted) {
+      final reason = await showReportModal(context);
+      if (reason == null || !context.mounted) return;
+      final ok = await vm.reportPost(post.id, reason);
+      if (ok && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           _buildSnackBar(context, '신고가 완료되었습니다',
               AppColors.red_600.withValues(alpha: 0.8)),
@@ -255,8 +257,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       }
     } else if (result == 'block') {
       final blocked = await showBlockModal(context);
-      if (blocked && context.mounted) {
-        vm.blockUser(post.authorNickname);
+      if (!blocked || !context.mounted) return;
+      final ok = await vm.blockUser(authorUserId: post.authorUserId);
+      if (ok && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           _buildSnackBar(context, '차단되었습니다',
               AppColors.red_600.withValues(alpha: 0.8)),
