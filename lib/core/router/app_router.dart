@@ -22,7 +22,7 @@ import 'package:fe_app/features/profile/views/my_posts_screen.dart';
 import 'package:fe_app/features/profile/views/terms_policy_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
-import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
+import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_result_screen.dart';
@@ -101,15 +101,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _bottomTabPage(state, const WishlistScreen()),
         routes: [
           GoRoute(
-            path: 'consider',
-            builder: (context, state) => const WishlistConsiderScreen(),
+            path: 'consider/:itemId',
+            builder: (context, state) {
+              final itemId = state.pathParameters['itemId']!;
+              return WishlistConsiderScreen(itemId: itemId);
+            },
             routes: [
               GoRoute(
                 name: 'wishlist_consider_result',
                 path: 'result',
                 builder: (context, state) {
-                  final caseType = state.extra as ConsiderCaseType;
-                  return WishlistConsiderResultScreen(caseType: caseType);
+                  final itemId = state.pathParameters['itemId']!;
+                  final response = state.extra as DecisionCreateResponse;
+                  return WishlistConsiderResultScreen(
+                    itemId: itemId,
+                    response: response,
+                  );
                 },
               ),
             ],

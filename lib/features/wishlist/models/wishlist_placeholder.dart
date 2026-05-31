@@ -6,6 +6,7 @@ class WishlistPlaceholder {
     required this.category,
     required this.link,
     this.imageUrl,
+    this.status = 'SAVED',
   });
 
   final String id;
@@ -15,6 +16,12 @@ class WishlistPlaceholder {
   final String link;
   final String? imageUrl;
 
+  /// 서버 item status (예: SAVED, GO, STOP). 숙려 화면은 SAVED만 진입 가능.
+  final String status;
+
+  bool get canOpenDeliberation =>
+      status.trim().toUpperCase() == 'SAVED' || status.trim().isEmpty;
+
   WishlistPlaceholder copyWith({
     String? id,
     String? title,
@@ -22,6 +29,7 @@ class WishlistPlaceholder {
     String? category,
     String? link,
     String? imageUrl,
+    String? status,
     bool clearImageUrl = false,
   }) {
     return WishlistPlaceholder(
@@ -31,6 +39,7 @@ class WishlistPlaceholder {
       category: category ?? this.category,
       link: link ?? this.link,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      status: status ?? this.status,
     );
   }
 }
