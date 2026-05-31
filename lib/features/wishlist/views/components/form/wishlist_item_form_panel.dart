@@ -7,7 +7,6 @@ import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
-import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -431,13 +430,6 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               ),
             ),
           ),
-          if (widget.isImporting)
-            Positioned.fill(
-              child: ColoredBox(
-                color: const Color(0x66FFFFFF),
-                child: const LoadingIndicator(),
-              ),
-            ),
         ],
       ),
     );
