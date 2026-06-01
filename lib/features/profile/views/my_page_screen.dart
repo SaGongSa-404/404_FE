@@ -1,7 +1,8 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/providers/notification_settings_provider.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -31,6 +32,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(myProfileProvider.notifier).load(force: true);
       ref.read(notificationSettingsProvider.notifier).load();
     });
   }
@@ -38,8 +40,26 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
+    final myProfile = ref.watch(myProfileProvider);
     final notificationSettings = ref.watch(notificationSettingsProvider);
+
+    ref.listen(authProvider, (prev, next) {
+      if (next.hasValue &&
+          next.value != null &&
+          prev?.valueOrNull == null) {
+        ref.read(myProfileProvider.notifier).load(force: true);
+      }
+    });
+
+    ref.listen<MyProfileState>(myProfileProvider, (prev, next) {
+      if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: next.errorMessage!,
+        );
+      }
+    });
 
     ref.listen<NotificationSettingsState>(notificationSettingsProvider, (prev, next) {
       if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
@@ -87,7 +107,9 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                           ),
                           children: [
                             TextSpan(
-                              text: profile.nickname,
+                              text: myProfile.isLoading && myProfile.nickname.isEmpty
+                                  ? '...'
+                                  : myProfile.nickname,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18 * scale,

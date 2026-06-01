@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
+import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
@@ -46,11 +47,27 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     }
   }
 
+  void updateDisplayName(String name) {
+    final user = state.valueOrNull;
+    if (user == null) return;
+    state = AsyncData(user.copyWith(name: name));
+  }
+
+  Future<void> refreshFromServer() async {
+    try {
+      final user = await ref.read(authServiceProvider).getMe();
+      state = AsyncData(user);
+    } catch (_) {
+      // 표시용 닉네임은 [updateDisplayName] 으로 이미 반영됨
+    }
+  }
+
   Future<void> logout() async {
     try {
       await ref.read(authServiceProvider).logout();
     } finally {
       await ref.read(secureStorageServiceProvider).clearTokens();
+      ref.read(myProfileProvider.notifier).reset();
       state = const AsyncData(null);
     }
   }

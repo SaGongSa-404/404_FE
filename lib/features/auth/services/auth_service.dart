@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/features/auth/models/user.dart';
+import 'package:fe_app/features/profile/utils/profile_json.dart';
 
 part 'auth_service.g.dart';
 
@@ -22,12 +23,18 @@ class AuthService {
     final data = Map<String, dynamic>.from(authRes.data!);
 
     try {
-      final profileRes =
-          await _dio.get<Map<String, dynamic>>(ApiEndpoints.usersMe);
-      data['onboardingStatus'] = profileRes.data?['onboardingStatus'];
+      final profileRes = await _dio.get<dynamic>(ApiEndpoints.usersMe);
+      final profile = parseProfileJsonMap(profileRes.data);
+      data['onboardingStatus'] = profile['onboardingStatus'];
+      final nickname = profile['nickname']?.toString();
+      if (nickname != null && nickname.isNotEmpty) {
+        data['name'] = nickname;
+      }
     } on DioException catch (e) {
       // 404: 신규 유저 — 프로필 미생성 → onboardingStatus null 유지
       if (e.response?.statusCode != 404) rethrow;
+    } catch (_) {
+      // users/me 병합 실패 시 auth/me 결과만 사용
     }
 
     return UserModel.fromJson(data);
