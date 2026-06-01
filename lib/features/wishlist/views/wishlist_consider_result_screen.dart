@@ -1,6 +1,7 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
+import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +10,14 @@ import 'package:go_router/go_router.dart';
 class WishlistConsiderResultScreen extends ConsumerWidget {
   const WishlistConsiderResultScreen({
     super.key,
-    required this.caseType,
+    required this.itemId,
+    required this.response,
   });
 
-  final ConsiderCaseType caseType;
+  final String itemId;
+  final DecisionCreateResponse response;
+
+  ConsiderCaseType get caseType => considerCaseTypeFromDecision(response);
 
   Widget _caseImage(double scale) {
     switch (caseType) {
@@ -83,7 +88,7 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              ref.read(considerViewModelProvider.notifier).reset();
+              ref.invalidate(considerViewModelProvider(itemId));
               context.go('/wishlist');
             },
             child: Padding(
@@ -178,7 +183,9 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    '7일 후 만족도를 물어볼게요',
+                    response.resultMessage.isNotEmpty
+                        ? response.resultMessage
+                        : '7일 후 만족도를 물어볼게요',
                     style: TextStyle(
                       fontSize: 16 * scale,
                       fontWeight: FontWeight.w400,
@@ -195,7 +202,7 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                         // Home 화면에서 딜레이 없이 재생하기 위해 결과를 바탕으로 비디오를 미리 로드합니다.
                         await special.preloadCase(caseType);
                         special.markCase(caseType);
-                        ref.read(considerViewModelProvider.notifier).reset();
+                        ref.invalidate(considerViewModelProvider(itemId));
                         context.go('/home');
                       },
                       style: ElevatedButton.styleFrom(

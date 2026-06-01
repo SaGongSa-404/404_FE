@@ -5,26 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ConsiderChecklist extends ConsumerWidget {
-  const ConsiderChecklist({super.key});
+  const ConsiderChecklist({
+    super.key,
+    required this.itemId,
+  });
 
-  static const List<String> _questions = [
-    '이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '\'세일 중\'이라서, 혹은 \'마지막 수량\'이라서 조급함을 느끼고 있지는 않은가요?',
-    '이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '지금 내 기분이 우울하거나, 피곤하거나, 혹은 너무 들떠있어서 사고 싶은 건 아닌가요?',
-  ];
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scale = responsiveScale(context);
-    final state = ref.watch(considerViewModelProvider);
-    final viewModel = ref.read(considerViewModelProvider.notifier);
+    final state = ref.watch(considerViewModelProvider(itemId));
+    final viewModel = ref.read(considerViewModelProvider(itemId).notifier);
+    final questions = state.detail?.questions ?? const [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...List.generate(_questions.length, (index) {
-          final question = _questions[index];
+        ...List.generate(questions.length, (index) {
+          final question = questions[index];
           final currentAnswer = state.answers[index];
 
           return Padding(
@@ -47,7 +46,7 @@ class ConsiderChecklist extends ConsumerWidget {
                     SizedBox(width: 4 * scale),
                     Expanded(
                       child: Text(
-                        question,
+                        question.text,
                         style: TextStyle(
                           fontSize: 18 * scale,
                           fontWeight: FontWeight.w500,

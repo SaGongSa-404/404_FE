@@ -14,6 +14,7 @@ extension WishlistItemMapper on WishlistItem {
       category: WishlistCategoryUi.toUiLabel(category),
       link: displayLink,
       imageUrl: imageUrl,
+      status: status,
     );
   }
 }

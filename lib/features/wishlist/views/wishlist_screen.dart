@@ -341,7 +341,21 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               final item = filteredItems[index];
                                               return WishlistItemCard(
                                                 item: item,
-                                                onTap: () => context.push('/wishlist/consider'),
+                                                onTap: () {
+                                                  if (!item.canOpenDeliberation) {
+                                                    showCapsuleToast(
+                                                      context,
+                                                      backgroundColor:
+                                                          const Color(0xFFD46868),
+                                                      text:
+                                                          '이미 결정된 상품은 숙려 화면을 다시 열 수 없어요.',
+                                                    );
+                                                    return;
+                                                  }
+                                                  context.push(
+                                                    '/wishlist/consider/${item.id}',
+                                                  );
+                                                },
                                                 onLongPress: () => {},
                                                 onEdit: () => viewModel.openEditPanel(item.id),
                                                 onDelete: () async {

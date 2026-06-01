@@ -5,7 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ConsiderResultCard extends ConsumerWidget {
-  const ConsiderResultCard({super.key});
+  const ConsiderResultCard({
+    super.key,
+    required this.itemId,
+  });
+
+  final String itemId;
 
   static const double _cardBorderRadius = 22;
   static const Color _cardShadowColor = Color(0x22000000);
@@ -13,7 +18,7 @@ class ConsiderResultCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scale = responsiveScale(context);
-    final state = ref.watch(considerViewModelProvider);
+    final state = ref.watch(considerViewModelProvider(itemId));
 
     return Column(
       children: [

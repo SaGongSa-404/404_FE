@@ -1,3 +1,12 @@
+import 'package:dio/dio.dart';
+import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/wishlist/models/decision/decision_create_request.dart';
+import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
+import 'package:fe_app/features/wishlist/models/deliberation/deliberation_detail.dart';
+import 'package:fe_app/features/wishlist/services/decision_service.dart';
+import 'package:fe_app/features/wishlist/services/deliberation_service.dart';
+import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
+import 'package:fe_app/shared/enums/api_enums.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum PurchaseDecision {
@@ -14,28 +23,50 @@ enum ConsiderCaseType {
 }
 
 class ConsiderState {
+  final bool isLoading;
+  final bool isSubmitting;
+  final String? errorMessage;
+  final String? submitErrorMessage;
+  final DeliberationDetail? detail;
+  final DecisionCreateResponse? decisionResponse;
   final Map<int, bool?> answers;
-  final int totalQuestions;
-  final String budgetPercent;
-  final String opportunityCost;
   final PurchaseDecision decision;
   final ConsiderCaseType? caseType;
 
-  ConsiderState({
-    required this.answers,
-    this.totalQuestions = 4,
-    this.budgetPercent = "23%",
-    this.opportunityCost = "라떼 8잔",
+  const ConsiderState({
+    this.isLoading = false,
+    this.isSubmitting = false,
+    this.errorMessage,
+    this.submitErrorMessage,
+    this.detail,
+    this.decisionResponse,
+    this.answers = const {},
     this.decision = PurchaseDecision.notDecided,
     this.caseType,
   });
 
+  int get totalQuestions => detail?.questions.length ?? 0;
+
   int get yesCount => answers.values.where((v) => v == true).length;
 
   bool get isAllAnswered =>
-      answers.length == totalQuestions && !answers.values.contains(null);
+      totalQuestions > 0 &&
+      answers.length == totalQuestions &&
+      !answers.values.contains(null);
 
   bool get shouldShowWarning => yesCount >= 2;
+
+  String get budgetPercent {
+    final rate = detail?.budget.projectedUsageRate;
+    if (rate == null) return '-';
+    return '$rate%';
+  }
+
+  String get opportunityCost {
+    final price = detail?.item.listedPrice;
+    if (price == null || price <= 0) return '-';
+    return '${formatDeliberationPrice(price)}원';
+  }
 
   ConsiderCaseType get computedCaseType {
     final rational = yesCount < 2;
@@ -49,15 +80,32 @@ class ConsiderState {
   }
 
   ConsiderState copyWith({
+    bool? isLoading,
+    bool? isSubmitting,
+    String? errorMessage,
+    String? submitErrorMessage,
+    DeliberationDetail? detail,
+    DecisionCreateResponse? decisionResponse,
     Map<int, bool?>? answers,
     PurchaseDecision? decision,
     ConsiderCaseType? caseType,
+    bool clearErrorMessage = false,
+    bool clearSubmitErrorMessage = false,
+    bool clearDetail = false,
+    bool clearDecisionResponse = false,
   }) {
     return ConsiderState(
+      isLoading: isLoading ?? this.isLoading,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      submitErrorMessage: clearSubmitErrorMessage
+          ? null
+          : (submitErrorMessage ?? this.submitErrorMessage),
+      detail: clearDetail ? null : (detail ?? this.detail),
+      decisionResponse: clearDecisionResponse
+          ? null
+          : (decisionResponse ?? this.decisionResponse),
       answers: answers ?? this.answers,
-      totalQuestions: totalQuestions,
-      budgetPercent: budgetPercent,
-      opportunityCost: opportunityCost,
       decision: decision ?? this.decision,
       caseType: caseType ?? this.caseType,
     );
@@ -65,30 +113,170 @@ class ConsiderState {
 }
 
 class ConsiderViewModel extends StateNotifier<ConsiderState> {
-  ConsiderViewModel() : super(ConsiderState(answers: {}));
+  ConsiderViewModel(this._ref, this._itemId) : super(const ConsiderState(isLoading: true)) {
+    load();
+  }
+
+  final Ref _ref;
+  final String _itemId;
+
+  DeliberationService get _deliberationService =>
+      _ref.read(deliberationServiceProvider);
+
+  DecisionService get _decisionService => _ref.read(decisionServiceProvider);
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, clearErrorMessage: true);
+    try {
+      final detail = await _deliberationService.fetchItemDeliberation(_itemId);
+      final answers = {
+        for (var i = 0; i < detail.questions.length; i++) i: null as bool?,
+      };
+      state = ConsiderState(
+        isLoading: false,
+        detail: detail,
+        answers: answers,
+      );
+    } catch (e) {
+      final api = apiExceptionFrom(e);
+      state = ConsiderState(
+        isLoading: false,
+        errorMessage: _resolveLoadErrorMessage(api),
+      );
+    }
+  }
+
+  String _resolveLoadErrorMessage(ApiException? api) {
+    if (api == null) {
+      return '구매 숙려 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+    return switch (api.statusCode) {
+      403 => '온보딩을 먼저 완료해 주세요.',
+      404 => '위시 상품을 찾을 수 없어요.',
+      409 => '이 상품은 이미 결정되어 숙려 화면을 열 수 없어요.',
+      _ => api.message,
+    };
+  }
+
+  String _resolveSubmitErrorMessage(ApiException? api) {
+    if (api == null) {
+      return '결정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+    return switch (api.statusCode) {
+      403 => '온보딩을 먼저 완료해 주세요.',
+      404 => '위시 상품을 찾을 수 없어요.',
+      409 => '결정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      _ => api.message,
+    };
+  }
+
+  DecisionCreateResponse? _parseDecisionFromConflict(Object error) {
+    if (error is! DioException) return null;
+    if (error.response?.statusCode != 409) return null;
+
+    final data = error.response?.data;
+    if (data is! Map<String, dynamic>) return null;
+    if (data['decisionId'] == null) return null;
+
+    try {
+      return DecisionCreateResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
 
   void setAnswer(int index, bool value) {
     final newAnswers = Map<int, bool?>.from(state.answers);
     newAnswers[index] = value;
-    state = state.copyWith(answers: newAnswers);
+    state = state.copyWith(answers: newAnswers, clearSubmitErrorMessage: true);
   }
 
-  ConsiderCaseType recordDecision(PurchaseDecision decision) {
-    final newStateWithDecision = state.copyWith(decision: decision);
-    final resultType = newStateWithDecision.computedCaseType;
-    state = newStateWithDecision.copyWith(
-      decision: decision,
-      caseType: resultType,
+  Future<DecisionCreateResponse?> submitDecision(PurchaseDecision decision) async {
+    if (state.isSubmitting || !state.isAllAnswered) return null;
+
+    final detail = state.detail;
+    if (detail == null) return null;
+
+    state = state.copyWith(isSubmitting: true, clearSubmitErrorMessage: true);
+
+    try {
+      final request = _buildDecisionRequest(decision, detail);
+      final response = await _decisionService.createDecision(request);
+      final caseType = considerCaseTypeFromDecision(response);
+
+      state = state.copyWith(
+        isSubmitting: false,
+        decision: decision,
+        caseType: caseType,
+        decisionResponse: response,
+      );
+
+      await _ref.read(wishlistViewModelProvider.notifier).refreshItems();
+      return response;
+    } catch (e) {
+      final conflictBody = _parseDecisionFromConflict(e);
+      if (conflictBody != null) {
+        final caseType = considerCaseTypeFromDecision(conflictBody);
+        state = state.copyWith(
+          isSubmitting: false,
+          decision: decision,
+          caseType: caseType,
+          decisionResponse: conflictBody,
+        );
+        await _ref.read(wishlistViewModelProvider.notifier).refreshItems();
+        return conflictBody;
+      }
+
+      final api = apiExceptionFrom(e);
+      state = state.copyWith(
+        isSubmitting: false,
+        submitErrorMessage: _resolveSubmitErrorMessage(api),
+      );
+      return null;
+    }
+  }
+
+  DecisionCreateRequest _buildDecisionRequest(
+    PurchaseDecision decision,
+    DeliberationDetail detail,
+  ) {
+    final isGo = decision == PurchaseDecision.purchase;
+    final listedPrice = detail.item.listedPrice;
+
+    return DecisionCreateRequest(
+      itemId: _itemId,
+      result: isGo
+          ? PurchaseDecisionResult.go.apiValue
+          : PurchaseDecisionResult.stop.apiValue,
+      finalPrice: isGo && listedPrice > 0 ? listedPrice : null,
+      selfCheckAnswers: [
+        for (var i = 0; i < detail.questions.length; i++)
+          DecisionSelfCheckAnswer(
+            questionCode: detail.questions[i].code,
+            answerBoolean: state.answers[i] ?? false,
+          ),
+      ],
     );
-    return resultType;
   }
 
-  void reset() {
-    state = ConsiderState(answers: {});
+  void clearSubmitError() {
+    state = state.copyWith(clearSubmitErrorMessage: true);
   }
 }
 
-final considerViewModelProvider =
-    StateNotifierProvider<ConsiderViewModel, ConsiderState>(
-  (ref) => ConsiderViewModel(),
+ConsiderCaseType considerCaseTypeFromDecision(DecisionCreateResponse response) {
+  final isGo =
+      response.result.toUpperCase() == PurchaseDecisionResult.go.apiValue;
+  final isRational = response.rationalityResult.toUpperCase() ==
+      RationalityResult.rational.apiValue;
+
+  if (isGo) {
+    return isRational ? ConsiderCaseType.caseA : ConsiderCaseType.caseB;
+  }
+  return isRational ? ConsiderCaseType.caseC : ConsiderCaseType.caseD;
+}
+
+final considerViewModelProvider = StateNotifierProvider.autoDispose
+    .family<ConsiderViewModel, ConsiderState, String>(
+  (ref, itemId) => ConsiderViewModel(ref, itemId),
 );
