@@ -109,9 +109,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
     double scale,
   ) {
     if (state.isLoading && state.posts.isEmpty) {
-      return const NugulLoadingScreen(
-        backgroundColor: MyPostsScreen._backgroundColor,
-      );
+      return const NugulLoadingScreen();
     }
     if (state.errorMessage != null && state.posts.isEmpty) {
       return Center(
@@ -156,11 +154,8 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
         itemBuilder: (context, index) {
           if (index >= state.posts.length) {
             return Padding(
-              padding: EdgeInsets.symmetric(vertical: 16 * scale),
-              child: const NugulLoadingScreen(
-                compact: true,
-                backgroundColor: MyPostsScreen._backgroundColor,
-              ),
+              padding: EdgeInsets.symmetric(vertical: 24 * scale),
+              child: const Center(child: CircularProgressIndicator()),
             );
           }
           final post = state.posts[index];
