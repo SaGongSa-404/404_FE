@@ -324,8 +324,13 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     try {
       final request = _buildSaveRequestForAdd(draft);
       await _wishlistService.createItem(request);
+      await _wishlistService.createItem(request);
       if (isFirstWish) {
-        await HomeBalloonService.markPendingFirstWish();
+        try {
+          await HomeBalloonService.markPendingFirstWish();
+        } catch (_) {
+          // 말풍선 pending 표시 실패는 담기 성공에 영향을 주지 않음
+        }
       }
 
       state = state.copyWith(

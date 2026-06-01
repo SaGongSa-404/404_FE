@@ -90,23 +90,32 @@ extension NotificationKindX on NotificationKind {
 
 class NotificationRouteIntent {
   const NotificationRouteIntent({
-	required this.targetPath,
-	this.notificationId,
-	this.rawUri,
+    required this.targetPath,
+    this.notificationId,
+    this.itemId,
+    this.decisionId,
+    this.reminderId,
+    this.rawUri,
   });
 
   final String targetPath;
   final String? notificationId;
+  final String? itemId;
+  final String? decisionId;
+  final String? reminderId;
   final Uri? rawUri;
 
   static NotificationRouteIntent fromUri(Uri uri) {
-	return NotificationRouteIntent(
-	  targetPath: _extractTargetPath(uri),
-	  notificationId: uri.queryParameters['notificationId'] ??
-		  uri.queryParameters['id'] ??
-		  uri.queryParameters['notification_id'],
-	  rawUri: uri,
-	);
+    return NotificationRouteIntent(
+      targetPath: _extractTargetPath(uri),
+      notificationId: uri.queryParameters['notificationId'] ??
+          uri.queryParameters['id'] ??
+          uri.queryParameters['notification_id'],
+      itemId: uri.queryParameters['itemId'],
+      decisionId: uri.queryParameters['decisionId'],
+      reminderId: uri.queryParameters['reminderId'],
+      rawUri: uri,
+    );
   }
 
   static String _extractTargetPath(Uri uri) {
@@ -114,7 +123,12 @@ class NotificationRouteIntent {
 		uri.queryParameters['targetPath'] ??
 		uri.queryParameters['route'];
 	if (explicit != null && explicit.trim().isNotEmpty) {
-	  return explicit.startsWith('/') ? explicit : '/$explicit';
+	  final trimmed = explicit.trim();
+ 	  final explicitUri = Uri.tryParse(trimmed);
+ 	  if (explicitUri != null && explicitUri.hasScheme) {
+ 		return trimmed;
+ 	  }
+ 	  return trimmed.startsWith('/') ? trimmed : '/$trimmed';
 	}
 
 	final uriPath = uri.path.trim();

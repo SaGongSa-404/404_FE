@@ -1,10 +1,15 @@
 import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/models/notification_route_intent.dart';
 import 'package:fe_app/features/notification/providers/notification_deep_link_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_navigation_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
+import 'package:fe_app/features/notification/services/notification_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,12 +31,33 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   Timer? _dismissTimer;
   String? _visibleBannerId;
   String? _handledDeepLinkKey;
+  bool _isForeground = true;
+
+  bool _canPoll(AsyncValue authState) {
+    if (!authState.hasValue || authState.value == null) return false;
+    return authState.value!.onboardingStatus == 'COMPLETED';
+  }
+
+  void _syncPollingState(AsyncValue authState) {
+    final live = ref.read(notificationLiveProvider.notifier);
+    if (!_canPoll(authState)) {
+      live.reset();
+      return;
+    }
+    if (!_isForeground) return;
+    unawaited(live.start());
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(ref.read(notificationLiveProvider.notifier).start());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncPollingState(ref.read(authProvider));
+      _flushPendingRoute();
+    });
   }
 
   @override
@@ -46,12 +72,23 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final live = ref.read(notificationLiveProvider.notifier);
     if (state == AppLifecycleState.resumed) {
-      unawaited(live.resume());
+      _isForeground = true;
+      if (_canPoll(ref.read(authProvider))) {
+        unawaited(live.resume());
+      }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
+      _isForeground = false;
       live.pause();
     }
+  }
+
+  void _flushPendingRoute() {
+    final pending = ref.read(pendingNotificationRouteProvider);
+    if (pending == null || pending.isEmpty) return;
+    ref.read(pendingNotificationRouteProvider.notifier).state = null;
+    _navigateToRoute(pending);
   }
 
   void _scheduleDismiss(NotificationModel? banner) {
@@ -68,17 +105,44 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     _dismissTimer?.cancel();
     await ref.read(notificationLiveProvider.notifier).markAsRead(banner.id);
     ref.read(notificationLiveProvider.notifier).consumeBanner(banner.id);
+    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
     if (!mounted) return;
-    final path = banner.targetPath.trim();
-    if (path.isEmpty || path == '/notifications') {
+    await _navigateFromNotification(banner);
+  }
+
+  Future<void> _navigateFromNotification(NotificationModel notification) async {
+    final route = NotificationRouter.resolveFromNotification(notification);
+    if (route == null) return;
+    await _navigateToRoute(route);
+  }
+
+  Future<void> _navigateToRoute(String route) async {
+    if (NotificationRouter.isExternalUrl(route)) {
+      await _launchExternalUrl(Uri.parse(route));
       return;
     }
-    if (_isExternalUrl(path)) {
-      final uri = Uri.parse(path);
+    if (!NotificationRouter.shouldNavigate(route)) return;
+
+    try {
+      context.push(route);
+    } catch (error, stackTrace) {
+      debugPrint('notification navigation failed: $error\n$stackTrace');
+      ref.read(pendingNotificationRouteProvider.notifier).state = route;
+    }
+  }
+
+  Future<void> _launchExternalUrl(Uri uri) async {
+    try {
+      if (!await canLaunchUrl(uri)) return;
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
+    } catch (error, stackTrace) {
+      debugPrint('notification external link failed: $error\n$stackTrace');
     }
-    context.go(path);
+  }
+
+  void _completeDeepLinkHandling() {
+    ref.read(notificationDeepLinkProvider.notifier).consume();
+    _handledDeepLinkKey = null;
   }
 
   Future<void> _handleDeepLink(NotificationRouteIntent intent) async {
@@ -89,37 +153,48 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     final notificationId = intent.notificationId;
     if (notificationId != null && notificationId.isNotEmpty) {
       await ref.read(notificationLiveProvider.notifier).markAsRead(notificationId);
+      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
     }
 
     if (!mounted) return;
-    if (_isExternalUrl(intent.targetPath)) {
-      await launchUrl(Uri.parse(intent.targetPath), mode: LaunchMode.externalApplication);
-      ref.read(notificationDeepLinkProvider.notifier).consume();
-      return;
-    }
-    if (intent.targetPath.trim().isEmpty || intent.targetPath == '/notifications') {
-      ref.read(notificationDeepLinkProvider.notifier).consume();
-      return;
-    }
-    context.go(intent.targetPath);
-    ref.read(notificationDeepLinkProvider.notifier).consume();
-  }
 
-  bool _isExternalUrl(String value) {
-    final uri = Uri.tryParse(value);
-    if (uri == null) return false;
-    return uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'market';
+    try {
+      final route = NotificationRouter.resolveRoute(
+        targetPath: intent.targetPath,
+        itemId: intent.itemId,
+        decisionId: intent.decisionId,
+        reminderId: intent.reminderId,
+      );
+      if (route == null) return;
+      await _navigateToRoute(route);
+    } finally {
+      _completeDeepLinkHandling();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue>(authProvider, (previous, next) {
+      _syncPollingState(next);
+    });
+
     final liveState = ref.watch(notificationLiveProvider);
+    final settings = ref.watch(notificationSettingsProvider);
     final deepLinkIntent = ref.watch(notificationDeepLinkProvider);
     final currentBanner = liveState.bannerQueue.isNotEmpty ? liveState.bannerQueue.first : null;
 
     ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider, (previous, next) {
       if (next != null) {
-        unawaited(_handleDeepLink(next));
+        _handleDeepLink(next);
+      }
+    });
+
+    ref.listen<String?>(pendingNotificationRouteProvider, (previous, next) {
+      if (next != null && next.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _flushPendingRoute();
+        });
       }
     });
 
@@ -127,10 +202,14 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
       _scheduleDismiss(currentBanner);
     }
 
+    final showBanner = settings.enabled &&
+        deepLinkIntent == null &&
+        currentBanner != null;
+
     return Stack(
       children: [
         widget.child,
-        if (deepLinkIntent == null && currentBanner != null)
+        if (showBanner)
           Positioned(
             left: 16,
             right: 16,
@@ -139,7 +218,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
               bottom: false,
               child: _NotificationBanner(
                 notification: currentBanner,
-                onTap: () => unawaited(_handleBannerTap(currentBanner)),
+                onTap: () => _handleBannerTap(currentBanner),
               ),
             ),
           ),
@@ -156,6 +235,13 @@ class _NotificationBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasTitle = notification.title.trim().isNotEmpty;
+    final hasBody = notification.body != null && notification.body!.trim().isNotEmpty;
+    final primaryText = hasTitle
+        ? notification.title
+        : (hasBody ? notification.body! : '');
+    final secondaryText = hasTitle && hasBody ? notification.body : null;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -191,18 +277,20 @@ class _NotificationBanner extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      notification.title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    if (primaryText.isNotEmpty)
+                      Text(
+                        primaryText,
+                        style: TextStyle(
+                          fontSize: hasTitle ? 14 : 12,
+                          fontWeight: hasTitle ? FontWeight.w700 : FontWeight.w400,
+                          color: hasTitle ? AppColors.textPrimary : AppColors.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                    if (notification.body != null && notification.body!.isNotEmpty) ...[
+                    if (secondaryText != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        notification.body!,
+                        secondaryText,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -220,7 +308,3 @@ class _NotificationBanner extends StatelessWidget {
     );
   }
 }
-
-
-
-

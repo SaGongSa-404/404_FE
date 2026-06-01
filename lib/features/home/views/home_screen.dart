@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'dart:math';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/home/models/balloon_message.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/home/domain/home_bubble_type.dart';
+import 'package:fe_app/features/home/providers/home_bubble_provider.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
-import 'package:fe_app/features/home/services/home_balloon_service.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/home/services/home_bubble_engine.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
-import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
-import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
@@ -41,9 +40,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   VoidCallback? _specialListener;
   Timer? _balloonDismissTimer;
   String? _visibleBalloonMessage;
-  BalloonMessageType? _visibleBalloonType;
-  ConsiderCaseType? _lastSpecialCaseType;
-  bool _requestLaunchBalloonEvaluation = false;
+  HomeBubbleType? _visibleBubbleType;
+  bool _hasHandledBubbleRuntime = false;
+  bool _isShowingBubble = false;
 
   String _getDefaultVideoPath(bool isBudgetExhausted) {
     return isBudgetExhausted
@@ -177,12 +176,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentVideoPath = 'assets/videos/nugul_home.mp4';
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen());
-      _requestLaunchBalloonEvaluation = true;
-      unawaited(_processBalloonQueue());
-    });
   }
 
   @override
@@ -198,12 +191,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!mounted) return;
     setState(() {
       _visibleBalloonMessage = null;
-      _visibleBalloonType = null;
+      _visibleBubbleType = null;
     });
   }
 
-  Future<void> _showBalloon(String message, BalloonMessageType type) async {
-    if (_visibleBalloonMessage != null && _visibleBalloonType == type) {
+  Future<void> _showBalloon(String message, HomeBubbleType type) async {
+    if (_visibleBalloonMessage != null && _visibleBubbleType == type) {
       return;
     }
 
@@ -211,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!mounted) return;
     setState(() {
       _visibleBalloonMessage = message;
-      _visibleBalloonType = type;
+      _visibleBubbleType = type;
     });
 
     _balloonDismissTimer = Timer(_balloonDuration, () {
@@ -220,89 +213,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
   }
 
-  Future<void> _showBalloonForType(BalloonMessageType type) async {
-    final message = HomeBalloonService.pickRandomText(type);
-    if (message == null) return;
-    await _showBalloon(message, type);
+  Future<void> _presentBubbleEvaluation(HomeBubbleEvaluation evaluation) async {
+    if (!mounted || _isShowingBubble || _visibleBalloonMessage != null) {
+      return;
+    }
+
+    _isShowingBubble = true;
+    try {
+      await _showBalloon(
+        evaluation.selection.message,
+        evaluation.selection.type,
+      );
+      final engine = await ref.read(homeBubbleEngineProvider.future);
+      await engine.commitAfterDisplayed(evaluation.commit);
+    } catch (error, stackTrace) {
+      debugPrint('home bubble presentation failed: $error\n$stackTrace');
+    } finally {
+      _isShowingBubble = false;
+    }
   }
 
-  Future<void> _processBalloonQueue() async {
-    if (!mounted || _visibleBalloonMessage != null) return;
+  Future<void> _onBubbleRuntimeReady(HomeBubbleRuntimeState runtime) async {
+    if (!mounted || _hasHandledBubbleRuntime) return;
+    _hasHandledBubbleRuntime = true;
 
-    final specialState = ref.read(homeSpecialEffectProvider);
-    final specialCaseType = specialState.caseType;
-    if (specialCaseType != null && specialCaseType != _lastSpecialCaseType) {
-      _lastSpecialCaseType = specialCaseType;
-      HomeBalloonService.markLaunchEvaluatedThisSession();
-      final balloonType = HomeBalloonService.balloonTypeForDecisionCase(specialCaseType);
-      if (balloonType != null) {
-        await _showBalloonForType(balloonType);
-      }
-      return;
-    }
+    final evaluation = runtime.evaluation;
+    if (evaluation == null) return;
 
-    if (await HomeBalloonService.consumePendingOnboarding()) {
-      HomeBalloonService.markLaunchEvaluatedThisSession();
-      await _showBalloonForType(BalloonMessageType.onboarding);
-      return;
-    }
-
-    if (await HomeBalloonService.consumePendingFirstWish()) {
-      HomeBalloonService.markLaunchEvaluatedThisSession();
-      await _showBalloonForType(BalloonMessageType.firstWishAdded);
-      return;
-    }
-
-    if (HomeBalloonService.launchEvaluatedThisSession || !_requestLaunchBalloonEvaluation) {
-      return;
-    }
-
-    final summary = ref.read(homeSummaryProvider).valueOrNull;
-    final authUser = ref.read(authProvider).valueOrNull;
-    final wishlistState = ref.read(wishlistViewModelProvider);
-    if (summary == null || authUser == null || wishlistState.isLoading) return;
-
-    HomeBalloonService.markLaunchEvaluatedThisSession();
-
-    final budget = summary.budget;
-    if (budget.remainingAmount < 0) {
-      await _showBalloonForType(BalloonMessageType.budgetNegative);
-      return;
-    }
-
-    if (budget.remainingAmount == 0) {
-      await _showBalloonForType(BalloonMessageType.budgetExhausted);
-      return;
-    }
-
-    final wishCount = wishlistState.items.length;
-    final hasWishlistData = wishlistState.listErrorMessage == null;
-    final hasPostsAwaitingVote = summary.notifications.latestNotifications.any(
-      (item) => (item.type ?? '').toUpperCase() == 'SOCIAL_VOTE',
-    );
-
-    if (hasWishlistData && wishCount == 0) {
-      await _showBalloonForType(BalloonMessageType.emptyWishlist);
-      return;
-    }
-
-    if (!hasWishlistData) {
-      await _showBalloonForType(BalloonMessageType.normalHome);
-      return;
-    }
-
-    final random = Random();
-    if (random.nextDouble() < 0.7) {
-      await _showBalloonForType(BalloonMessageType.undecidedWish);
-      return;
-    }
-
-    if (hasPostsAwaitingVote) {
-      await _showBalloonForType(BalloonMessageType.awaitingVote);
-      return;
-    }
-
-    await _showBalloonForType(BalloonMessageType.normalHome);
+    await _presentBubbleEvaluation(evaluation);
   }
 
   @override
@@ -323,7 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final scale = responsiveScale(context);
     final summaryAsync = ref.watch(homeSummaryProvider);
     final summary = summaryAsync.valueOrNull;
-    final wishlistState = ref.watch(wishlistViewModelProvider);
+    final authUser = ref.watch(authProvider).valueOrNull;
 
     final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
@@ -332,34 +270,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final preloadedController = specialState.preloadedController;
     final hasSpecial = specialState.caseType != null && preloadedController != null;
 
-    ref.listen<HomeSpecialEffectState>(homeSpecialEffectProvider, (previous, next) {
-      if (next.caseType == null) {
-        _lastSpecialCaseType = null;
-        return;
-      }
-      if (previous?.caseType != next.caseType) {
-        _lastSpecialCaseType = next.caseType;
-        HomeBalloonService.markLaunchEvaluatedThisSession();
-        unawaited(HomeBalloonService.consumePendingDecisionCase());
-        final balloonType = HomeBalloonService.balloonTypeForDecisionCase(next.caseType!);
-        if (balloonType != null) {
-          unawaited(_showBalloonForType(balloonType));
-        }
-      }
-    });
+    if (authUser != null) {
+      ref.watch(homeBubbleRuntimeProvider);
+      ref.listen<AsyncValue<HomeBubbleRuntimeState>>(
+        homeBubbleRuntimeProvider,
+        (previous, next) {
+          next.when(
+            data: (runtime) => unawaited(_onBubbleRuntimeReady(runtime)),
+            error: (_, __) => _hasHandledBubbleRuntime = true,
+            loading: () {},
+          );
+        },
+      );
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      if (!_requestLaunchBalloonEvaluation) {
-        _requestLaunchBalloonEvaluation = true;
-      }
-      unawaited(_processBalloonQueue());
-
       if (hasSpecial && !_isPlayingSpecialOnce) {
-        if (preloadedController == null) return;
         _playPreloadedSpecialAndRestore(
-          preloadedController: preloadedController,
+          preloadedController: preloadedController!,
           defaultVideoPath: defaultVideoPath,
         );
         return;

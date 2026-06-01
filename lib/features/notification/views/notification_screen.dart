@@ -1,11 +1,15 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_provider.dart';
+import 'package:fe_app/features/notification/services/notification_router.dart';
+import 'package:fe_app/features/notification/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
@@ -16,28 +20,40 @@ class NotificationScreen extends ConsumerStatefulWidget {
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   Future<void> _onTapNotification(NotificationModel notification) async {
-    try {
-      // 1. 서버 및 로컬 읽음 처리 (전체 목록 기준이므로 unreadOnly: false)
-      await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
-      await ref.read(notificationLiveProvider.notifier).markAsRead(
-        notification.id,
-        syncRemote: false,
+    final result = await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
+
+    if (result == MarkAsReadResult.notFound) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('만료되었거나 삭제된 알림입니다.')),
       );
-    } catch (e) {
-      debugPrint('읽음 처리 실패: $e');
+      return;
     }
+
+    await ref.read(notificationLiveProvider.notifier).markAsRead(
+      notification.id,
+      syncRemote: false,
+    );
 
     if (!mounted) return;
 
-    // 2. 타겟 페이지로 이동
-    final path = notification.targetPath.trim();
-    if (path.isEmpty || path == '/notifications') {
+    final route = NotificationRouter.resolveFromNotification(notification);
+    if (route == null) return;
+
+    if (NotificationRouter.isExternalUrl(route)) {
+      final uri = Uri.parse(route);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
       return;
     }
+
+    if (!NotificationRouter.shouldNavigate(route)) return;
+
     try {
-      context.push(path);
+      context.push(route);
     } catch (e) {
-      debugPrint('이동 실패: $e');
+      debugPrint('알림 이동 실패: $e');
     }
   }
 
@@ -47,7 +63,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     final notificationsAsync = ref.watch(notificationListProvider(false));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5), // 연그레이 배경
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F5F5),
         elevation: 0,
@@ -66,46 +82,64 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         ),
         centerTitle: true,
       ),
-      body: notificationsAsync.when(
-        data: (notifications) {
-          if (notifications.isEmpty) {
-            return Center(
-              child: Text(
-                '알림이 아직 없어요.',
-                style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
-              ),
-            );
-          }
-
-          // 안 읽은 알림과 읽은 알림 분리
-          final unread = notifications.where((n) => !n.isRead).toList();
-          final read = notifications.where((n) => n.isRead).toList();
-
-          return ListView(
-            padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
-            children: [
-              if (unread.isNotEmpty) ...[
-                _buildSectionTitle('읽지 않은 알림', scale),
-                ...unread.map((n) => _NotificationCapsule(
-                      notification: n,
-                      scale: scale,
-                      onTap: () => _onTapNotification(n),
-                    )),
-                const SizedBox(height: 24),
-              ],
-              if (read.isNotEmpty) ...[
-                _buildSectionTitle('읽은 알림', scale),
-                ...read.map((n) => _NotificationCapsule(
-                      notification: n,
-                      scale: scale,
-                      onTap: () => _onTapNotification(n),
-                    )),
-              ],
-            ],
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(notificationListProvider(false).notifier).refresh();
+          await ref.read(homeSummaryProvider.notifier).refresh();
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('알림을 불러오지 못했습니다: $e')),
+        child: notificationsAsync.when(
+          data: (notifications) {
+            if (notifications.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+                  Center(
+                    child: Text(
+                      '알림이 아직 없어요.',
+                      style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            final unread = notifications.where((n) => !n.isRead).toList();
+            final read = notifications.where((n) => n.isRead).toList();
+
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
+              children: [
+                if (unread.isNotEmpty) ...[
+                  _buildSectionTitle('읽지 않은 알림', scale),
+                  ...unread.map((n) => _NotificationCapsule(
+                        notification: n,
+                        scale: scale,
+                        onTap: () => _onTapNotification(n),
+                      )),
+                  const SizedBox(height: 24),
+                ],
+                if (read.isNotEmpty) ...[
+                  _buildSectionTitle('읽은 알림', scale),
+                  ...read.map((n) => _NotificationCapsule(
+                        notification: n,
+                        scale: scale,
+                        onTap: () => _onTapNotification(n),
+                      )),
+                ],
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+              Center(child: Text('알림을 불러오지 못했습니다: $e')),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -146,8 +180,8 @@ class _NotificationCapsule extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 12 * scale),
         padding: EdgeInsets.symmetric(horizontal: 22 * scale, vertical: 16 * scale),
         decoration: BoxDecoration(
-          color: isUnread ? const Color(0xFFFFEEA0) : Colors.white, // 노란색(안읽음) / 흰색(읽음)
-          borderRadius: BorderRadius.circular(30 * scale), // 캡슐형 둥근 모서리
+          color: isUnread ? const Color(0xFFFFEEA0) : Colors.white,
+          borderRadius: BorderRadius.circular(30 * scale),
           border: isUnread ? null : Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             if (isUnread)
@@ -207,7 +241,7 @@ class _NotificationCapsule extends StatelessWidget {
                     width: 6 * scale,
                     height: 6 * scale,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFE58D8D), // 안 읽음 표시 레드 닷
+                      color: Color(0xFFE58D8D),
                       shape: BoxShape.circle,
                     ),
                   ),

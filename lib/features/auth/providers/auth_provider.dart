@@ -20,7 +20,10 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 
   Future<void> handleCallback(Uri uri) async {
-    debugPrint('[auth] callback received: $uri');
+    assert(() {
+       debugPrint('[auth] callback received');
+       return true;
+     }());
     state = const AsyncLoading();
     // fragment(#) 또는 query(?) 어느 쪽으로 오든 처리
     final fragment = Uri.splitQueryString(uri.fragment);

@@ -17,14 +17,13 @@ class DeepLinkHandler extends _$DeepLinkHandler {
     final appLinks = AppLinks();
 
     try {
-      final initialUri = await appLinks.getInitialAppLink();
+      final initialUri = await appLinks.getInitialLink();
       if (initialUri != null) {
         _handleUri(initialUri);
       }
     } catch (_) {}
 
-    // allUriLinkStream: 앱 실행 후 수신 링크를 처리
-    appLinks.allUriLinkStream.listen(_handleUri);
+    appLinks.uriLinkStream.listen(_handleUri);
   }
 
   void _handleUri(Uri uri) {

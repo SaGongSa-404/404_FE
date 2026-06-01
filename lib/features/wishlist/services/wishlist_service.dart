@@ -26,6 +26,7 @@ class WishlistService {
     String? category,
     int limit = defaultListLimit,
     String? cursor,
+    CancelToken? cancelToken,
   }) async {
     final res = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.wishlistItems,
@@ -34,6 +35,7 @@ class WishlistService {
         'limit': limit,
         if (cursor != null) 'cursor': cursor,
       },
+      cancelToken: cancelToken,
     );
     return CursorPage.fromJson(requireJsonMap(res.data), 'items', WishlistItem.fromJson);
   }

@@ -33,6 +33,7 @@ class FeedService {
   Future<CursorPage<FeedPost>> listPosts({
     String? cursor,
     int size = defaultPageSize,
+    CancelToken? cancelToken,
   }) async {
     final res = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.socialPosts,
@@ -40,6 +41,7 @@ class FeedService {
         'size': size,
         if (cursor != null) 'cursor': cursor,
       },
+      cancelToken: cancelToken,
     );
     return CursorPage.fromJson(
       requireJsonMap(res.data),

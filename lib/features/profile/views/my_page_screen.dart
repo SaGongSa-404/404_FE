@@ -1,5 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -25,12 +26,11 @@ class MyPageScreen extends ConsumerStatefulWidget {
 }
 
 class _MyPageScreenState extends ConsumerState<MyPageScreen> {
-  bool _isAlarmEnabled = true;
-
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
     final profile = ref.watch(profileNotifierProvider);
+    final notificationSettings = ref.watch(notificationSettingsProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -135,7 +135,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                         onTap: () => context.push('/my/terms'),
                       ),
                       SizedBox(height: 12 * scale),
-                      _buildAlarmToggle(scale),
+                      _buildAlarmToggle(scale, notificationSettings.enabled),
                       SizedBox(height: 40 * scale),
                     ],
                   ),
@@ -194,7 +194,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     );
   }
 
-  Widget _buildAlarmToggle(double scale) {
+  Widget _buildAlarmToggle(double scale, bool isEnabled) {
     return Container(
       height: 60 * scale,
       padding: EdgeInsets.symmetric(horizontal: 24 * scale),
@@ -218,9 +218,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           const Spacer(),
           GestureDetector(
             onTap: () {
-              setState(() {
-                _isAlarmEnabled = !_isAlarmEnabled;
-              });
+              ref.read(notificationSettingsProvider.notifier).setEnabled(!isEnabled);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -229,12 +227,12 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
               padding: EdgeInsets.symmetric(horizontal: 4 * scale),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12 * scale),
-                color: _isAlarmEnabled
+                color: isEnabled
                     ? const Color(0xFFF2E4BE)
                     : const Color(0xFFE5E5E5),
               ),
               child: AlignmentGuidedAnimatedWidget(
-                alignment: _isAlarmEnabled ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isEnabled ? Alignment.centerRight : Alignment.centerLeft,
                 child: Container(
                   width: 16 * scale,
                   height: 16 * scale,

@@ -71,7 +71,11 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
       );
 
       await _repository.complete(request);
-      await HomeBalloonService.markPendingOnboarding();
+      try {
+        await HomeBalloonService.markPendingOnboarding();
+      } catch (_) {
+        // 말풍선 pending 표시 실패는 온보딩 성공에 영향을 주지 않음
+      }
       state = state.copyWith(isLoading: false);
       return true;
     } on ApiException catch (e) {

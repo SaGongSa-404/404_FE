@@ -1,3 +1,5 @@
+import 'package:fe_app/features/notification/services/notification_router.dart';
+
 class NotificationModel {
   final String id;
   final String title;
@@ -6,6 +8,9 @@ class NotificationModel {
   final String targetPath;
   final String? body;
   final String? type;
+  final String? itemId;
+  final String? decisionId;
+  final String? reminderId;
   final DateTime? createdAt;
   final DateTime? readAt;
 
@@ -14,9 +19,12 @@ class NotificationModel {
     required this.title,
     required this.time,
     this.isRead = false,
-    this.targetPath = '/home',
+    this.targetPath = '',
     this.body,
     this.type,
+    this.itemId,
+    this.decisionId,
+    this.reminderId,
     this.createdAt,
     this.readAt,
   });
@@ -30,13 +38,18 @@ class NotificationModel {
       title: _asString(json['title']),
       time: _formatRelativeTime(createdAt),
       isRead: _asBool(json['read']),
-      targetPath: _asString(json['targetPath'], fallback: '/home'),
+      targetPath: _asNullableString(json['targetPath']) ?? '',
       body: _asNullableString(json['body']),
       type: _asNullableString(json['type']),
+      itemId: _asNullableString(json['itemId']),
+      decisionId: _asNullableString(json['decisionId']),
+      reminderId: _asNullableString(json['reminderId']),
       createdAt: createdAt,
       readAt: readAt,
     );
   }
+
+  String? get resolvedRoute => NotificationRouter.resolveFromNotification(this);
 
   NotificationModel copyWith({
     bool? isRead,
@@ -44,6 +57,9 @@ class NotificationModel {
     String? targetPath,
     String? body,
     String? type,
+    String? itemId,
+    String? decisionId,
+    String? reminderId,
     DateTime? createdAt,
     DateTime? readAt,
   }) {
@@ -55,6 +71,9 @@ class NotificationModel {
       targetPath: targetPath ?? this.targetPath,
       body: body ?? this.body,
       type: type ?? this.type,
+      itemId: itemId ?? this.itemId,
+      decisionId: decisionId ?? this.decisionId,
+      reminderId: reminderId ?? this.reminderId,
       createdAt: createdAt ?? this.createdAt,
       readAt: readAt ?? this.readAt,
     );
@@ -97,4 +116,3 @@ String _formatRelativeTime(DateTime? dateTime) {
   if (diff.inDays < 7) return '${diff.inDays}일 전';
   return '${dateTime.month}/${dateTime.day}';
 }
-
