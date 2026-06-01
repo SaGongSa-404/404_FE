@@ -32,8 +32,13 @@ class AppBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    if (router == null) {
+      return const SizedBox.shrink();
+    }
+
     final scale = responsiveScale(context);
-    final location = GoRouterState.of(context).uri.toString();
+    final location = router.routeInformationProvider.value.uri.toString();
     final currentIndex = _currentIndex(location);
 
     final bottomInset = MediaQuery.of(context).padding.bottom;

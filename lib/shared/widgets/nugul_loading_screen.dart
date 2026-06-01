@@ -102,8 +102,7 @@ class _NugulLoadingDotsState extends State<_NugulLoadingDots>
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(_dotColors.length, (index) {
-            final phase =
-                (_controller.value + index / _dotColors.length) % 1.0;
+            final phase = (_controller.value + index / _dotColors.length) % 1.0;
             final emphasis = Curves.easeInOut.transform(
               phase < 0.5 ? phase * 2 : (1 - phase) * 2,
             );
