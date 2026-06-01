@@ -29,6 +29,7 @@ import 'package:fe_app/features/wishlist/views/wishlist_consider_result_screen.d
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,10 +38,14 @@ final _splashMinDurationProvider = FutureProvider<void>((ref) async {
   await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
 
-NoTransitionPage<void> _bottomTabPage(GoRouterState state, Widget child) {
+NoTransitionPage<void> _bottomTabPage(
+  GoRouterState state,
+  Widget child, {
+  bool exitOnBack = false,
+}) {
   return NoTransitionPage<void>(
     key: state.pageKey,
-    child: child,
+    child: exitOnBack ? AppExitBackHandler(child: child) : child,
   );
 }
 
@@ -80,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const WishlistScreen()),
+            _bottomTabPage(state, const WishlistScreen(), exitOnBack: true),
       ),
       GoRoute(
         path: '/signup',
@@ -89,7 +94,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const HomeScreen()),
+            _bottomTabPage(state, const HomeScreen(), exitOnBack: true),
       ),
       GoRoute(
         path: '/notifications',
@@ -98,7 +103,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/wishlist',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const WishlistScreen()),
+            _bottomTabPage(state, const WishlistScreen(), exitOnBack: true),
         routes: [
           GoRoute(
             path: 'consider',
@@ -139,7 +144,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/my',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const MyPageScreen()),
+            _bottomTabPage(state, const MyPageScreen(), exitOnBack: true),
         routes: [
           GoRoute(
             path: 'edit',
@@ -162,7 +167,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/feed',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const FeedScreen()),
+            _bottomTabPage(state, const FeedScreen(), exitOnBack: true),
         routes: [
           GoRoute(
             path: 'write',
