@@ -246,11 +246,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
         ...state.commentsMap,
         postId: updated,
       });
-      _applyCommentMeta(
-        postId,
-        commentCount: updated.total,
-        latestCommentText: created.body,
-      );
+      _applyCommentMeta(postId, commentCount: updated.total);
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
     }
@@ -270,11 +266,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
         ...state.commentsMap,
         postId: updated,
       });
-      _applyCommentMeta(
-        postId,
-        commentCount: updated.total,
-        latestCommentText: items.isEmpty ? null : items.last.body,
-      );
+      _applyCommentMeta(postId, commentCount: updated.total);
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
     }
@@ -341,10 +333,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
         .map((p) {
       final page = updatedMap[p.id];
       if (page == null) return p;
-      return p.copyWith(
-        commentCount: page.total,
-        latestCommentText: page.items.isEmpty ? null : page.items.last.body,
-      );
+      return p.copyWith(commentCount: page.total);
     }).toList();
     state = state.copyWith(
       posts: filteredPosts,
@@ -374,25 +363,14 @@ class FeedViewModel extends StateNotifier<FeedState> {
   void _syncCommentMetaFromPage(String postId) {
     final page = state.commentsMap[postId];
     if (page == null) return;
-    _applyCommentMeta(
-      postId,
-      commentCount: page.total,
-      latestCommentText: page.items.isEmpty ? null : page.items.last.body,
-    );
+    _applyCommentMeta(postId, commentCount: page.total);
   }
 
-  void _applyCommentMeta(
-    String postId, {
-    required int commentCount,
-    required String? latestCommentText,
-  }) {
+  void _applyCommentMeta(String postId, {required int commentCount}) {
     state = state.copyWith(
       posts: state.posts.map((p) {
         if (p.id != postId) return p;
-        return p.copyWith(
-          commentCount: commentCount,
-          latestCommentText: latestCommentText,
-        );
+        return p.copyWith(commentCount: commentCount);
       }).toList(),
     );
   }
