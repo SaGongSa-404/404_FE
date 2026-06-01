@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:fe_app/features/profile/utils/provider_label.dart';
+import 'package:fe_app/features/profile/validators/profile_nickname_validator.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +19,14 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(myProfileProvider.notifier).load(force: true);
+    });
+  }
+
   static const Color _backgroundColor = Color(0xFFF5F5F5);
   static const Color _cardShadowColor = Color(0x22000000);
   static const List<BoxShadow> _cardShadow = [
@@ -31,7 +41,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
+    final auth = ref.watch(authProvider);
+    final myProfile = ref.watch(myProfileProvider);
+    final user = auth.valueOrNull;
+    final loginAccount = user?.email?.trim().isNotEmpty == true
+        ? user!.email!
+        : (user?.principalName ?? '-');
+    final provider = myProfile.profile?.provider ?? user?.provider ?? '';
+    final linkedText =
+        provider.isNotEmpty ? providerLinkedText(provider) : '';
+
+    ref.listen(authProvider, (prev, next) {
+      if (next.hasValue &&
+          next.value != null &&
+          prev?.valueOrNull == null) {
+        ref.read(myProfileProvider.notifier).load(force: true);
+      }
+    });
+
+    ref.listen<MyProfileState>(myProfileProvider, (prev, next) {
+      if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: next.errorMessage!,
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -77,7 +113,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 boxShadow: _cardShadow,
               ),
               child: Text(
-                'sjrnfl97@gmail.com',
+                loginAccount,
                 style: TextStyle(
                   color: const Color(0xFF555555),
                   fontSize: 16 * scale,
@@ -86,13 +122,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
             SizedBox(height: 8 * scale),
-            Padding(
-              padding: EdgeInsets.only(left: 8 * scale),
-              child: Text(
-                '카카오와 연동됨',
-                style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 13 * scale),
+            if (linkedText.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(left: 8 * scale),
+                child: Text(
+                  linkedText,
+                  style: TextStyle(
+                    color: const Color(0xFF9E9E9E),
+                    fontSize: 13 * scale,
+                  ),
+                ),
               ),
-            ),
             SizedBox(height: 36 * scale),
             Padding(
               padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
@@ -107,7 +147,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ),
             // Nickname box: opens modal on tap
             GestureDetector(
-              onTap: () => _showNicknameEditDialog(context, ref, profile.nickname),
+              onTap: myProfile.isUpdating
+                  ? null
+                  : () => _showNicknameEditDialog(
+                        context,
+                        ref,
+                        myProfile.nickname,
+                      ),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 18 * scale),
                 decoration: BoxDecoration(
@@ -119,7 +165,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      profile.nickname,
+                      myProfile.isLoading && myProfile.nickname.isEmpty
+                          ? '...'
+                          : myProfile.nickname,
                       style: TextStyle(
                         fontSize: 16 * scale,
                         fontWeight: FontWeight.w500,
@@ -183,7 +231,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  void _showNicknameEditDialog(BuildContext context, WidgetRef ref, String currentNickname) {
+  void _showNicknameEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String currentNickname,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -191,15 +243,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       builder: (sheetContext) {
         return _NicknameEditModal(
           initialNickname: currentNickname,
-          onSave: (newName) {
-            ref.read(profileNotifierProvider.notifier).updateNickname(newName);
-            Navigator.of(sheetContext).pop();
-            if (context.mounted) {
-              showCapsuleToast(
-                context,
-                backgroundColor: const Color(0xFF5F8EAE),
-                text: '수정되었습니다',
-              );
+          onSave: (newName) async {
+            final ok =
+                await ref.read(myProfileProvider.notifier).updateNickname(newName);
+            if (!sheetContext.mounted) return;
+            if (ok) {
+              Navigator.of(sheetContext).pop();
+              if (context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFF5F8EAE),
+                  text: '수정되었습니다',
+                );
+              }
             }
           },
         );
@@ -244,9 +300,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
 class _NicknameEditModal extends StatefulWidget {
   final String initialNickname;
-  final ValueChanged<String> onSave;
+  final Future<void> Function(String newName) onSave;
 
-  const _NicknameEditModal({required this.initialNickname, required this.onSave});
+  const _NicknameEditModal({
+    required this.initialNickname,
+    required this.onSave,
+  });
 
   @override
   State<_NicknameEditModal> createState() => _NicknameEditModalState();
@@ -254,11 +313,21 @@ class _NicknameEditModal extends StatefulWidget {
 
 class _NicknameEditModalState extends State<_NicknameEditModal> {
   late final TextEditingController _controller;
+  ProfileNicknameValidationResult _validation = const ProfileNicknameEmpty();
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialNickname);
+    _validation = ProfileNicknameValidator.validate(widget.initialNickname);
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    setState(() {
+      _validation = ProfileNicknameValidator.validate(_controller.text);
+    });
   }
 
   @override
@@ -267,11 +336,31 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
     super.dispose();
   }
 
+  String? get _errorMessage => switch (_validation) {
+        ProfileNicknameInvalidChars() => '한글, 영어, 숫자만 입력할 수 있어요',
+        ProfileNicknameInvalidLength() => '1자 이상 10자 이내로 입력해주세요',
+        _ => null,
+      };
+
+  bool get _canSave =>
+      _validation is ProfileNicknameValid &&
+      !_isSaving &&
+      _controller.text.trim() != widget.initialNickname.trim();
+
+  Future<void> _handleSave() async {
+    final newName = _controller.text.trim();
+    if (!_canSave) return;
+    setState(() => _isSaving = true);
+    await widget.onSave(newName);
+    if (mounted) setState(() => _isSaving = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final systemBottomPadding = MediaQuery.paddingOf(context).bottom;
+    final hasError = _errorMessage != null;
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
@@ -307,9 +396,25 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
               ),
             ),
             SizedBox(height: 20 * scale),
+            if (hasError)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8 * scale),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: AppColors.red_600,
+                      fontSize: 13 * scale,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
             TextField(
               controller: _controller,
               autofocus: true,
+              maxLength: ProfileNicknameValidator.maxLength,
               textAlign: TextAlign.left,
               style: TextStyle(
                 fontSize: 16 * scale,
@@ -319,24 +424,13 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
               decoration: InputDecoration(
                 hintText: '입력하기',
                 hintStyle: const TextStyle(color: Color(0xFFADADAD)),
-                suffixIcon: Padding(
-                  padding: EdgeInsets.only(right: 16 * scale),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '입력하기',
-                        style: TextStyle(
-                          color: const Color(0xFFADADAD),
-                          fontSize: 14 * scale,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                counterText: '',
                 filled: true,
                 fillColor: const Color(0xFFF2F2F2),
-                contentPadding: EdgeInsets.symmetric(vertical: 14 * scale, horizontal: 20 * scale),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 14 * scale,
+                  horizontal: 20 * scale,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25 * scale),
                   borderSide: BorderSide.none,
@@ -347,7 +441,10 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25 * scale),
-                  borderSide: BorderSide(color: AppColors.textPrimary, width: 1.5 * scale),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.red_600 : AppColors.textPrimary,
+                    width: 1.5 * scale,
+                  ),
                 ),
               ),
             ),
@@ -378,27 +475,30 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
                 SizedBox(width: 6 * scale),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {
-                      final newName = _controller.text.trim();
-                      if (newName.isNotEmpty) {
-                        widget.onSave(newName);
-                      }
-                    },
+                    onTap: _canSave ? _handleSave : null,
                     child: Container(
                       height: 57 * scale,
                       decoration: BoxDecoration(
-                        color: AppColors.skyBlue_100,
+                        color: _canSave
+                            ? AppColors.skyBlue_100
+                            : AppColors.skyBlue_100.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(57 * scale),
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        '수정완료',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20 * scale,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+                      child: _isSaving
+                          ? SizedBox(
+                              width: 22 * scale,
+                              height: 22 * scale,
+                              child: const CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              '수정완료',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 20 * scale,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                     ),
                   ),
                 ),

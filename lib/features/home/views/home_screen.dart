@@ -6,7 +6,7 @@ import 'package:fe_app/features/home/providers/home_special_effect_provider.dart
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -191,11 +191,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     _currentMessage = _safeMessages[0];
-    
-    final profile = ref.read(profileNotifierProvider);
-    final currentRecord = profile.currentMonthRecord;
-    final isBudgetExhausted = (currentRecord.budget - currentRecord.spentAmount) <= 0;
-    _currentVideoPath = _getDefaultVideoPath(isBudgetExhausted);
+    _currentVideoPath = _getDefaultVideoPath(false);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(consumptionStatsProvider.notifier).load();
+    });
   }
 
   @override
@@ -211,12 +211,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
-    final currentRecord = profile.currentMonthRecord;
-    final isExceeded = currentRecord.isExceeded;
+    final statsState = ref.watch(consumptionStatsProvider);
+    final currentRecord = statsState.currentMonthStats;
+    final isExceeded = currentRecord?.isExceeded ?? false;
 
-    final remainingBudget = currentRecord.budget - currentRecord.spentAmount;
-    final isBudgetExhausted = remainingBudget <= 0;
+    final remainingBudget = currentRecord == null
+        ? 1
+        : currentRecord.budgetAmount - currentRecord.spentAmount;
+    final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
 
     final specialState = ref.watch(homeSpecialEffectProvider);
