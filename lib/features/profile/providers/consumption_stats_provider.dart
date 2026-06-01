@@ -80,6 +80,20 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
     return '소비 통계를 불러오지 못했습니다.';
   }
 
+  String _budgetErrorMessage(Object error) {
+    if (error is DioException &&
+        (error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout)) {
+      return '서버에 연결할 수 없습니다. API 주소와 백엔드 실행 여부를 확인해 주세요.';
+    }
+    final api = apiExceptionFrom(error);
+    if (api != null && api.message != '요청을 처리하지 못했습니다.') {
+      return api.message;
+    }
+    if (error is ApiException) return error.message;
+    return '월 예산을 수정하지 못했습니다.';
+  }
+
   Future<void> load({bool force = false}) async {
     if (state.isLoading) return;
     if (!force && _hasFetched) return;
@@ -160,6 +174,29 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
         ),
       },
     );
+  }
+
+  Future<bool> updateBudget(int monthlyBudget) async {
+    if (state.isUpdatingBudget) return false;
+    if (monthlyBudget < 1) {
+      state = state.copyWith(errorMessage: '예산은 1원 이상이어야 합니다.');
+      return false;
+    }
+
+    state = state.copyWith(isUpdatingBudget: true, clearError: true);
+    try {
+      final confirmed =
+          await _profileService.updateBudget(monthlyBudget: monthlyBudget);
+      applyBudgetOverride(confirmed);
+      state = state.copyWith(isUpdatingBudget: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isUpdatingBudget: false,
+        errorMessage: _budgetErrorMessage(e),
+      );
+      return false;
+    }
   }
 
   void reset() {
