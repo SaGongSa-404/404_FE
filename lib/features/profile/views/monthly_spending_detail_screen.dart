@@ -1,14 +1,31 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/features/profile/utils/month_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class MonthlySpendingDetailScreen extends ConsumerWidget {
-  final String month;
+class MonthlySpendingDetailScreen extends ConsumerStatefulWidget {
+  final String yearMonth;
 
-  const MonthlySpendingDetailScreen({super.key, required this.month});
+  const MonthlySpendingDetailScreen({super.key, required this.yearMonth});
+
+  @override
+  ConsumerState<MonthlySpendingDetailScreen> createState() =>
+      _MonthlySpendingDetailScreenState();
+}
+
+class _MonthlySpendingDetailScreenState
+    extends ConsumerState<MonthlySpendingDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(consumptionStatsProvider.notifier).loadMonth(widget.yearMonth);
+    });
+  }
 
   static const Color _backgroundColor = Color(0xFFF5F5F5);
   static const Color _cardShadowColor = Color(0x22000000);
@@ -22,15 +39,28 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final scale = responsiveScale(context);
+    final statsState = ref.watch(consumptionStatsProvider);
+    final record = statsState.statsFor(widget.yearMonth);
+    final displayMonth = yearMonthToDisplay(widget.yearMonth);
+    final monthTitle = displayMonth.contains('.')
+        ? displayMonth.split('.')[1]
+        : displayMonth;
+
     final profile = ref.watch(profileNotifierProvider);
-    final record = profile.monthlyRecords.firstWhere((r) => r.month == month);
+    MonthlyRecord? mockRecord;
+    for (final r in profile.monthlyRecords) {
+      if (r.month == displayMonth) {
+        mockRecord = r;
+        break;
+      }
+    }
+    final items = mockRecord?.items ?? const <ConsumptionItem>[];
 
     final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
-    String format(int val) => val.toString().replaceAllMapped(numberFormat, (m) => ',');
-
-    final monthTitle = month.contains('.') ? month.split('.')[1] : month;
+    String format(int val) =>
+        val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -38,7 +68,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
         backgroundColor: _backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 18 * scale),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: AppColors.textPrimary, size: 18 * scale),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -51,145 +82,150 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.all(24 * scale),
-              padding: EdgeInsets.all(24 * scale),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30 * scale),
-                boxShadow: _cardShadow,
-              ),
+      body: record == null
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$monthTitle월의 지출',
-                    style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 20 * scale),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${format(record.spentAmount)}원',
-                        style: TextStyle(fontSize: 24 * scale, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '/${format(record.budget)}원',
-                        style: TextStyle(
-                          color: const Color(0xFFADADAD),
-                          fontSize: 14 * scale,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16 * scale),
                   Container(
-                    height: 12 * scale,
-                    width: double.infinity,
+                    margin: EdgeInsets.all(24 * scale),
+                    padding: EdgeInsets.all(24 * scale),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F2),
-                      borderRadius: BorderRadius.circular(6 * scale),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30 * scale),
+                      boxShadow: _cardShadow,
                     ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: (record.spentAmount / record.budget).clamp(0.0, 1.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: record.isExceeded ? AppColors.red_200 : AppColors.skyBlue_200,
-                          borderRadius: BorderRadius.circular(6 * scale),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$monthTitle월의 지출',
+                          style: TextStyle(
+                              fontSize: 16 * scale, fontWeight: FontWeight.bold),
                         ),
-                      ),
+                        SizedBox(height: 20 * scale),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${format(record.spentAmount)}원',
+                              style: TextStyle(
+                                  fontSize: 24 * scale, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '/${format(record.budgetAmount)}원',
+                              style: TextStyle(
+                                color: const Color(0xFFADADAD),
+                                fontSize: 14 * scale,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16 * scale),
+                        Container(
+                          height: 12 * scale,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F2),
+                            borderRadius: BorderRadius.circular(6 * scale),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: record.progressFactor,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: record.isExceeded
+                                    ? AppColors.red_200
+                                    : AppColors.skyBlue_200,
+                                borderRadius: BorderRadius.circular(6 * scale),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (record.restrainedAmount > 0) ...[
+                          SizedBox(height: 16 * scale),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '절제한 금액',
+                                style: TextStyle(
+                                    fontSize: 13 * scale,
+                                    color: AppColors.textSecondary),
+                              ),
+                              Text(
+                                '${format(record.restrainedAmount)}원',
+                                style: TextStyle(
+                                    fontSize: 13 * scale,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ],
+                        SizedBox(height: 24 * scale),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '예산 사용률 : ${record.usageRate}%',
+                              style: TextStyle(
+                                  fontSize: 14 * scale,
+                                  color: AppColors.textSecondary),
+                            ),
+                            Text(
+                              '구매 : ${record.boughtCount}회 · 참음 : ${record.restrainedCount}회',
+                              style: TextStyle(
+                                  fontSize: 14 * scale,
+                                  color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 24 * scale),
-                  _buildCategoryRow('패션', 45000, 0.4, scale),
-                  _buildCategoryRow('뷰티', 15000, 0.2, scale),
-                  _buildCategoryRow('기타', 27000, 0.3, scale),
-                  SizedBox(height: 24 * scale),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '합리적 선택률 : ${record.rationalRate}%',
-                        style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
-                      ),
-                      Text(
-                        '비합리적 선택 : ${record.irrationalCount}회',
-                        style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
-                      ),
-                    ],
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$monthTitle월의 소비기록',
+                          style: TextStyle(
+                              fontSize: 16 * scale, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 16 * scale),
+                        if (items.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 40 * scale),
+                            child: Text(
+                              '상세 소비 내역은 준비 중입니다.',
+                              style: TextStyle(
+                                fontSize: 14 * scale,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          )
+                        else
+                          ...items.map(
+                            (item) => _buildItemCard(
+                              context,
+                              displayMonth,
+                              item,
+                              scale,
+                            ),
+                          ),
+                        SizedBox(height: 40 * scale),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24 * scale),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$monthTitle월의 소비기록',
-                    style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 16 * scale),
-                  ...record.items.map((item) => _buildItemCard(context, ref, month, item, scale)),
-                  SizedBox(height: 40 * scale),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryRow(String label, int amount, double ratio, double scale) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8 * scale),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40 * scale,
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 6 * scale,
-              margin: EdgeInsets.symmetric(horizontal: 8 * scale),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.circular(3 * scale),
-              ),
-              child: FractionallySizedBox(
-                widthFactor: ratio,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD9D9D9),
-                    borderRadius: BorderRadius.circular(3 * scale),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Text(
-            '${amount.toString().replaceAllMapped(RegExp(r"\B(?=(\d{3})+(?!\d))"), (m) => ",")}원',
-            style: TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildItemCard(
     BuildContext context,
-    WidgetRef ref,
     String month,
     ConsumptionItem item,
     double scale,
@@ -226,21 +262,27 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                 children: [
                   Text(
                     item.name,
-                    style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w500),
+                    style:
+                        TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 4 * scale),
                   Text(
                     '${item.price.toString().replaceAllMapped(RegExp(r"\B(?=(\d{3})+(?!\d))"), (m) => ",")}원',
-                    style: TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
                   ),
                   SizedBox(height: 8 * scale),
                   Row(
                     children: [
                       _buildTag(
-                        item.status == ConsumptionStatus.bought ? '샀어요' : '참았어요',
-                        item.status == ConsumptionStatus.bought ? AppColors.yellow : const Color(0xFFE8F3F9),
+                        item.status == ConsumptionStatus.bought
+                            ? '샀어요'
+                            : '참았어요',
+                        item.status == ConsumptionStatus.bought
+                            ? AppColors.yellow
+                            : const Color(0xFFE8F3F9),
                         scale,
                       ),
                       if (item.review != null) ...[
@@ -255,12 +297,13 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _showEditDialog(context, ref, month, item),
+                onTap: () => _showEditDialog(context, month, item),
                 borderRadius: BorderRadius.circular(15 * scale),
                 highlightColor: Colors.black.withAlpha(25),
                 splashColor: Colors.black.withAlpha(15),
                 child: Ink(
-                  padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: const Color(0xFFE0E0E0)),
@@ -268,7 +311,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                   ),
                   child: Text(
                     '수정',
-                    style: TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
                   ),
                 ),
               ),
@@ -293,7 +337,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditDialog(BuildContext context, WidgetRef ref, String month, ConsumptionItem item) {
+  void _showEditDialog(
+      BuildContext context, String month, ConsumptionItem item) {
     ConsumptionStatus selectedStatus = item.status;
 
     showModalBottomSheet(
@@ -318,7 +363,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(37 * scale),
                 boxShadow: _cardShadow,
               ),
-              padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 31 * scale),
+              padding:
+                  EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 31 * scale),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -338,7 +384,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                         child: _buildDialogButton(
                           '참았어요',
                           selectedStatus == ConsumptionStatus.refrained,
-                          () => setState(() => selectedStatus = ConsumptionStatus.refrained),
+                          () => setState(
+                              () => selectedStatus = ConsumptionStatus.refrained),
                           scale,
                         ),
                       ),
@@ -347,7 +394,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                         child: _buildDialogButton(
                           '샀어요',
                           selectedStatus == ConsumptionStatus.bought,
-                          () => setState(() => selectedStatus = ConsumptionStatus.bought),
+                          () => setState(
+                              () => selectedStatus = ConsumptionStatus.bought),
                           scale,
                         ),
                       ),
@@ -356,7 +404,11 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
                   SizedBox(height: 24 * scale),
                   GestureDetector(
                     onTap: () {
-                      ref.read(profileNotifierProvider.notifier).updateItemStatus(month, item.id, selectedStatus);
+                      ref.read(profileNotifierProvider.notifier).updateItemStatus(
+                            month,
+                            item.id,
+                            selectedStatus,
+                          );
                       Navigator.of(sheetContext).pop();
                     },
                     child: Container(
@@ -386,7 +438,8 @@ class MonthlySpendingDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDialogButton(String label, bool isSelected, VoidCallback onTap, double scale) {
+  Widget _buildDialogButton(
+      String label, bool isSelected, VoidCallback onTap, double scale) {
     return Material(
       color: Colors.transparent,
       child: InkWell(

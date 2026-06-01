@@ -7,6 +7,7 @@ import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/core/network/json_response.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
+import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/models/notification_settings.dart';
 import 'package:fe_app/features/profile/utils/profile_json.dart';
@@ -86,5 +87,22 @@ class ProfileService {
       data: {'notificationEnabled': notificationEnabled},
     );
     return NotificationSettings.fromJson(parseProfileJsonMap(res.data));
+  }
+
+  /// GET /api/v1/users/me/stats/months — 통계 조회 가능 월 목록.
+  Future<StatsMonthsResponse> getStatsMonths() async {
+    final res = await _dio.get<dynamic>(ApiEndpoints.usersMeStatsMonths);
+    return StatsMonthsResponse.fromJson(parseProfileJsonMap(res.data));
+  }
+
+  /// GET /api/v1/users/me/stats — 월별 소비/절제 통계.
+  Future<MonthlyStats> getMonthlyStats({String? yearMonth}) async {
+    final res = await _dio.get<dynamic>(
+      ApiEndpoints.usersMeStats,
+      queryParameters: {
+        if (yearMonth != null) 'yearMonth': yearMonth,
+      },
+    );
+    return MonthlyStats.fromJson(parseProfileJsonMap(res.data));
   }
 }
