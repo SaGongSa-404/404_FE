@@ -4,7 +4,6 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
@@ -420,7 +419,10 @@ class _ConsumptionManagementScreenState
       builder: (sheetContext) {
         final scale = responsiveScale(sheetContext);
         final horizontalInset = 21 * scale;
-        return Padding(
+        var isSubmitting = false;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
           padding: EdgeInsets.fromLTRB(
             horizontalInset,
             0,
@@ -518,34 +520,54 @@ class _ConsumptionManagementScreenState
                     SizedBox(width: 6 * scale),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          final newBudget =
-                              int.tryParse(controller.text.replaceAll(',', ''));
-                          if (newBudget != null) {
-                            ref
-                                .read(consumptionStatsProvider.notifier)
-                                .applyBudgetOverride(newBudget);
-                            ref
-                                .read(profileNotifierProvider.notifier)
-                                .updateBudget(newBudget);
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
+                        onTap: isSubmitting
+                            ? null
+                            : () async {
+                                final newBudget = int.tryParse(
+                                  controller.text.replaceAll(',', ''),
+                                );
+                                if (newBudget == null || newBudget < 1) {
+                                  showCapsuleToast(
+                                    sheetContext,
+                                    backgroundColor:
+                                        AppColors.red_600.withValues(alpha: 0.8),
+                                    text: '예산은 1원 이상 입력해 주세요.',
+                                  );
+                                  return;
+                                }
+                                setSheetState(() => isSubmitting = true);
+                                final ok = await ref
+                                    .read(consumptionStatsProvider.notifier)
+                                    .updateBudget(newBudget);
+                                if (!sheetContext.mounted) return;
+                                setSheetState(() => isSubmitting = false);
+                                if (ok) Navigator.of(sheetContext).pop();
+                              },
                         child: Container(
                           height: 57 * scale,
                           decoration: BoxDecoration(
-                            color: AppColors.skyBlue_100,
+                            color: isSubmitting
+                                ? AppColors.skyBlue_100.withValues(alpha: 0.6)
+                                : AppColors.skyBlue_100,
                             borderRadius: BorderRadius.circular(57 * scale),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            '수정완료',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 20 * scale,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                          child: isSubmitting
+                              ? SizedBox(
+                                  width: 24 * scale,
+                                  height: 24 * scale,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  '수정완료',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 20 * scale,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -554,6 +576,8 @@ class _ConsumptionManagementScreenState
               ],
             ),
           ),
+            );
+          },
         );
       },
     );

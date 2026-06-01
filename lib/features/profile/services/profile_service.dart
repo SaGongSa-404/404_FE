@@ -32,6 +32,22 @@ class ProfileService {
     return _parseMyProfile(res.data);
   }
 
+  /// PATCH /api/v1/users/me/budget — 월 예산 수정.
+  Future<int> updateBudget({required int monthlyBudget}) async {
+    final res = await _dio.patch<dynamic>(
+      ApiEndpoints.usersMeBudget,
+      data: {'monthlyBudget': monthlyBudget},
+    );
+    return _parseMonthlyBudget(parseProfileJsonMap(res.data));
+  }
+
+  static int _parseMonthlyBudget(Map<String, dynamic> json) {
+    final value = json['monthlyBudget'];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   /// PATCH /api/v1/users/me/profile — 닉네임 수정.
   Future<MyProfile> updateProfile({required String nickname}) async {
     final res = await _dio.patch<dynamic>(
