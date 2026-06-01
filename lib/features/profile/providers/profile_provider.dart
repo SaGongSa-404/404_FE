@@ -58,12 +58,10 @@ class MonthlyRecord {
 }
 
 class ProfileState {
-  final String nickname;
   final int monthlyBudget;
   final List<MonthlyRecord> monthlyRecords;
 
   ProfileState({
-    required this.nickname,
     required this.monthlyBudget,
     required this.monthlyRecords,
   });
@@ -71,12 +69,10 @@ class ProfileState {
   MonthlyRecord get currentMonthRecord => monthlyRecords.first;
 
   ProfileState copyWith({
-    String? nickname,
     int? monthlyBudget,
     List<MonthlyRecord>? monthlyRecords,
   }) {
     return ProfileState(
-      nickname: nickname ?? this.nickname,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       monthlyRecords: monthlyRecords ?? this.monthlyRecords,
     );
@@ -87,7 +83,6 @@ class ProfileNotifier extends Notifier<ProfileState> {
   @override
   ProfileState build() {
     return ProfileState(
-      nickname: '너구리구리',
       monthlyBudget: 500000,
       monthlyRecords: [
         MonthlyRecord(
@@ -111,10 +106,6 @@ class ProfileNotifier extends Notifier<ProfileState> {
         ),
       ],
     );
-  }
-
-  void updateNickname(String newNickname) {
-    state = state.copyWith(nickname: newNickname);
   }
 
   void updateBudget(int newBudget) {

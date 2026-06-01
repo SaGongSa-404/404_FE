@@ -9,6 +9,7 @@ import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/circle_icon_label.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_item_form_panel.dart';
 import 'package:fe_app/features/wishlist/views/components/item/wishlist_item_card.dart';
 import 'package:fe_app/features/wishlist/views/components/list/wishlist_category_filter.dart';
@@ -417,7 +418,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
               return ok;
             },
           )
-        else if (state.isAddWishOpen)
+        else if (state.isAddWishOpen && !state.isImportingLink)
           WishlistItemFormPanel.add(
             onClose: viewModel.closeEditPanel,
             onSubmit: (item) async {
@@ -437,6 +438,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
             isImporting: state.isImportingLink,
             isSubmitting: state.isSubmitting,
           ),
+        if (state.isImportingLink)
+          const Positioned.fill(child: NugulLoadingScreen()),
       ],
     );
   }
