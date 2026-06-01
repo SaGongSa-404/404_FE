@@ -141,17 +141,23 @@ class _ConsumptionManagementScreenState
               style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16 * scale),
-            if (statsState.pastMonthStats.isEmpty)
+            if (statsState.monthlyRecordStats.isEmpty)
               Text(
-                '이전 달 기록이 없습니다.',
+                '소비 기록이 없습니다.',
                 style: TextStyle(
                   fontSize: 14 * scale,
                   color: AppColors.textSecondary,
                 ),
               )
             else
-              ...statsState.pastMonthStats.map(
-                (record) => _buildMonthlyRecordCard(context, record, format, scale),
+              ...statsState.monthlyRecordStats.map(
+                (record) => _buildMonthlyRecordCard(
+                  context,
+                  record,
+                  format,
+                  scale,
+                  isCurrentMonth: record.yearMonth == statsState.currentMonth,
+                ),
               ),
           ],
         ),
@@ -289,8 +295,9 @@ class _ConsumptionManagementScreenState
     BuildContext context,
     MonthlyStats record,
     String Function(int) format,
-    double scale,
-  ) {
+    double scale, {
+    bool isCurrentMonth = false,
+  }) {
     return Container(
       margin: EdgeInsets.only(bottom: 16 * scale),
       decoration: BoxDecoration(
@@ -321,10 +328,33 @@ class _ConsumptionManagementScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      record.displayMonth,
-                      style:
-                          TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        Text(
+                          record.displayMonth,
+                          style: TextStyle(
+                              fontSize: 15 * scale, fontWeight: FontWeight.bold),
+                        ),
+                        if (isCurrentMonth) ...[
+                          SizedBox(width: 8 * scale),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8 * scale, vertical: 2 * scale),
+                            decoration: BoxDecoration(
+                              color: AppColors.skyBlue_100,
+                              borderRadius: BorderRadius.circular(8 * scale),
+                            ),
+                            child: Text(
+                              '이번 달',
+                              style: TextStyle(
+                                fontSize: 10 * scale,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.skyBlue_300,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(

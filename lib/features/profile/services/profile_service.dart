@@ -9,6 +9,7 @@ import 'package:fe_app/core/network/json_response.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
+import 'package:fe_app/features/profile/models/wish_history_item.dart';
 import 'package:fe_app/features/profile/models/notification_settings.dart';
 import 'package:fe_app/features/profile/utils/profile_json.dart';
 import 'package:fe_app/shared/models/pagination.dart';
@@ -109,6 +110,25 @@ class ProfileService {
   Future<StatsMonthsResponse> getStatsMonths() async {
     final res = await _dio.get<dynamic>(ApiEndpoints.usersMeStatsMonths);
     return StatsMonthsResponse.fromJson(parseProfileJsonMap(res.data));
+  }
+
+  /// GET /api/v1/users/me/wishes/history — 위시/결정 히스토리 (page).
+  Future<WishHistoryResponse> getWishHistory({
+    String? yearMonth,
+    String? status,
+    int page = 0,
+    int size = defaultPageSize,
+  }) async {
+    final res = await _dio.get<dynamic>(
+      ApiEndpoints.usersMeWishesHistory,
+      queryParameters: {
+        'page': page,
+        'size': size,
+        if (yearMonth != null) 'yearMonth': yearMonth,
+        if (status != null) 'status': status,
+      },
+    );
+    return WishHistoryResponse.fromJson(parseProfileJsonMap(res.data));
   }
 
   /// GET /api/v1/users/me/stats — 월별 소비/절제 통계.

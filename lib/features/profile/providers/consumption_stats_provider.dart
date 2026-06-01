@@ -28,10 +28,15 @@ class ConsumptionStatsState {
     return statsByMonth[month];
   }
 
-  List<MonthlyStats> get pastMonthStats {
+  /// 월별 소비기록 목록 (이번 달 포함, 최신 월 순).
+  List<MonthlyStats> get monthlyRecordStats {
     final current = currentMonth;
-    return months
-        .where((m) => m != current)
+    final allMonths = <String>{
+      ...months,
+      if (current != null && current.isNotEmpty) current,
+    };
+    final sorted = allMonths.toList()..sort((a, b) => b.compareTo(a));
+    return sorted
         .map((m) => statsByMonth[m])
         .whereType<MonthlyStats>()
         .toList();
@@ -138,10 +143,15 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
     if (state.statsByMonth.containsKey(yearMonth)) {
       return state.statsByMonth[yearMonth];
     }
+    return refreshMonthStats(yearMonth);
+  }
+
+  Future<MonthlyStats?> refreshMonthStats(String yearMonth) async {
     try {
       final stats = await _profileService.getMonthlyStats(yearMonth: yearMonth);
       state = state.copyWith(
         statsByMonth: {...state.statsByMonth, yearMonth: stats},
+        clearError: true,
       );
       return stats;
     } catch (e) {
