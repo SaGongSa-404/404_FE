@@ -7,6 +7,7 @@ import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -169,7 +170,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                   SizedBox(height: (30 * scale).clamp(22.0, 38.0)),
                   Expanded(
                     child: comments.isEmpty && isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(child: LoadingIndicator(compact: true))
                         : NotificationListener<ScrollNotification>(
                             onNotification: _onScrollNotification,
                             child: ListView.separated(
@@ -185,7 +186,9 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                                 if (index >= comments.length) {
                                   return const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 12),
-                                    child: Center(child: CircularProgressIndicator()),
+                                    child: Center(
+                                      child: LoadingIndicator(compact: true),
+                                    ),
                                   );
                                 }
                                 return _CommentItem(

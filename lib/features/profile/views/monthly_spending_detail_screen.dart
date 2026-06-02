@@ -6,6 +6,8 @@ import 'package:fe_app/features/profile/providers/consumption_stats_provider.dar
 import 'package:fe_app/features/profile/providers/monthly_consumption_provider.dart';
 import 'package:fe_app/features/profile/utils/month_display.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -104,7 +106,7 @@ class _MonthlySpendingDetailScreenState
         centerTitle: true,
       ),
       body: record == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const NugulLoadingScreen()
           : RefreshIndicator(
               onRefresh: () async {
                 await Future.wait([
@@ -232,7 +234,7 @@ class _MonthlySpendingDetailScreenState
                               consumptionState.items.isEmpty)
                             const Padding(
                               padding: EdgeInsets.only(bottom: 40),
-                              child: Center(child: CircularProgressIndicator()),
+                              child: LoadingIndicator(compact: true),
                             )
                           else if (consumptionState.items.isEmpty)
                             Padding(

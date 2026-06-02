@@ -1,7 +1,7 @@
+import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
-import 'package:fe_app/core/theme/app_theme.dart';
 
 class LoginButtonSection extends StatelessWidget {
   const LoginButtonSection({
@@ -20,12 +20,7 @@ class LoginButtonSection extends StatelessWidget {
     if (isLoading) {
       return const SizedBox(
         height: 129,
-        child: Center(
-          child: CircularProgressIndicator(
-            color: AppColors.kakao,
-            strokeWidth: 3,
-          ),
-        ),
+        child: LoadingIndicator(compact: true),
       );
     }
 

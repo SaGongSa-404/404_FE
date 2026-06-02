@@ -85,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const WishlistScreen(), exitOnBack: true),
+            _bottomTabPage(state, const LoginScreen(), exitOnBack: true),
       ),
       GoRoute(
         path: '/signup',

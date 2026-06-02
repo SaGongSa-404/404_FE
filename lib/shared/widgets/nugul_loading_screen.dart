@@ -20,14 +20,7 @@ class NugulLoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _NugulLoadingDots(),
-            SizedBox(height: 25 * scale),
-            Image.asset(
-              'assets/images/nugul_loading.png',
-              width: 132 * scale,
-              height: 132 * scale,
-              fit: BoxFit.contain,
-            ),
+            const NugulLoadingIndicator(),
             SizedBox(height: 25 * scale),
             Text(
               message,
@@ -58,14 +51,47 @@ class NugulLoadingScreen extends StatelessWidget {
   }
 }
 
-class _NugulLoadingDots extends StatefulWidget {
-  const _NugulLoadingDots();
+/// 인라인·센터 로딩용 (점 애니메이션 + 너굴 이미지).
+class NugulLoadingIndicator extends StatelessWidget {
+  const NugulLoadingIndicator({
+    super.key,
+    this.imageSize,
+    this.gap,
+  });
+
+  final double? imageSize;
+  final double? gap;
 
   @override
-  State<_NugulLoadingDots> createState() => _NugulLoadingDotsState();
+  Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final resolvedImageSize = imageSize ?? 132 * scale;
+    final resolvedGap = gap ?? 25 * scale;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const NugulLoadingDots(),
+        SizedBox(height: resolvedGap),
+        Image.asset(
+          'assets/images/nugul_loading.png',
+          width: resolvedImageSize,
+          height: resolvedImageSize,
+          fit: BoxFit.contain,
+        ),
+      ],
+    );
+  }
 }
 
-class _NugulLoadingDotsState extends State<_NugulLoadingDots>
+class NugulLoadingDots extends StatefulWidget {
+  const NugulLoadingDots({super.key});
+
+  @override
+  State<NugulLoadingDots> createState() => _NugulLoadingDotsState();
+}
+
+class _NugulLoadingDotsState extends State<NugulLoadingDots>
     with SingleTickerProviderStateMixin {
   static const _dotColors = [
     Color(0xFFDBC4C2),

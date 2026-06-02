@@ -9,6 +9,7 @@ import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/features/profile/providers/my_posts_provider.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_state.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_viewmodel.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -155,7 +156,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
           if (index >= state.posts.length) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 24 * scale),
-              child: const Center(child: CircularProgressIndicator()),
+              child: const Center(child: LoadingIndicator(compact: true)),
             );
           }
           final post = state.posts[index];

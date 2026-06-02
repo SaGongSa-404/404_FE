@@ -17,6 +17,30 @@ abstract final class EnvConfig {
         '.env 파일을 확인해 주세요.',
       );
     }
+
+    if (kDebugMode && _needsLanHostForPhysicalDevice) {
+      final lan = apiLanHost;
+      if (lan == null || lan.isEmpty) {
+        throw StateError(
+          '실기기 + localhost API 사용 시 API_LAN_HOST가 필요합니다.\n'
+          'Mac IP 확인: ipconfig getifaddr en0\n'
+          '예: API_LAN_HOST=192.168.0.10 (API_BASE_URL은 127.0.0.1·localhost 유지)\n'
+          'Cloudflare 등 공개 URL이면 API_LAN_HOST 없이 API_BASE_URL만 설정하세요.',
+        );
+      }
+    }
+  }
+
+  static bool get _needsLanHostForPhysicalDevice {
+    if (!_useLanHostOnDevice) return false;
+    final raw = dotenv.env['API_BASE_URL']?.trim() ?? '';
+    return raw.contains('127.0.0.1') || raw.contains('localhost');
+  }
+
+  /// 실기기 테스트용 Mac Wi‑Fi IP. USB만으로는 localhost가 Mac을 가리키지 않음.
+  static String? get apiLanHost {
+    final value = dotenv.env['API_LAN_HOST']?.trim();
+    return value != null && value.isNotEmpty ? value : null;
   }
 
   static String get apiBaseUrl {
@@ -24,11 +48,33 @@ abstract final class EnvConfig {
     if (value == null || value.isEmpty) {
       throw StateError('API_BASE_URL is required. Check your .env file.');
     }
-    // Android 에뮬 전용 10.0.2.2 → iOS 시뮬·macOS 에서는 localhost 로 치환
+    // Android 에뮬: 10.0.2.2 유지. iOS 시뮬·macOS: localhost 치환.
     if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
       value = value.replaceAll('10.0.2.2', '127.0.0.1');
     }
+    // iOS·Android 실기기: localhost → API_LAN_HOST
+    final lanHost = apiLanHost;
+    if (lanHost != null && _useLanHostOnDevice) {
+      value = value
+          .replaceAll('127.0.0.1', lanHost)
+          .replaceAll('localhost', lanHost);
+    }
     return value.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static bool get _isIosSimulator {
+    if (kIsWeb || !Platform.isIOS) return false;
+    return Platform.environment['SIMULATOR_DEVICE_NAME'] != null;
+  }
+
+  static bool get _useLanHostOnDevice {
+    if (kIsWeb) return false;
+    if (Platform.isIOS) return !_isIosSimulator;
+    if (Platform.isAndroid) {
+      final raw = dotenv.env['API_BASE_URL']?.trim() ?? '';
+      return !raw.contains('10.0.2.2');
+    }
+    return false;
   }
 
   static String? get kakaoNativeAppKey {
