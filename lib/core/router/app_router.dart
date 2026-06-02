@@ -27,6 +27,7 @@ import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_result_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_screen.dart';
+import 'package:fe_app/features/wishlist/views/wishlist_item_entry_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
@@ -85,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const WishlistScreen(), exitOnBack: true),
+            _bottomTabPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -144,6 +145,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'reflect',
             builder: (context, state) => WishlistReflectScreen(
               itemId: state.uri.queryParameters['id'],
+            ),
+          ),
+          GoRoute(
+            path: 'item',
+            builder: (context, state) => WishlistItemEntryScreen(
+              itemId: state.uri.queryParameters['id'] ?? '',
             ),
           ),
         ],
@@ -276,7 +283,6 @@ class _RouterNotifier extends ChangeNotifier {
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
 
-    // 로그인 완료 + 스플래시 또는 인증 페이지 → onboardingStatus 확인 후 분기
     if (isLoggedIn && (location == '/' || isAuthPage)) {
       final isCompleted =
           authState.value?.onboardingStatus == 'COMPLETED';
