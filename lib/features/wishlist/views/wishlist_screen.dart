@@ -189,10 +189,6 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     final showInitialLoading =
         state.isLoading && !state.isAddWishOpen && editingItem == null;
 
-    if (showInitialLoading) {
-      return const Scaffold(body: LoadingIndicator(message: '로딩 중...'));
-    }
-
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -297,10 +293,12 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                               children: [
                                 Expanded(
                                   child: filteredItems.isEmpty
-                                      ? EmptyWishlistView(
-                                          onLearnHow: () =>
-                                              context.push('/tutorial'),
-                                        )
+                                      ? (showInitialLoading
+                                          ? const LoadingIndicator()
+                                          : EmptyWishlistView(
+                                              onLearnHow: () =>
+                                                  context.push('/tutorial'),
+                                            ))
                                       : NotificationListener<ScrollNotification>(
                                           onNotification: (notification) {
                                             if (notification.metrics.extentAfter > 200 * scale) {
@@ -325,16 +323,10 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                             itemBuilder: (context, index) {
                                               if (index >= filteredItems.length) {
                                                 return Padding(
-                                                  padding: EdgeInsets.symmetric(vertical: 16 * scale),
-                                                  child: Center(
-                                                    child: SizedBox(
-                                                      width: 24 * scale,
-                                                      height: 24 * scale,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2 * scale,
-                                                        color: AppColors.skyBlue_300,
-                                                      ),
-                                                    ),
+                                                  padding: EdgeInsets.symmetric(
+                                                      vertical: 16 * scale),
+                                                  child: const LoadingIndicator(
+                                                    compact: true,
                                                   ),
                                                 );
                                               }

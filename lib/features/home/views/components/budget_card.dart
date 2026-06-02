@@ -2,6 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,7 +32,7 @@ class BudgetCard extends ConsumerWidget {
     if (statsState.isLoading && current == null) {
       return SizedBox(
         height: 120 * scale,
-        child: const Center(child: CircularProgressIndicator()),
+        child: const Center(child: LoadingIndicator(compact: true)),
       );
     }
 

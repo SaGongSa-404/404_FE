@@ -13,6 +13,8 @@ import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -136,7 +138,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Widget _buildBody(BuildContext context, FeedState state, FeedViewModel vm,
       double scale) {
     if (state.isLoading && state.posts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const NugulLoadingScreen();
     }
     if (state.errorMessage != null && state.posts.isEmpty) {
       return Center(
@@ -190,7 +192,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           if (index >= state.posts.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
+              child: LoadingIndicator(compact: true),
             );
           }
           final post = state.posts[index];

@@ -8,6 +8,7 @@ import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,7 +93,7 @@ class _ConsumptionManagementScreenState
     double scale,
   ) {
     if (statsState.isLoading && current == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const NugulLoadingScreen();
     }
 
     if (current == null) {
