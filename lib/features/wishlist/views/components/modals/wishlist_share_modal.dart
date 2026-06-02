@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -18,52 +19,53 @@ class _WishlistShareModalPanel extends StatelessWidget {
   final VoidCallback? onConfirm;
 
   static const Color _cancelButtonBg = AppColors.grey;
-  static const double _radius = 22;
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(_radius),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(22 * scale),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 37,
-            offset: Offset(0, 8),
+            color: const Color(0x33000000),
+            blurRadius: 37 * scale,
+            offset: Offset(0, 8 * scale),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 31, 24, 31),
+        padding: EdgeInsets.fromLTRB(24 * scale, 31 * scale, 24 * scale, 31 * scale),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '피드에 공유하시겠습니까?',
               textAlign: TextAlign.left,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w600,
-                fontSize: 20,
+                fontSize: 20 * scale,
                 height: 1.35,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12 * scale),
+            Text(
               '위시리스트를 공유하고 여러 사람들에게 조언을 구해보세요!',
               textAlign: TextAlign.left,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                fontSize: 16,
+                fontSize: 16 * scale,
                 height: 1.35,
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 27),
+            SizedBox(height: 27 * scale),
             Row(
               children: [
                 Expanded(
@@ -75,7 +77,7 @@ class _WishlistShareModalPanel extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10 * scale),
                 Expanded(
                   child: WishlistModalPillButton(
                     label: '공유하기',

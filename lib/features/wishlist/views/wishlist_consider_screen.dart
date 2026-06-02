@@ -1,291 +1,312 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/wishlist/models/deliberation/deliberation_detail.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_budget_card.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_product_header.dart';
-import 'package:fe_app/features/wishlist/views/components/consider_result_card.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_budget_card.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_checklist.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_insight_cards.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_product_header.dart';
+import 'package:fe_app/features/wishlist/views/components/consider/consider_result_card.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class WishlistConsiderScreen extends ConsumerWidget {
-  const WishlistConsiderScreen({super.key});
+  const WishlistConsiderScreen({
+    super.key,
+    required this.itemId,
+  });
+
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppColors.textPrimary,
-            size: 18,
-          ),
-          onPressed: () {
-            ref.read(considerViewModelProvider.notifier).reset();
-            context.pop();
-          },
+    final scale = responsiveScale(context);
+    final state = ref.watch(considerViewModelProvider(itemId));
+
+    ref.listen<ConsiderState>(considerViewModelProvider(itemId), (prev, next) {
+      final loadMessage = next.errorMessage;
+      if (loadMessage != null &&
+          loadMessage.isNotEmpty &&
+          prev?.errorMessage != loadMessage) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: loadMessage,
+          );
+          context.pop();
+        });
+      }
+
+      final submitMessage = next.submitErrorMessage;
+      if (submitMessage != null &&
+          submitMessage.isNotEmpty &&
+          prev?.submitErrorMessage != submitMessage) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          ref.read(considerViewModelProvider(itemId).notifier).clearSubmitError();
+          showCapsuleToast(
+            context,
+            backgroundColor: const Color(0xFFD46868),
+            text: submitMessage,
+          );
+        });
+      }
+    });
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: _buildAppBar(context, scale),
+          body: _buildBody(context, scale, state),
         ),
-        title: Text(
-          '살까 말까',
-          style: AppTextStyles.heading.copyWith(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+        if (state.isSubmitting)
+          ColoredBox(
+            color: const Color(0x99000000),
+            child: LoadingIndicator(message: '결정 저장 중...'),
+          ),
+      ],
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, double scale) {
+    return AppBar(
+      backgroundColor: AppColors.background,
+      elevation: 0,
+      toolbarHeight: 56 * scale,
+      leadingWidth: 72 * scale,
+      leading: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.pop(),
+        child: Padding(
+          padding: EdgeInsets.only(left: 16 * scale),
+          child: Row(
+            children: [
+              Icon(
+                Icons.arrow_back_ios_new,
+                size: 16 * scale,
+                color: AppColors.brown,
+              ),
+              SizedBox(width: 4 * scale),
+              Text(
+                '위시',
+                style: TextStyle(
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.brown,
+                ),
+              ),
+            ],
           ),
         ),
-        centerTitle: true,
       ),
-      body: const SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            ConsiderProductHeader(),
-            Divider(thickness: 1, color: AppColors.grey, indent: 24, endIndent: 24),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConsiderBudgetCard(),
-            ),
-            SizedBox(height: 20),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderChecklistBody(),
-            ),
-            SizedBox(height: 32),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ConsiderResultCard(),
-            ),
-            SizedBox(height: 40),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: _BottomActionButtons(),
-            ),
-            SizedBox(height: 40),
-          ],
+      title: Text(
+        '너굴과 위시 고민',
+        style: TextStyle(
+          fontSize: 20 * scale,
+          fontWeight: FontWeight.w600,
+          color: AppColors.brown,
+        ),
+      ),
+      centerTitle: true,
+    );
+  }
+
+  Widget _buildBody(BuildContext context, double scale, ConsiderState state) {
+    if (state.isLoading) {
+      return const LoadingIndicator(message: '불러오는 중...');
+    }
+
+    if (state.errorMessage != null) {
+      return const SizedBox.shrink();
+    }
+
+    final detail = state.detail;
+    if (detail == null) {
+      return const LoadingIndicator(message: '불러오는 중...');
+    }
+
+    final categoryLabel = WishlistCategoryUi.toUiLabel(detail.item.category);
+    final rawAdded =
+        detail.budget.projectedSpentAmount - detail.budget.spentAmount;
+    final addedAmount = rawAdded > 0 ? rawAdded : 0;
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(24 * scale, 18 * scale, 24 * scale, 40 * scale),
+          child: Column(
+            children: [
+              ConsiderProductHeader(
+                title: detail.item.title,
+                price: detail.item.listedPrice,
+                category: categoryLabel,
+                imageUrl: detail.item.imageUrl,
+              ),
+              SizedBox(height: 12 * scale),
+              ConsiderBudgetCard(
+                totalBudget: detail.budget.monthlyBudgetAmount,
+                currentSpent: detail.budget.spentAmount,
+                addedAmount: addedAmount,
+                budgetPercent: state.budgetPercent,
+                statusLabel: deliberationBudgetStatusLabel(
+                  detail.budget.projectedUsageRate,
+                ),
+              ),
+              SizedBox(height: 12 * scale),
+              ConsiderInsightCards(
+                opportunityCostValue:
+                    '${formatDeliberationPrice(detail.item.listedPrice)}원',
+                opportunityCostDescription: detail.opportunityCostMessage,
+                spendingHistoryValue:
+                    '${formatDeliberationPrice(detail.similarCategorySpendAmount)}원',
+                spendingHistoryDescription: _similarCategorySpendDescription(
+                  categoryLabel,
+                  detail.similarCategorySpendAmount,
+                ),
+              ),
+              SizedBox(height: 40 * scale),
+              ConsiderChecklist(itemId: itemId),
+              SizedBox(height: 40 * scale),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFC3C3C3),
+              ),
+              SizedBox(height: 26 * scale),
+              ConsiderResultCard(itemId: itemId),
+              SizedBox(height: 24 * scale),
+              _BottomActionButtons(scale: scale, itemId: itemId),
+              SizedBox(height: 40 * scale),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  String _similarCategorySpendDescription(String categoryLabel, int amount) {
+    if (amount <= 0) {
+      return '지난 달 $categoryLabel\n구매 이력이 없어요';
+    }
+    return '지난 달 $categoryLabel\n카테고리 소비 금액';
+  }
 }
 
 class _BottomActionButtons extends ConsumerWidget {
-  const _BottomActionButtons();
+  const _BottomActionButtons({
+    required this.scale,
+    required this.itemId,
+  });
+
+  final double scale;
+  final String itemId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
+    final state = ref.watch(considerViewModelProvider(itemId));
 
     return Row(
       children: [
         Expanded(
           child: GestureDetector(
-            onTap: () {
-              if (!state.isAllAnswered) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
-              final resultCase = ref
-                  .read(considerViewModelProvider.notifier)
-                  .recordDecision(PurchaseDecision.refrain);
-              context.push('/wishlist/consider/result', extra: resultCase);
-            },
+            onTap: state.isSubmitting
+                ? null
+                : () => _submit(
+                      context,
+                      ref,
+                      PurchaseDecision.purchase,
+                    ),
             child: Container(
-              height: 56,
+              height: 61 * scale,
               decoration: BoxDecoration(
                 color: AppColors.white,
-                border: Border.all(color: AppColors.grey, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text(
-                  '참을게요',
-                  style: AppTextStyles.button.copyWith(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              if (!state.isAllAnswered) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('1~4번 질문에 모두 답변해 주세요.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              // ViewModel에서 계산된 정확한 케이스 타입을 직접 받아옵니다.
-              final resultCase = ref
-                  .read(considerViewModelProvider.notifier)
-                  .recordDecision(PurchaseDecision.purchase);
-              context.push('/wishlist/consider/result', extra: resultCase);
-            },
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.skyBlue_000_clicked,
-                border: Border.all(color: AppColors.skyBlue_300, width: 2),
-                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.skyBlue_100, width: 1),
+                borderRadius: BorderRadius.circular(100 * scale),
               ),
               child: Center(
                 child: Text(
                   '살게요',
-                  style: AppTextStyles.button.copyWith(
-                    fontSize: 16,
-                    color: AppColors.skyBlue_300,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class ConsiderChecklistBody extends ConsumerWidget {
-  const ConsiderChecklistBody({super.key});
-
-  static const List<String> _questions = [
-    '1. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '2. \'세일 중\'이라서, 혹은 \'마지막 수량\'이라서 조급함을 느끼고 있지는 않은가요?',
-    '3. 이미 집에 이것과 비슷하게 대체할 수 있는 물건이 있나요?',
-    '4. 지금 내 기분이 우울하거나, 피곤하거나, 혹은 너무 들떠있어서 사고 싶은 건 아닌가요?',
-  ];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(considerViewModelProvider);
-    final viewModel = ref.read(considerViewModelProvider.notifier);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...List.generate(_questions.length, (index) {
-          final question = _questions[index];
-          final currentAnswer = state.answers[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  question,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 20 * scale,
                     fontWeight: FontWeight.w500,
-                    height: 1.4,
-                    color: AppColors.textPrimary,
+                    color: const Color(0xFF333333),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildAnswerButton(viewModel, index, 'Yes', true, currentAnswer == true),
-                    const SizedBox(width: 12),
-                    _buildAnswerButton(viewModel, index, 'No', false, currentAnswer == false),
-                  ],
-                ),
-              ],
-            ),
-          );
-        }),
-        if (state.shouldShowWarning) _buildWarningBanner(),
-      ],
-    );
-  }
-
-  Widget _buildAnswerButton(
-      ConsiderViewModel vm,
-      int index,
-      String label,
-      bool value,
-      bool isSelected,
-      ) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => vm.setAnswer(index, value),
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.grey : AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.textPrimary : AppColors.grey,
-              width: 1,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
               ),
             ),
           ),
         ),
-      ),
+        SizedBox(width: 12 * scale),
+        Expanded(
+          child: GestureDetector(
+            onTap: state.isSubmitting
+                ? null
+                : () => _submit(
+                      context,
+                      ref,
+                      PurchaseDecision.refrain,
+                    ),
+            child: Container(
+              height: 61 * scale,
+              decoration: BoxDecoration(
+                color: AppColors.skyBlue_100,
+                borderRadius: BorderRadius.circular(100 * scale),
+              ),
+              child: Center(
+                child: Text(
+                  '참을게요',
+                  style: TextStyle(
+                    fontSize: 20 * scale,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF333333),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildWarningBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEB),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.red_100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🚨', style: TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Text(
-                '잠깐요!',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.red_400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '답변을 보니 지금 이 구매,\n충동적일 수 있어요.',
-            style: AppTextStyles.body.copyWith(
-              fontSize: 13,
-              color: AppColors.textPrimary,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+  Future<void> _submit(
+    BuildContext context,
+    WidgetRef ref,
+    PurchaseDecision decision,
+  ) async {
+    final state = ref.read(considerViewModelProvider(itemId));
+    if (!state.isAllAnswered) {
+      _showAnswerRequiredToast(context, state.totalQuestions);
+      return;
+    }
+
+    final response = await ref
+        .read(considerViewModelProvider(itemId).notifier)
+        .submitDecision(decision);
+    if (!context.mounted || response == null) return;
+
+    context.push(
+      '/wishlist/consider/$itemId/result',
+      extra: response,
+    );
+  }
+
+  void _showAnswerRequiredToast(BuildContext context, int questionCount) {
+    showCapsuleToast(
+      context,
+      backgroundColor: AppColors.red_600,
+      text: questionCount > 0
+          ? '1~$questionCount번 질문에 모두 답변해 주세요.'
+          : '질문에 모두 답변해 주세요.',
     );
   }
 }

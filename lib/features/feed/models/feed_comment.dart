@@ -8,6 +8,7 @@ class FeedComment with _$FeedComment {
   const factory FeedComment({
     required String id,
     required String body,
+    required String authorUserId,
     required String authorNickname,
     required DateTime createdAt,
     @Default(false) bool mine,

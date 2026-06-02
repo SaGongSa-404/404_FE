@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
 class EmptyWishlistView extends StatelessWidget {
@@ -13,57 +14,59 @@ class EmptyWishlistView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return ColoredBox(
       color: _screenBg,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20 * scale),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 161,
-                height: 154,
+                width: 161 * scale,
+                height: 154 * scale,
                 child: Image.asset(
                   'assets/images/nugul_empty.png',
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20 * scale),
               Text(
                 '갖고 싶은 게 생겼나요?',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: _titleColor,
-                      fontSize: 18,
+                      fontSize: 18 * scale,
                       height: 1.25,
                     ) ??
-                    const TextStyle(
-                      fontSize: 18,
+                    TextStyle(
+                      fontSize: 18 * scale,
                       fontWeight: FontWeight.w600,
                       color: _titleColor,
                       height: 1.25,
                     ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14 * scale),
               Text(
                 '바로 사기 전에, 여기 담아두고\n정말로 필요한 소비인지 확인해봐요',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      fontSize: 16,
+                      fontSize: 16 * scale,
                       height: 1.55,
                       color: _subtitleColor,
                     ) ??
-                    const TextStyle(
-                      fontSize: 16,
+                    TextStyle(
+                      fontSize: 16 * scale,
                       fontWeight: FontWeight.w500,
                       height: 1.55,
                       color: _subtitleColor,
                     ),
               ),
-              const SizedBox(height: 27),
+              SizedBox(height: 27 * scale),
               SizedBox(
                 width: double.infinity,
                 child: Align(
@@ -72,31 +75,31 @@ class EmptyWishlistView extends StatelessWidget {
                     child: Material(
                       color: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(34),
+                        borderRadius: BorderRadius.circular(34 * scale),
                         side: const BorderSide(color: _buttonBorder, width: 1.68),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
                         onTap: onLearnHow ?? () {},
-                        borderRadius: BorderRadius.circular(34),
+                        borderRadius: BorderRadius.circular(34 * scale),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 22),
+                          padding: EdgeInsets.symmetric(horizontal: 22 * scale),
                           child: SizedBox(
-                            height: 48,
+                            height: 48 * scale,
                             child: Center(
                               child: Transform.translate(
-                                offset: const Offset(0, 2),
+                                offset: Offset(0, 2 * scale),
                                 child: Text(
                                   '담는 방법 보러가기',
-                                  strutStyle: const StrutStyle(
-                                    fontSize: 18,
+                                  strutStyle: StrutStyle(
+                                    fontSize: 18 * scale,
                                     fontWeight: FontWeight.w500,
                                     height: 1.0,
                                     leading: 0,
                                     forceStrutHeight: true,
                                   ),
-                                  style: const TextStyle(
-                                    fontSize: 18,
+                                  style: TextStyle(
+                                    fontSize: 18 * scale,
                                     fontWeight: FontWeight.w500,
                                     height: 1.0,
                                     color: _titleColor,

@@ -60,3 +60,10 @@ Thumbs.db
 *.freezed.dart
 build/
 .flutter-plugins
+
+# Flutter generated plugin registrants (desktop; iOS/Android는 각 플랫폼 .gitignore)
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/windows/flutter/generated_plugin_registrant.*
+**/windows/flutter/generated_plugins.cmake
+**/linux/flutter/generated_plugin_registrant.*
+**/linux/flutter/generated_plugins.cmake

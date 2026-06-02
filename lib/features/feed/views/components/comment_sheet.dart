@@ -59,23 +59,39 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
     return false;
   }
 
-  Future<void> _handleCommentOption(String commentId, bool isMyComment, String authorNickname) async {
+  Future<void> _handleCommentOption(
+    String commentId,
+    bool isMyComment,
+    String authorUserId,
+  ) async {
     final result = await showCommentOptionModal(context, isMyComment: isMyComment);
     if (!mounted) return;
     if (result == 'delete') {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
       _triggerToast('삭제되었습니다');
     } else if (result == 'report') {
-      final reported = await showReportModal(context);
+      final reason = await showReportModal(context);
+      if (!mounted || reason == null) return;
+      final ok = await ref
+          .read(feedProvider.notifier)
+          .reportComment(widget.postId, commentId, reason);
       if (!mounted) return;
-      if (reported) _triggerToast('신고가 완료되었습니다');
+      if (ok) _triggerToast('신고가 완료되었습니다');
     } else if (result == 'block') {
       final blocked = await showBlockModal(context);
-      if (!mounted) return;
-      if (blocked) {
-        ref.read(feedProvider.notifier).blockUser(authorNickname);
-        _triggerToast('차단되었습니다');
+      if (!mounted || !blocked) return;
+      final ok = await ref
+          .read(feedProvider.notifier)
+          .blockUser(authorUserId: authorUserId);
+      if (!mounted || !ok) return;
+      // 이 글의 작성자를 차단했다면 글이 사라지므로 댓글 시트를 닫습니다.
+      final postGone =
+          !ref.read(feedProvider).posts.any((p) => p.id == widget.postId);
+      if (postGone) {
+        Navigator.of(context).pop();
+        return;
       }
+      _triggerToast('차단되었습니다');
     }
   }
 
@@ -177,7 +193,7 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
                                   onOption: () => _handleCommentOption(
                                     comments[index].id,
                                     comments[index].mine,
-                                    comments[index].authorNickname,
+                                    comments[index].authorUserId,
                                   ),
                                 );
                               },

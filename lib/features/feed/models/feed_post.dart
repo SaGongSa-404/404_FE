@@ -11,6 +11,7 @@ class FeedPost with _$FeedPost {
   const factory FeedPost({
     required String id,
     required String authorNickname,
+    required String authorUserId,
     String? title,
     String? body,
     String? imageUrl,
@@ -23,7 +24,6 @@ class FeedPost with _$FeedPost {
     @Default(false) bool linkAvailable,
     required DateTime createdAt,
     @Default(false) bool mine,
-    String? latestCommentText,
   }) = _FeedPost;
 
   factory FeedPost.fromJson(Map<String, dynamic> json) =>

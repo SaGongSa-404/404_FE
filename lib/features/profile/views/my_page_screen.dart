@@ -2,7 +2,11 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/profile/providers/profile_provider.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:fe_app/features/profile/providers/notification_settings_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,10 +31,47 @@ class MyPageScreen extends ConsumerStatefulWidget {
 
 class _MyPageScreenState extends ConsumerState<MyPageScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(myProfileProvider.notifier).load(force: true);
+      ref.read(notificationSettingsProvider.notifier).load();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final profile = ref.watch(profileNotifierProvider);
+    final myProfile = ref.watch(myProfileProvider);
     final notificationSettings = ref.watch(notificationSettingsProvider);
+
+    ref.listen(authProvider, (prev, next) {
+      if (next.hasValue &&
+          next.value != null &&
+          prev?.valueOrNull == null) {
+        ref.read(myProfileProvider.notifier).load(force: true);
+      }
+    });
+
+    ref.listen<MyProfileState>(myProfileProvider, (prev, next) {
+      if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: next.errorMessage!,
+        );
+      }
+    });
+
+    ref.listen<NotificationSettingsState>(notificationSettingsProvider, (prev, next) {
+      if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: next.errorMessage!,
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -68,7 +109,9 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                           ),
                           children: [
                             TextSpan(
-                              text: profile.nickname,
+                              text: myProfile.isLoading && myProfile.nickname.isEmpty
+                                  ? '...'
+                                  : myProfile.nickname,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18 * scale,
@@ -135,7 +178,10 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                         onTap: () => context.push('/my/terms'),
                       ),
                       SizedBox(height: 12 * scale),
-                      _buildAlarmToggle(scale, notificationSettings.enabled),
+                      _buildAlarmToggle(
+                        scale,
+                        notificationSettings: notificationSettings,
+                      ),
                       SizedBox(height: 40 * scale),
                     ],
                   ),
@@ -194,7 +240,14 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     );
   }
 
-  Widget _buildAlarmToggle(double scale, bool isEnabled) {
+  Widget _buildAlarmToggle(
+    double scale, {
+    required NotificationSettingsState notificationSettings,
+  }) {
+    final isEnabled = notificationSettings.notificationEnabled;
+    final isInteractive =
+        !notificationSettings.isLoading && !notificationSettings.isUpdating;
+
     return Container(
       height: 60 * scale,
       padding: EdgeInsets.symmetric(horizontal: 24 * scale),
@@ -217,9 +270,9 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           ),
           const Spacer(),
           GestureDetector(
-            onTap: () {
-              ref.read(notificationSettingsProvider.notifier).setEnabled(!isEnabled);
-            },
+            onTap: isInteractive
+                ? () => ref.read(notificationSettingsProvider.notifier).toggle()
+                : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 44 * scale,

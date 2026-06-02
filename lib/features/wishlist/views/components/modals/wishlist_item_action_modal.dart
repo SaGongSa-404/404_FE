@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -42,35 +43,36 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
   static const Color _deleteMenuButtonBg = AppColors.grey;
   static const Color _cancelButtonBg = AppColors.grey;
   static const Color _confirmDeleteButtonBg = Color(0xFFD46868);
-  static const double _radius = 22;
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(_radius),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(22 * scale),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 37,
-            offset: Offset(0, 8),
+            color: const Color(0x33000000),
+            blurRadius: 37 * scale,
+            offset: Offset(0, 8 * scale),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 31, 24, 31),
+        padding: EdgeInsets.fromLTRB(24 * scale, 31 * scale, 24 * scale, 31 * scale),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           switchInCurve: Curves.easeOut,
           switchOutCurve: Curves.easeIn,
-          child: _page == _ActionModalPage.menu ? _buildMenuPage() : _buildConfirmDeletePage(),
+          child: _page == _ActionModalPage.menu ? _buildMenuPage(scale) : _buildConfirmDeletePage(scale),
         ),
       ),
     );
   }
 
-  Widget _buildMenuPage() {
+  Widget _buildMenuPage(double scale) {
     return Column(
       key: const ValueKey<String>('menu'),
       mainAxisSize: MainAxisSize.min,
@@ -87,7 +89,7 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
               widget.onEdit!();
             },
           ),
-        if (widget.onEdit != null && widget.onDelete != null) const SizedBox(height: 12),
+        if (widget.onEdit != null && widget.onDelete != null) SizedBox(height: 12 * scale),
         if (widget.onDelete != null)
           WishlistModalPillButton(
             label: '삭제하기',
@@ -100,36 +102,36 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
     );
   }
 
-  Widget _buildConfirmDeletePage() {
+  Widget _buildConfirmDeletePage(double scale) {
     return Column(
       key: const ValueKey<String>('confirm'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '위시리스트에서\n정말 삭제하실 건가요?',
           textAlign: TextAlign.left,
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 20 * scale,
             height: 1.35,
             color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 12),
-        const Text(
+        SizedBox(height: 12 * scale),
+        Text(
           '한 번 삭제된 위시리스트는 되돌릴 수 없어요',
           textAlign: TextAlign.left,
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
-            fontSize: 16,
+            fontSize: 16 * scale,
             height: 1.35,
             color: AppColors.textSecondary,
           ),
         ),
-        const SizedBox(height: 27),
+        SizedBox(height: 27 * scale),
         Row(
           children: [
             Expanded(
@@ -141,7 +143,7 @@ class _WishlistItemActionModalPanelState extends State<_WishlistItemActionModalP
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10 * scale),
             Expanded(
               child: WishlistModalPillButton(
                 label: '삭제하기',

@@ -11,6 +11,8 @@ import 'package:fe_app/features/home/services/home_bubble_engine.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
+import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
+import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
@@ -241,6 +243,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (evaluation == null) return;
 
     await _presentBubbleEvaluation(evaluation);
+  @override
+  void initState() {
+    super.initState();
+    _currentMessage = _safeMessages[0];
+    _currentVideoPath = _getDefaultVideoPath(false);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(consumptionStatsProvider.notifier).load();
+    });
   }
 
   @override
@@ -264,6 +275,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final authUser = ref.watch(authProvider).valueOrNull;
 
     final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
+    final statsState = ref.watch(consumptionStatsProvider);
+    final currentRecord = statsState.currentMonthStats;
+    final isExceeded = currentRecord?.isExceeded ?? false;
+
+    final remainingBudget = currentRecord == null
+        ? 1
+        : currentRecord.budgetAmount - currentRecord.spentAmount;
+    final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
 
     final specialState = ref.watch(homeSpecialEffectProvider);

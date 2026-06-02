@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,6 +19,8 @@ class WishlistProductFetchFailedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -27,61 +30,65 @@ class WishlistProductFetchFailedScreen extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
-                padding: const EdgeInsets.only(left: 8, right: 8),
+                padding: EdgeInsets.only(left: 8 * scale, right: 8 * scale),
                 onPressed: onBack ?? () => context.pop(),
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
+                icon: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.black,
+                  size: 18 * scale,
+                ),
               ),
             ),
             Expanded(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * scale),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 101,
-                        height: 126.33559,
+                        width: 101 * scale,
+                        height: 126.33559 * scale,
                         child: Image.asset(
                           'assets/images/warn.png',
                           fit: BoxFit.contain,
                         ),
                       ),
-                      const SizedBox(height: 25),
+                      SizedBox(height: 25 * scale),
                       Text(
                         '상품 정보를 가져오지 못했어요',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: _titleColor,
-                              fontSize: 18,
+                              fontSize: 18 * scale,
                               height: 1.25,
                             ) ??
-                            const TextStyle(
-                              fontSize: 18,
+                            TextStyle(
+                              fontSize: 18 * scale,
                               fontWeight: FontWeight.w600,
                               color: _titleColor,
                               height: 1.25,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8 * scale),
                       Text(
                         '직접 입력해서\n솜사탕을 만들어봐요!',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                              fontSize: 16 * scale,
                               height: 1.55,
                               color: _subtitleColor,
                             ) ??
-                            const TextStyle(
-                              fontSize: 16,
+                            TextStyle(
+                              fontSize: 16 * scale,
                               fontWeight: FontWeight.w500,
                               height: 1.55,
                               color: _subtitleColor,
                             ),
                       ),
-                      const SizedBox(height: 55),
+                      SizedBox(height: 55 * scale),
                       SizedBox(
                         width: double.infinity,
                         child: Align(
@@ -90,31 +97,36 @@ class WishlistProductFetchFailedScreen extends StatelessWidget {
                             child: Material(
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(34),
-                                side: const BorderSide(color: _buttonBorder, width: 1.68),
+                                borderRadius: BorderRadius.circular(34 * scale),
+                                side: BorderSide(
+                                  color: _buttonBorder,
+                                  width: 1.68 * scale,
+                                ),
                               ),
                               clipBehavior: Clip.antiAlias,
                               child: InkWell(
                                 onTap: onManualInput,
-                                borderRadius: BorderRadius.circular(34),
+                                borderRadius: BorderRadius.circular(34 * scale),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 22 * scale,
+                                  ),
                                   child: SizedBox(
-                                    height: 48,
+                                    height: 48 * scale,
                                     child: Center(
                                       child: Transform.translate(
-                                        offset: const Offset(0, 2),
+                                        offset: Offset(0, 2 * scale),
                                         child: Text(
                                           '직접 입력하기',
-                                          strutStyle: const StrutStyle(
-                                            fontSize: 18,
+                                          strutStyle: StrutStyle(
+                                            fontSize: 18 * scale,
                                             fontWeight: FontWeight.w500,
                                             height: 1.0,
                                             leading: 0,
                                             forceStrutHeight: true,
                                           ),
-                                          style: const TextStyle(
-                                            fontSize: 18,
+                                          style: TextStyle(
+                                            fontSize: 18 * scale,
                                             fontWeight: FontWeight.w500,
                                             height: 1.0,
                                             color: _titleColor,

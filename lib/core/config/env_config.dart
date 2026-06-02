@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// `.env` 값을 읽는 단일 진입점.
@@ -17,15 +20,13 @@ abstract final class EnvConfig {
   }
 
   static String get apiBaseUrl {
-    const dartDefine = String.fromEnvironment('BASE_URL');
-    final fromDefine = dartDefine.trim();
-    if (fromDefine.isNotEmpty) {
-      return fromDefine.replaceAll(RegExp(r'/+$'), '');
-    }
-
-    final value = dotenv.env['API_BASE_URL']?.trim();
+    var value = dotenv.env['API_BASE_URL']?.trim();
     if (value == null || value.isEmpty) {
       throw StateError('BASE_URL or API_BASE_URL is required.');
+    }
+    // Android 에뮬 전용 10.0.2.2 → iOS 시뮬·macOS 에서는 localhost 로 치환
+    if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+      value = value.replaceAll('10.0.2.2', '127.0.0.1');
     }
     return value.replaceAll(RegExp(r'/+$'), '');
   }

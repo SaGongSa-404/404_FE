@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
@@ -8,6 +9,7 @@ import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/circle_icon_label.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_item_form_panel.dart';
 import 'package:fe_app/features/wishlist/views/components/item/wishlist_item_card.dart';
 import 'package:fe_app/features/wishlist/views/components/list/wishlist_category_filter.dart';
@@ -33,17 +35,6 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     });
   }
 
-  static const TextStyle _wishlistCountStyle = TextStyle(
-    fontSize: 27,
-    fontWeight: FontWeight.w600,
-    color: AppColors.skyBlue_300,
-  );
-  static const TextStyle _wishlistTitleSuffixStyle = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
-
   Future<void> _openAddEntryModal(BuildContext context, WidgetRef ref) async {
     final viewModel = ref.read(wishlistViewModelProvider.notifier);
     await showWishlistAddEntryModal(
@@ -56,6 +47,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
     final ref = this.ref;
     final state = ref.watch(wishlistViewModelProvider);
     final viewModel = ref.read(wishlistViewModelProvider.notifier);
@@ -141,23 +133,24 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (!context.mounted) return;
           viewModel.clearEmptyClipboardAlert();
+          final dialogScale = responsiveScale(context);
           await showDialog<void>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              title: const Text(
+              title: Text(
                 '링크를 붙여넣을 수 없어요',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontSize: 18,
+                  fontSize: 18 * dialogScale,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
               ),
-              content: const Text(
+              content: Text(
                 '클립보드에 복사된 링크가 없어요.\n링크를 복사한 뒤 다시 시도해 주세요.',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontSize: 15,
+                  fontSize: 15 * dialogScale,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textSecondary,
                   height: 1.45,
@@ -166,11 +159,11 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text(
+                  child: Text(
                     '확인',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
-                      fontSize: 16,
+                      fontSize: 16 * dialogScale,
                       fontWeight: FontWeight.w600,
                       color: AppColors.skyBlue_300,
                     ),
@@ -230,23 +223,27 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 16),
+                                      padding: EdgeInsets.only(left: 16 * scale),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           SizedBox(
-                                            height: 40,
+                                            height: 40 * scale,
                                             child: Center(
                                               child: Text(
                                                 '${filteredItems.length}',
-                                                style: _wishlistCountStyle,
+                                                style: TextStyle(
+                                                  fontSize: 27 * scale,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.skyBlue_300,
+                                                ),
                                                 textHeightBehavior: const TextHeightBehavior(
                                                   applyHeightToFirstAscent: false,
                                                   applyHeightToLastDescent: false,
@@ -254,13 +251,17 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(width: 1),
+                                          SizedBox(width: 1 * scale),
                                           SizedBox(
-                                            height: 40,
+                                            height: 40 * scale,
                                             child: Center(
                                               child: Text(
                                                 '개의 위시리스트',
-                                                style: _wishlistTitleSuffixStyle,
+                                                style: TextStyle(
+                                                  fontSize: 20 * scale,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textPrimary,
+                                                ),
                                                 textHeightBehavior: const TextHeightBehavior(
                                                   applyHeightToFirstAscent: false,
                                                   applyHeightToLastDescent: false,
@@ -272,7 +273,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.only(right: 8),
+                                      padding: EdgeInsets.only(right: 8 * scale),
                                       child: AlarmButton(
                                         onPressed: () => context.push('/notifications'),
                                       ),
@@ -280,10 +281,10 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 16),
-                                child: CategoryFilter(),
+                              SizedBox(height: 8 * scale),
+                              Padding(
+                                padding: EdgeInsets.only(bottom: 16 * scale),
+                                child: const CategoryFilter(),
                               ),
                             ],
                           ),
@@ -302,7 +303,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                         )
                                       : NotificationListener<ScrollNotification>(
                                           onNotification: (notification) {
-                                            if (notification.metrics.extentAfter > 200) {
+                                            if (notification.metrics.extentAfter > 200 * scale) {
                                               return false;
                                             }
                                             if (notification is! ScrollUpdateNotification &&
@@ -316,21 +317,21 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                             physics: const BouncingScrollPhysics(
                                               parent: AlwaysScrollableScrollPhysics(),
                                             ),
-                                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                                            padding: EdgeInsets.fromLTRB(24 * scale, 20 * scale, 24 * scale, 20 * scale),
                                             itemCount: filteredItems.length +
                                                 (state.isLoadingMore ? 1 : 0),
                                             separatorBuilder: (context, index) =>
-                                                const SizedBox(height: 12),
+                                                SizedBox(height: 12 * scale),
                                             itemBuilder: (context, index) {
                                               if (index >= filteredItems.length) {
-                                                return const Padding(
-                                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                                return Padding(
+                                                  padding: EdgeInsets.symmetric(vertical: 16 * scale),
                                                   child: Center(
                                                     child: SizedBox(
-                                                      width: 24,
-                                                      height: 24,
+                                                      width: 24 * scale,
+                                                      height: 24 * scale,
                                                       child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
+                                                        strokeWidth: 2 * scale,
                                                         color: AppColors.skyBlue_300,
                                                       ),
                                                     ),
@@ -340,7 +341,21 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               final item = filteredItems[index];
                                               return WishlistItemCard(
                                                 item: item,
-                                                onTap: () => context.push('/wishlist/consider'),
+                                                onTap: () {
+                                                  if (!item.canOpenDeliberation) {
+                                                    showCapsuleToast(
+                                                      context,
+                                                      backgroundColor:
+                                                          const Color(0xFFD46868),
+                                                      text:
+                                                          '이미 결정된 상품은 숙려 화면을 다시 열 수 없어요.',
+                                                    );
+                                                    return;
+                                                  }
+                                                  context.push(
+                                                    '/wishlist/consider/${item.id}',
+                                                  );
+                                                },
                                                 onLongPress: () => {},
                                                 onEdit: () => viewModel.openEditPanel(item.id),
                                                 onDelete: () async {
@@ -403,7 +418,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
               return ok;
             },
           )
-        else if (state.isAddWishOpen)
+        else if (state.isAddWishOpen && !state.isImportingLink)
           WishlistItemFormPanel.add(
             onClose: viewModel.closeEditPanel,
             onSubmit: (item) async {
@@ -423,6 +438,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
             isImporting: state.isImportingLink,
             isSubmitting: state.isSubmitting,
           ),
+        if (state.isImportingLink)
+          const Positioned.fill(child: NugulLoadingScreen()),
       ],
     );
   }

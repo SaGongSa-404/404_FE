@@ -1,6 +1,7 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +21,27 @@ class BudgetCard extends ConsumerWidget {
         final budget = summary.budget;
         final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
         String format(int val) => val.toString().replaceAllMapped(numberFormat, (m) => ',');
+    final statsState = ref.watch(consumptionStatsProvider);
+    final current = statsState.currentMonthStats;
+
+    final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
+    String format(int val) =>
+        val.toString().replaceAllMapped(numberFormat, (m) => ',');
+
+    if (statsState.isLoading && current == null) {
+      return SizedBox(
+        height: 120 * scale,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (current == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isExceeded = current.isExceeded;
+    final remaining = current.budgetAmount - current.spentAmount;
+    final progress = current.progressFactor;
 
         final isExceeded = budget.isBudgetExhausted || budget.remainingAmount <= 0;
 
