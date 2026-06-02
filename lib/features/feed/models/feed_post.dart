@@ -24,8 +24,6 @@ class FeedPost with _$FeedPost {
     @Default(false) bool linkAvailable,
     required DateTime createdAt,
     @Default(false) bool mine,
-    // ignore: invalid_annotation_target
-    @JsonKey(name: 'latestComment') String? latestCommentText,
   }) = _FeedPost;
 
   factory FeedPost.fromJson(Map<String, dynamic> json) =>

@@ -10,17 +10,21 @@ class AlarmButton extends ConsumerWidget {
     required this.onPressed,
     this.size,
     this.color,
+    this.badgeCount,
   });
 
   final VoidCallback onPressed;
   final double? size;
   final Color? color;
+  final int? badgeCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scale = responsiveScale(context);
     final iconSize = size ?? 30 * scale;
-    final unreadCount = ref.watch(unreadNotificationCountProvider);
+    final int unreadCount = badgeCount != null
+        ? badgeCount!
+        : ref.watch(unreadNotificationCountProvider);
 
     return Stack(
       clipBehavior: Clip.none,

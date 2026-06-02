@@ -16,8 +16,14 @@ class DeepLinkHandler extends _$DeepLinkHandler {
   Future<void> _init() async {
     final appLinks = AppLinks();
 
-    // allUriLinkStream: 앱 콜드스타트 초기 링크 + 이후 수신 링크를 모두 포함
-    appLinks.allUriLinkStream.listen(_handleUri);
+    try {
+      final initialUri = await appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleUri(initialUri);
+      }
+    } catch (_) {}
+
+    appLinks.uriLinkStream.listen(_handleUri);
   }
 
   void _handleUri(Uri uri) {

@@ -1,6 +1,7 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
+import 'package:fe_app/features/home/services/home_balloon_service.dart';
 import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -202,6 +203,8 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                         // Home 화면에서 딜레이 없이 재생하기 위해 결과를 바탕으로 비디오를 미리 로드합니다.
                         await special.preloadCase(caseType);
                         special.markCase(caseType);
+                        await HomeBalloonService.markPendingDecisionCase(caseType);
+                        ref.read(considerViewModelProvider.notifier).reset();
                         ref.invalidate(considerViewModelProvider(itemId));
                         context.go('/home');
                       },

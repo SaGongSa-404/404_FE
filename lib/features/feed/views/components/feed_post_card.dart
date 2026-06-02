@@ -385,21 +385,6 @@ class _CommentPreviewRow extends StatelessWidget {
             color: AppColors.textSecondary,
           ),
         ),
-        if (post.latestCommentText != null) ...[
-          SizedBox(width: (13 * scale).clamp(10.0, 16.0)),
-          Expanded(
-            child: Text(
-              post.latestCommentText!,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                fontSize: (16 * scale).clamp(13.0, 19.0),
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
       ],
     );
   }

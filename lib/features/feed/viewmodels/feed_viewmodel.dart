@@ -28,7 +28,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     try {
       final page = await _service.listPosts();
       state = state.copyWith(
-        posts: _withoutBlocked(page.items),
+        posts: page.items,
         nextCursor: page.nextCursor,
         hasMore: page.hasMore,
         isLoading: false,
@@ -52,7 +52,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     try {
       final page = await _service.listPosts();
       state = state.copyWith(
-        posts: _withoutBlocked(page.items),
+        posts: page.items,
         nextCursor: page.nextCursor,
         hasMore: page.hasMore,
         isLoading: false,
@@ -72,7 +72,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     try {
       final page = await _service.listPosts(cursor: state.nextCursor);
       state = state.copyWith(
-        posts: [...state.posts, ..._withoutBlocked(page.items)],
+        posts: [...state.posts, ...page.items],
         nextCursor: page.nextCursor,
         hasMore: page.hasMore,
         isLoadingMore: false,
@@ -246,11 +246,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
         ...state.commentsMap,
         postId: updated,
       });
-      _applyCommentMeta(
-        postId,
-        commentCount: updated.total,
-        latestCommentText: created.body,
-      );
+      _applyCommentMeta(postId, commentCount: updated.total);
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
     }
@@ -270,11 +266,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
         ...state.commentsMap,
         postId: updated,
       });
-      _applyCommentMeta(
-        postId,
-        commentCount: updated.total,
-        latestCommentText: items.isEmpty ? null : items.last.body,
-      );
+      _applyCommentMeta(postId, commentCount: updated.total);
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
     }
@@ -304,62 +296,15 @@ class FeedViewModel extends StateNotifier<FeedState> {
     }
   }
 
-  /// 사용자 차단: 서버에 차단 요청 후 로컬 상태에서 해당 작성자의 글/댓글을 즉시 숨깁니다.
-  /// 작성자 ID 기준으로 숨기므로 동일 닉네임 사용자가 함께 사라지지 않습니다.
   Future<bool> blockUser({required String authorUserId}) async {
     try {
       await _service.blockUser(authorUserId);
+      await refresh();
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
       return false;
     }
-    _hideAuthorLocally(authorUserId);
-    return true;
-  }
-
-  void _hideAuthorLocally(String authorUserId) {
-    final removedPostIds = state.posts
-        .where((p) => p.authorUserId == authorUserId)
-        .map((p) => p.id)
-        .toSet();
-    // 차단 작성자의 댓글을 로딩된 모든 글에서 제거하고, 그만큼 댓글 수를 보정합니다.
-    // 차단 작성자의 글 자체는 사라지므로 해당 댓글 캐시도 함께 폐기합니다.
-    final updatedMap = <String, CommentsPage>{};
-    state.commentsMap.forEach((postId, page) {
-      if (removedPostIds.contains(postId)) return;
-      final kept =
-          page.items.where((c) => c.authorUserId != authorUserId).toList();
-      final removed = page.items.length - kept.length;
-      updatedMap[postId] = page.copyWith(
-        items: kept,
-        total: (page.total - removed).clamp(0, 1 << 31),
-      );
-    });
-    // 차단 작성자의 글 자체를 제거하고, 남은 글은 변경된 댓글 메타만 동기화합니다.
-    final filteredPosts = state.posts
-        .where((p) => p.authorUserId != authorUserId)
-        .map((p) {
-      final page = updatedMap[p.id];
-      if (page == null) return p;
-      return p.copyWith(
-        commentCount: page.total,
-        latestCommentText: page.items.isEmpty ? null : page.items.last.body,
-      );
-    }).toList();
-    state = state.copyWith(
-      posts: filteredPosts,
-      commentsMap: updatedMap,
-      blockedUserIds: {...state.blockedUserIds, authorUserId},
-      activeOptionPostId: null,
-    );
-  }
-
-  /// 이미 차단한 작성자의 글을 (서버 반영 지연 등에 대비해) 클라이언트에서도 한 번 더 거릅니다.
-  List<FeedPost> _withoutBlocked(List<FeedPost> posts) {
-    if (state.blockedUserIds.isEmpty) return posts;
-    return posts
-        .where((p) => !state.blockedUserIds.contains(p.authorUserId))
-        .toList();
   }
 
   Future<String?> uploadImage(File file) async {
@@ -374,25 +319,14 @@ class FeedViewModel extends StateNotifier<FeedState> {
   void _syncCommentMetaFromPage(String postId) {
     final page = state.commentsMap[postId];
     if (page == null) return;
-    _applyCommentMeta(
-      postId,
-      commentCount: page.total,
-      latestCommentText: page.items.isEmpty ? null : page.items.last.body,
-    );
+    _applyCommentMeta(postId, commentCount: page.total);
   }
 
-  void _applyCommentMeta(
-    String postId, {
-    required int commentCount,
-    required String? latestCommentText,
-  }) {
+  void _applyCommentMeta(String postId, {required int commentCount}) {
     state = state.copyWith(
       posts: state.posts.map((p) {
         if (p.id != postId) return p;
-        return p.copyWith(
-          commentCount: commentCount,
-          latestCommentText: latestCommentText,
-        );
+        return p.copyWith(commentCount: commentCount);
       }).toList(),
     );
   }

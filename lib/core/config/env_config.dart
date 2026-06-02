@@ -8,13 +8,13 @@ abstract final class EnvConfig {
   /// `dotenv.load()` 직후 호출하여 필수 환경변수를 일괄 검증합니다.
   static void validate() {
     final missing = <String>[];
-    if ((dotenv.env['API_BASE_URL']?.trim() ?? '').isEmpty) {
-      missing.add('API_BASE_URL');
+    if (apiBaseUrl.isEmpty) {
+      missing.add('BASE_URL or API_BASE_URL');
     }
     if (missing.isNotEmpty) {
       throw StateError(
         '필수 환경변수가 설정되지 않았습니다: ${missing.join(', ')}.\n'
-        '.env 파일을 확인해 주세요.',
+        '.env 파일 또는 --dart-define 를 확인해 주세요.',
       );
     }
 
@@ -46,7 +46,7 @@ abstract final class EnvConfig {
   static String get apiBaseUrl {
     var value = dotenv.env['API_BASE_URL']?.trim();
     if (value == null || value.isEmpty) {
-      throw StateError('API_BASE_URL is required. Check your .env file.');
+      throw StateError('BASE_URL or API_BASE_URL is required.');
     }
     // Android 에뮬: 10.0.2.2 유지. iOS 시뮬·macOS: localhost 치환.
     if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
