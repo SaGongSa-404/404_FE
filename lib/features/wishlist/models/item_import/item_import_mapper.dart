@@ -2,6 +2,7 @@ import 'package:fe_app/features/wishlist/models/item_import/item_import_link_res
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
+import 'package:fe_app/shared/enums/api_enums.dart';
 
 extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
   WishlistAddFormPrefill? toFormPrefill() {
@@ -14,8 +15,9 @@ extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
     if (title.isEmpty) return null;
 
     final price = (draft?.listedPrice ?? itemDraft?.listedPrice)?.round() ?? 0;
-    final category = WishlistCategoryUi.toUiLabel(
-      _resolveCategoryApiValue(draft, itemDraft),
+    final categoryApi = _resolveCategoryApiValue(draft, itemDraft);
+    final category = WishlistCategoryUi.resolveFormChipSelection(
+      apiCategory: categoryApi,
     );
     final imageUrl = draft?.imageUrl ?? itemDraft?.imageUrl;
 
@@ -31,13 +33,18 @@ extension ItemImportLinkResponseMapper on ItemImportLinkResponse {
   WishlistItemSaveRequest? enrichedSaveRequest() {
     final draft = saveRequest;
     if (draft == null) return null;
-    return _mergeSourceMetadata(draft);
+    return _mergeSourceMetadata(_ensureCategory(draft));
   }
 
   WishlistItemSaveRequest? resolvedSaveRequest() {
     final fromSave = enrichedSaveRequest() ?? item?.toSaveRequest();
     if (fromSave == null) return null;
-    return _mergeSourceMetadata(fromSave);
+    return _mergeSourceMetadata(_ensureCategory(fromSave));
+  }
+
+  WishlistItemSaveRequest _ensureCategory(WishlistItemSaveRequest draft) {
+    if (draft.category.trim().isNotEmpty) return draft;
+    return draft.copyWith(category: ItemCategory.etc.apiValue);
   }
 
   WishlistItemSaveRequest _mergeSourceMetadata(WishlistItemSaveRequest draft) {

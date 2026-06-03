@@ -38,4 +38,15 @@ abstract final class WishlistCategoryUi {
     if (category == null) return '기타';
     return _enumToUiLabel[category] ?? '기타';
   }
+
+  /// import-link·추가 폼 칩용: API/라벨이 있으면 칩에 맞게, 없거나 폼에 없으면 `기타`.
+  static String resolveFormChipSelection({String? apiCategory, String? uiLabel}) {
+    final fromUi = uiLabel?.trim();
+    if (fromUi != null && fromUi.isNotEmpty) {
+      if (formLabels.contains(fromUi)) return fromUi;
+    }
+    final chip = toUiLabel(apiCategory ?? fromUi);
+    if (formLabels.contains(chip)) return chip;
+    return '기타';
+  }
 }

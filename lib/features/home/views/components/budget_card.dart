@@ -1,8 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
-import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
-import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,36 +19,17 @@ class BudgetCard extends ConsumerWidget {
 
         final budget = summary.budget;
         final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
-        String format(int val) => val.toString().replaceAllMapped(numberFormat, (m) => ',');
-    final statsState = ref.watch(consumptionStatsProvider);
-    final current = statsState.currentMonthStats;
+        String format(int val) =>
+            val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    final numberFormat = RegExp(r'\B(?=(\d{3})+(?!\d))');
-    String format(int val) =>
-        val.toString().replaceAllMapped(numberFormat, (m) => ',');
-
-    if (statsState.isLoading && current == null) {
-      return SizedBox(
-        height: 120 * scale,
-        child: const Center(child: LoadingIndicator(compact: true)),
-      );
-    }
-
-    if (current == null) {
-      return const SizedBox.shrink();
-    }
-
-    final isExceeded = current.isExceeded;
-    final remaining = current.budgetAmount - current.spentAmount;
-    final progress = current.progressFactor;
-
-        final isExceeded = budget.isBudgetExhausted || budget.remainingAmount <= 0;
-
+        final isExceeded =
+            budget.isBudgetExhausted || budget.remainingAmount <= 0;
         final progress = isExceeded
             ? 1.0
             : budget.monthlyBudgetAmount <= 0
-            ? 0.0
-            : (budget.spentAmount / budget.monthlyBudgetAmount).clamp(0.0, 1.0);
+                ? 0.0
+                : (budget.spentAmount / budget.monthlyBudgetAmount)
+                    .clamp(0.0, 1.0);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,15 +59,15 @@ class BudgetCard extends ConsumerWidget {
             Text(
               '${format(budget.remainingAmount)}원 남음',
               style: TextStyle(
-                color: isExceeded ? const Color(0xFFD46868) : AppColors.textPrimary,
+                color: isExceeded
+                    ? const Color(0xFFD46868)
+                    : AppColors.textPrimary,
                 fontSize: 24 * scale,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
               ),
             ),
-
             SizedBox(height: 28 * scale),
-
             Container(
               height: 12 * scale,
               width: double.infinity,
@@ -135,7 +114,8 @@ class BudgetCard extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      loading: () =>
+          const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       error: (error, _) => Center(
         child: Text(
           '예산 데이터를 불러올 수 없습니다.',

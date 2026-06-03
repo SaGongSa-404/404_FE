@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:fe_app/features/profile/services/profile_service.dart';
 import 'package:fe_app/features/profile/utils/provider_label.dart';
 import 'package:fe_app/features/profile/validators/profile_nickname_validator.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
@@ -88,11 +90,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Padding(
               padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
               child: Text(
@@ -225,7 +229,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ],
             ),
             SizedBox(height: 16 * scale),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -263,6 +268,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
+  String _withdrawErrorMessage(Object error) {
+    final api = apiExceptionFrom(error);
+    if (api?.statusCode == 500) {
+      return '서버 오류(500)입니다. 요청 형식은 명세와 동일하니 백엔드 로그를 확인해 주세요.';
+    }
+    final detail = api?.message;
+    if (detail != null &&
+        detail.isNotEmpty &&
+        detail != '요청을 처리하지 못했습니다.' &&
+        detail != '네트워크 오류가 발생했습니다.') {
+      return detail;
+    }
+    return '탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  }
+
   Future<void> _showLogoutDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await showConfirmBottomSheet(
       context,
@@ -270,7 +290,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       actionLabel: '로그아웃',
     );
     if (confirmed == true && context.mounted) {
-      ref.read(authProvider.notifier).logout();
+      await ref.read(authProvider.notifier).logout();
+      if (!context.mounted) return;
       context.go('/login');
     }
   }
@@ -283,6 +304,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       actionLabel: '탈퇴하기',
     );
     if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(profileServiceProvider).deleteMyAccount();
+      } catch (e) {
+        if (!context.mounted) return;
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: _withdrawErrorMessage(e),
+        );
+        return;
+      }
+
       showCapsuleToast(
         context,
         backgroundColor: const Color(0xFFD46868),
@@ -291,7 +324,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       await Future.delayed(const Duration(seconds: 2));
       if (context.mounted) {
-        ref.read(authProvider.notifier).logout();
+        await ref.read(authProvider.notifier).logout();
+        if (!context.mounted) return;
         context.go('/login');
       }
     }

@@ -178,6 +178,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentVideoPath = 'assets/videos/nugul_home.mp4';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(consumptionStatsProvider.notifier).load();
+    });
   }
 
   @override
@@ -243,15 +246,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (evaluation == null) return;
 
     await _presentBubbleEvaluation(evaluation);
-  @override
-  void initState() {
-    super.initState();
-    _currentMessage = _safeMessages[0];
-    _currentVideoPath = _getDefaultVideoPath(false);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(consumptionStatsProvider.notifier).load();
-    });
   }
 
   @override
@@ -274,10 +268,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final summary = summaryAsync.valueOrNull;
     final authUser = ref.watch(authProvider).valueOrNull;
 
-    final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
     final statsState = ref.watch(consumptionStatsProvider);
     final currentRecord = statsState.currentMonthStats;
-    final isExceeded = currentRecord?.isExceeded ?? false;
 
     final remainingBudget = currentRecord == null
         ? 1

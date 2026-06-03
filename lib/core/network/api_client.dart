@@ -61,25 +61,19 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final token = await _storage.getAccessToken();
+    final devUserId = EnvConfig.devUserId;
+    final useDevHeaderPath = _usesDevUserIdHeader(options.path);
     final useDevUserIdOnly =
-        EnvConfig.devAuthMode == DevAuthMode.xUserId &&
-        _usesDevUserIdHeader(options.path);
+        EnvConfig.devAuthMode == DevAuthMode.xUserId && useDevHeaderPath;
 
-    if (useDevUserIdOnly) {
-      final devUserId = EnvConfig.devUserId;
-      if (devUserId != null) {
-        options.headers['X-User-Id'] = devUserId;
-      }
-    } else {
-      final token = await _storage.getAccessToken();
-      if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
-      } else {
-        final devUserId = EnvConfig.devUserId;
-        if (devUserId != null && _usesDevUserIdHeader(options.path)) {
-          options.headers['X-User-Id'] = devUserId;
-        }
-      }
+    // OAuth 등으로 토큰이 있으면 항상 Bearer (탈퇴·프로필 등 본인 계정 API)
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    } else if (useDevUserIdOnly && devUserId != null) {
+      options.headers['X-User-Id'] = devUserId;
+    } else if (devUserId != null && useDevHeaderPath) {
+      options.headers['X-User-Id'] = devUserId;
     }
 
     handler.next(options);

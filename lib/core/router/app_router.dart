@@ -270,7 +270,10 @@ class _RouterNotifier extends ChangeNotifier {
     final location = state.matchedLocation;
 
     if (authState.isLoading || splashReady.isLoading) {
-      return location == '/' ? null : '/';
+      if (location == '/') return null;
+      // OAuth 외부 브라우저 복귀 시 로그인 화면 유지 (iOS 스플래시 깜빡임·no route 방지)
+      if (location == '/login' && authState.isLoading) return null;
+      return '/';
     }
 
     final isLoggedIn = authState.hasValue && authState.value != null;
