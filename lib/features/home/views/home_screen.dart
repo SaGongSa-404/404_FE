@@ -178,9 +178,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentVideoPath = 'assets/videos/nugul_home.mp4';
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(consumptionStatsProvider.notifier).load();
-    });
   }
 
   @override

@@ -22,14 +22,8 @@ class BudgetCard extends ConsumerWidget {
         String format(int val) =>
             val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-        final isExceeded =
-            budget.isBudgetExhausted || budget.remainingAmount <= 0;
-        final progress = isExceeded
-            ? 1.0
-            : budget.monthlyBudgetAmount <= 0
-                ? 0.0
-                : (budget.spentAmount / budget.monthlyBudgetAmount)
-                    .clamp(0.0, 1.0);
+        final isExceeded = budget.isBudgetExhausted;
+        final progress = budget.budgetProgress;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

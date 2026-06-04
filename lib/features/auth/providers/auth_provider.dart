@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
 import 'package:fe_app/features/auth/utils/oauth_callback_uri.dart';
+import 'package:fe_app/features/auth/utils/oauth_launch.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
@@ -25,8 +28,29 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     state = const AsyncData(null);
   }
 
+  Future<bool> launchOAuthSignIn(String provider) async {
+    if (state.hasError) resetToLoggedOut();
+
+    final base = Uri.parse(EnvConfig.apiBaseUrl);
+    final url = Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: '/oauth2/authorization/$provider',
+      queryParameters: {'redirect_uri': kOAuthRedirectUri},
+    );
+
+    try {
+      return await launchUrl(url, mode: oauthLaunchMode());
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> handleCallback(Uri uri) async {
-    debugPrint('[auth] callback: $uri');
+    if (kDebugMode) {
+      debugPrint('[auth] callback: ${describeOAuthCallbackUri(uri)}');
+    }
     state = const AsyncLoading();
     final params = readOAuthCallbackParams(uri);
     final accessToken = params['access_token'];

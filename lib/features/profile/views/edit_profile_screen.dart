@@ -1,12 +1,9 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
-import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
-import 'package:fe_app/features/profile/services/profile_service.dart';
 import 'package:fe_app/features/profile/utils/provider_label.dart';
 import 'package:fe_app/features/profile/validators/profile_nickname_validator.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
@@ -270,37 +267,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  String _withdrawErrorMessage(Object error) {
-    debugPrint('[withdraw] failed: $error');
-    final api = apiExceptionFrom(error);
-    final status = api?.statusCode ??
-        (error is DioException ? error.response?.statusCode : null);
-
-    if (status != null) {
-      debugPrint('[withdraw] status=$status message=${api?.message}');
-    }
-
-    if (status == 500) {
-      return '서버 오류(500)입니다. 백엔드 로그를 확인해 주세요.';
-    }
-    if (status == 401) {
-      return '로그인이 만료되었습니다. 다시 로그인한 뒤 탈퇴를 시도해 주세요.';
-    }
-
-    final detail = api?.message;
-    if (detail != null &&
-        detail.isNotEmpty &&
-        detail != '요청을 처리하지 못했습니다.' &&
-        detail != '네트워크 오류가 발생했습니다.') {
-      return detail;
-    }
-
-    if (status != null) {
-      return '탈퇴 처리에 실패했습니다 ($status). 잠시 후 다시 시도해 주세요.';
-    }
-    return '탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
-  }
-
   Future<void> _showLogoutDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await showConfirmBottomSheet(
       context,
@@ -321,32 +287,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       subtitle: '한 번 탈퇴한 계정은 되돌릴 수 없어요',
       actionLabel: '탈퇴하기',
     );
-    if (confirmed == true && context.mounted) {
-      try {
-        await ref.read(profileServiceProvider).deleteMyAccount();
-      } catch (e) {
-        if (!context.mounted) return;
-        showCapsuleToast(
-          context,
-          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
-          text: _withdrawErrorMessage(e),
-        );
-        return;
-      }
+    if (confirmed != true || !context.mounted) return;
 
+    final profileNotifier = ref.read(myProfileProvider.notifier);
+    try {
+      await profileNotifier.deleteAccountAndSignOut();
+    } catch (e) {
+      if (!context.mounted) return;
       showCapsuleToast(
         context,
-        backgroundColor: const Color(0xFFD46868),
-        text: '계정이 삭제되었습니다',
+        backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+        text: profileNotifier.withdrawErrorMessage(e),
       );
-
-      await Future.delayed(const Duration(seconds: 2));
-      if (context.mounted) {
-        await ref.read(authProvider.notifier).logout();
-        if (!context.mounted) return;
-        context.go('/login');
-      }
+      return;
     }
+
+    if (!context.mounted) return;
+    showCapsuleToast(
+      context,
+      backgroundColor: const Color(0xFFD46868),
+      text: '계정이 삭제되었습니다',
+    );
+
+    await Future.delayed(const Duration(seconds: 2));
+    if (!context.mounted) return;
+    context.go('/login');
   }
 }
 

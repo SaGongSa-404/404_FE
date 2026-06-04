@@ -67,11 +67,10 @@ class AuthInterceptor extends Interceptor {
     final useDevUserIdOnly =
         EnvConfig.devAuthMode == DevAuthMode.xUserId && useDevHeaderPath;
 
-    // OAuth 등으로 토큰이 있으면 항상 Bearer (탈퇴·프로필 등 본인 계정 API)
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
-    } else if (useDevUserIdOnly && devUserId != null) {
+    if (useDevUserIdOnly && devUserId != null) {
       options.headers['X-User-Id'] = devUserId;
+    } else if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
     } else if (devUserId != null && useDevHeaderPath) {
       options.headers['X-User-Id'] = devUserId;
     }

@@ -26,7 +26,7 @@ class DeepLinkHandler extends _$DeepLinkHandler {
 
   void _handleUri(Uri uri) {
     if (kDebugMode) {
-      debugPrint('[deep_link] received: $uri');
+      debugPrint('[deep_link] received: ${describeOAuthCallbackUri(uri)}');
     }
     if (isOAuthCallbackUri(uri)) {
       ref.read(authProvider.notifier).handleCallback(uri);

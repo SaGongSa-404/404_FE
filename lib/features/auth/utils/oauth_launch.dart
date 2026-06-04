@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,6 +8,8 @@ const kOAuthRedirectUri = 'sagongsa404://auth/callback';
 /// 앱으로 넘기지 못하는 경우가 많아, iOS는 외부 Safari를 사용합니다.
 LaunchMode oauthLaunchMode() {
   if (kIsWeb) return LaunchMode.platformDefault;
-  if (!kIsWeb && Platform.isIOS) return LaunchMode.externalApplication;
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    return LaunchMode.externalApplication;
+  }
   return LaunchMode.inAppBrowserView;
 }
