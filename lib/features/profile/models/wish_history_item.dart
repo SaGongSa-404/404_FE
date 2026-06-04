@@ -61,9 +61,11 @@ class WishHistoryItem {
     return normalized == 'GO' || normalized == 'STOP';
   }
 
-  bool get canEditDecision => decisionId != null && isDecided;
+  /// GO/STOP 결정이 완료된 항목은 소비 결정 수정 UI를 노출합니다.
+  bool get canEditDecision => isDecided;
 
   factory WishHistoryItem.fromJson(Map<String, dynamic> json) {
+    final decisionIdRaw = json['decisionId'] ?? json['lastDecisionId'];
     return WishHistoryItem(
       itemId: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -71,6 +73,9 @@ class WishHistoryItem {
       imageUrl: json['imageUrl'] as String?,
       category: json['category'] as String? ?? '',
       status: json['status'] as String? ?? '',
+      decisionId: decisionIdRaw is String && decisionIdRaw.isNotEmpty
+          ? decisionIdRaw
+          : null,
     );
   }
 
@@ -95,6 +100,12 @@ class WishHistoryItem {
     required String status,
   }) =>
       '$title|${price ?? 0}|${status.toUpperCase()}';
+
+  static String titleResultKey({
+    required String title,
+    required String status,
+  }) =>
+      '${title.trim()}|${status.toUpperCase()}';
 
   static int? _asIntOrNull(Object? value) {
     if (value == null) return null;
