@@ -6,6 +6,7 @@ import 'package:fe_app/features/feed/viewmodels/feed_viewmodel.dart';
 import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_sheet.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/deleted_post_modal.dart';
 import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
@@ -29,6 +30,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
+  bool _opening = false;
 
   @override
   void initState() {
@@ -200,16 +202,39 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             post: post,
             isOptionActive: state.activeOptionPostId == post.id,
             onVote: (vote) => vm.vote(post.id, vote),
+            onBlockedVote: () => ScaffoldMessenger.of(context).showSnackBar(
+              _buildSnackBar(context, '본인 게시글은 투표할 수 없습니다',
+                  AppColors.red_600.withValues(alpha: 0.8)),
+            ),
             onOptionTap: () => _onOptionTap(context, vm, post),
             onCommentTap: () => showCommentSheet(
               context: context,
               postId: post.id,
             ),
-            onCardTap: () => context.push('/feed/${post.id}'),
+            onCardTap: () => _openPost(context, vm, post.id),
           );
         },
       ),
     );
+  }
+
+  /// 상세 진입 전 삭제(404) 여부를 확인하고, 삭제된 글이면 진입 대신 안내 모달을 띄웁니다.
+  Future<void> _openPost(
+      BuildContext context, FeedViewModel vm, String postId) async {
+    if (_opening) return;
+    _opening = true;
+    try {
+      final deleted = await vm.refreshPost(postId);
+      if (!context.mounted) return;
+      if (deleted) {
+        vm.removePost(postId);
+        await showDeletedPostModal(context);
+        return;
+      }
+      if (context.mounted) context.push('/feed/$postId');
+    } finally {
+      _opening = false;
+    }
   }
 
   Future<void> _onOptionTap(

@@ -28,6 +28,7 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 삭제 여부는 진입 전(피드/내 글 탭 시점)에 이미 확인합니다.
       final vm = ref.read(feedProvider.notifier);
       vm.refreshPost(widget.postId);
       vm.loadComments(widget.postId, refresh: true);
@@ -174,6 +175,8 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
                 _DetailPostCard(
                   post: currentPost,
                   onVote: (vote) => vm.vote(widget.postId, vote),
+                  onBlockedVote: () =>
+                      _showCommentToast('본인 게시글은 투표할 수 없습니다'),
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -219,10 +222,12 @@ class _DetailPostCard extends StatelessWidget {
   const _DetailPostCard({
     required this.post,
     required this.onVote,
+    required this.onBlockedVote,
   });
 
   final FeedPost post;
   final ValueChanged<VoteType> onVote;
+  final VoidCallback onBlockedVote;
 
   @override
   Widget build(BuildContext context) {
@@ -274,17 +279,20 @@ class _DetailPostCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
-          Text(
-            post.body ?? '',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w500,
-              fontSize: (18 * scale).clamp(14.0, 22.0),
-              color: AppColors.textDark,
-              height: 1.43,
+          // 글이 없는(위시리스트만 있는) 게시글은 본문 영역을 그리지 않습니다.
+          if ((post.body?.trim().isNotEmpty ?? false)) ...[
+            Text(
+              post.body!,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                fontSize: (18 * scale).clamp(14.0, 22.0),
+                color: AppColors.textDark,
+                height: 1.43,
+              ),
             ),
-          ),
-          SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
+            SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
+          ],
           if (post.product != null) ...[
             GestureDetector(
               onTap: () => showProductLinkDialog(
@@ -294,7 +302,7 @@ class _DetailPostCard extends StatelessWidget {
               child: _DetailProductCard(
                 name: post.product!.name,
                 price: post.product!.price,
-                imageUrl: post.imageUrl,
+                imageUrl: post.imageUrl ?? post.product!.imageUrl,
               ),
             ),
             SizedBox(height: (17 * scale).clamp(13.0, 21.0)),
@@ -305,6 +313,7 @@ class _DetailPostCard extends StatelessWidget {
             stopCount: post.stopCount,
             onVote: onVote,
             isDisabled: post.mine,
+            onDisabledTap: onBlockedVote,
           ),
         ],
       ),
@@ -326,24 +335,28 @@ class _DetailProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
+    final imageHeight = (150 * scale).clamp(120.0, 180.0);
+    final placeholder = Container(
+      height: imageHeight,
+      width: double.infinity,
+      color: AppColors.skyBlue_100.withValues(alpha: 0.4),
+    );
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Column(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
           ),
-          child: imageUrl != null
+          child: hasImage
               ? Image.network(
                   imageUrl!,
-                  height: (150 * scale).clamp(120.0, 180.0),
+                  height: imageHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => placeholder,
                 )
-              : Container(
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-                ),
+              : placeholder,
         ),
         Container(
           width: double.infinity,

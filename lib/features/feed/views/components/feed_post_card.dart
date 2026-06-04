@@ -13,6 +13,7 @@ class FeedPostCard extends StatefulWidget {
     required this.post,
     required this.isOptionActive,
     required this.onVote,
+    required this.onBlockedVote,
     required this.onOptionTap,
     required this.onCommentTap,
     required this.onCardTap,
@@ -21,6 +22,7 @@ class FeedPostCard extends StatefulWidget {
   final FeedPost post;
   final bool isOptionActive;
   final ValueChanged<VoteType> onVote;
+  final VoidCallback onBlockedVote;
   final VoidCallback onOptionTap;
   final VoidCallback onCommentTap;
   final VoidCallback onCardTap;
@@ -70,18 +72,21 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     isOptionActive: widget.isOptionActive,
                     onOptionTap: widget.onOptionTap,
                   ),
-                  SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
-                  _ExpandableText(
-                    text: post.body ?? '',
-                    isExpanded: _isExpanded,
-                    onExpand: () => setState(() => _isExpanded = true),
-                  ),
+                  // 글이 없는(위시리스트만 있는) 게시글은 본문 영역을 그리지 않습니다.
+                  if ((post.body?.trim().isNotEmpty ?? false)) ...[
+                    SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
+                    _ExpandableText(
+                      text: post.body!,
+                      isExpanded: _isExpanded,
+                      onExpand: () => setState(() => _isExpanded = true),
+                    ),
+                  ],
                   SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                   if (post.product != null) ...[
                     _ProductCard(
                       name: post.product!.name,
                       price: post.product!.price,
-                      imageUrl: post.imageUrl,
+                      imageUrl: post.imageUrl ?? post.product!.imageUrl,
                     ),
                     SizedBox(height: (15 * scale).clamp(12.0, 18.0)),
                   ],
@@ -94,6 +99,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                       stopCount: post.stopCount,
                       onVote: widget.onVote,
                       isDisabled: post.mine,
+                      onDisabledTap: widget.onBlockedVote,
                     ),
                   ),
                   SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
@@ -283,23 +289,27 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
+    final imageHeight = (150 * scale).clamp(120.0, 180.0);
+    final placeholder = Container(
+      height: imageHeight,
+      width: double.infinity,
+      color: AppColors.skyBlue_100.withValues(alpha: 0.4),
+    );
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Column(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.vertical(
               top: Radius.circular((22 * scale).clamp(17.0, 27.0))),
-          child: imageUrl != null
+          child: hasImage
               ? Image.network(
                   imageUrl!,
-                  height: (150 * scale).clamp(120.0, 180.0),
+                  height: imageHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => placeholder,
                 )
-              : Container(
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-                ),
+              : placeholder,
         ),
         Container(
           width: double.infinity,
