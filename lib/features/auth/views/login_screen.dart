@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,8 +9,43 @@ import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/components/login_button_section.dart';
 
-class LoginScreen extends ConsumerWidget {
+/// 로고 연속 탭 횟수 — 심사용 reviewer-token 발급 진입점
+const int _reviewerLogoTapCount = 5;
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  int _logoTapCount = 0;
+  Timer? _logoTapResetTimer;
+
+  @override
+  void dispose() {
+    _logoTapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onLogoTap() {
+    if (ref.read(authProvider).isLoading) return;
+
+    _logoTapResetTimer?.cancel();
+    _logoTapResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _logoTapCount = 0);
+    });
+
+    final nextCount = _logoTapCount + 1;
+    if (nextCount >= _reviewerLogoTapCount) {
+      _logoTapResetTimer?.cancel();
+      setState(() => _logoTapCount = 0);
+      unawaited(ref.read(authProvider.notifier).signInWithReviewerToken());
+      return;
+    }
+    setState(() => _logoTapCount = nextCount);
+  }
 
   Future<void> _onOAuthPressed(
     BuildContext context,
@@ -25,7 +62,7 @@ class LoginScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     ref.listen<AsyncValue<UserModel?>>(authProvider, (previous, next) {
       if (next.hasError && previous?.isLoading == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,11 +90,15 @@ class LoginScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       const Spacer(flex: 266),
-                      SvgPicture.asset(
-                        'assets/images/wigul_logo.svg',
-                        width: 125,
-                        height: 112,
-                        fit: BoxFit.contain,
+                      GestureDetector(
+                        onTap: _onLogoTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: SvgPicture.asset(
+                          'assets/images/wigul_logo.svg',
+                          width: 125,
+                          height: 112,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       const Text(

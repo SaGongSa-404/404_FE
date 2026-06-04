@@ -66,6 +66,31 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       );
       return;
     }
+    await _persistTokensAndLoadUser(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+  }
+
+  /// 로그인 화면 로고 N회 탭 등 숨겨진 진입점 — 심사용 고정 계정 토큰 발급
+  Future<void> signInWithReviewerToken() async {
+    if (state.isLoading) return;
+    state = const AsyncLoading();
+    try {
+      final tokens = await ref.read(authServiceProvider).issueReviewerToken();
+      await _persistTokensAndLoadUser(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> _persistTokensAndLoadUser({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     final storage = ref.read(secureStorageServiceProvider);
     debugPrint('[auth] saving tokens');
     await storage.saveTokens(
