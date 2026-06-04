@@ -83,6 +83,16 @@ class AuthService {
     );
   }
 
+  /// 앱 심사용 고정 계정 토큰 발급 (POST /api/auth/reviewer-token)
+  Future<({String accessToken, String refreshToken})> issueReviewerToken() async {
+    final res = await _dio.post<Map<String, dynamic>>(ApiEndpoints.reviewerToken);
+    final data = res.data!;
+    return (
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+    );
+  }
+
   /// 로그아웃 (POST /api/logout)
   Future<void> logout() => _dio.post<void>(ApiEndpoints.logout);
 }
