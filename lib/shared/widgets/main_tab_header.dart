@@ -41,6 +41,27 @@ class MainTabHeader extends StatelessWidget {
     );
   }
 
+  /// 위시 탭 — `N개의 위시리스트` (Figma 27 skyBlue + 20 title).
+  static Widget wishlistTitle(int count, double scale) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 27 * scale,
+            fontWeight: FontWeight.w600,
+            color: AppColors.skyBlue_300,
+          ),
+          textHeightBehavior: titleTextHeightBehavior,
+        ),
+        SizedBox(width: 1 * scale),
+        tabTitle('개의 위시리스트', scale),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
