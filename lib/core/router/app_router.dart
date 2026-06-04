@@ -7,6 +7,7 @@ import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
+import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/onboarding/views/privacy_policy_screen.dart';
 import 'package:fe_app/features/onboarding/views/service_terms_screen.dart';
 import 'package:fe_app/features/onboarding/views/terms_screen.dart';
@@ -186,7 +187,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'write',
-            builder: (context, state) => const FeedWriteScreen(),
+            builder: (context, state) {
+              final initialItem = state.extra is WishlistPlaceholder
+                  ? state.extra! as WishlistPlaceholder
+                  : null;
+              return FeedWriteScreen(initialItem: initialItem);
+            },
           ),
           GoRoute(
             path: 'edit/:id',

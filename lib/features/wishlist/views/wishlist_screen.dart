@@ -365,10 +365,9 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                                     context,
                                                     onConfirm: () {
                                                       if (!context.mounted) return;
-                                                      showCapsuleToast(
-                                                        context,
-                                                        backgroundColor: const Color(0xFF5F8EAE),
-                                                        text: '피드에 공유되었습니다',
+                                                      context.push(
+                                                        '/feed/write',
+                                                        extra: item,
                                                       );
                                                     },
                                                   );
