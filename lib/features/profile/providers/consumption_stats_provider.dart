@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -66,7 +68,9 @@ class ConsumptionStatsState {
 
 class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
   ConsumptionStatsNotifier(this._profileService)
-      : super(const ConsumptionStatsState());
+      : super(const ConsumptionStatsState()) {
+    unawaited(load());
+  }
 
   final ProfileService _profileService;
   bool _hasFetched = false;

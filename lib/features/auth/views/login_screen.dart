@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'package:fe_app/core/config/env_config.dart';
-import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
@@ -13,30 +10,17 @@ import 'package:fe_app/features/auth/views/components/login_button_section.dart'
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
-  Future<void> _launchOAuth(BuildContext context, String provider) async {
-    const redirectUri = 'sagongsa404://auth/callback';
-    final base = Uri.parse(EnvConfig.apiBaseUrl);
-    final url = Uri(
-      scheme: base.scheme,
-      host: base.host,
-      port: base.hasPort ? base.port : null,
-      path: '/oauth2/authorization/$provider',
-      queryParameters: {'redirect_uri': redirectUri},
-    );
-
-    try {
-      final launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
-        );
-      }
+  Future<void> _onOAuthPressed(
+    BuildContext context,
+    WidgetRef ref,
+    String provider,
+  ) async {
+    final launched =
+        await ref.read(authProvider.notifier).launchOAuthSignIn(provider);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
+      );
     }
   }
 
@@ -88,8 +72,10 @@ class LoginScreen extends ConsumerWidget {
                       ),
                       const Spacer(flex: 171),
                       LoginButtonSection(
-                        onKakaoPressed: () => _launchOAuth(context, 'kakao'),
-                        onGooglePressed: () => _launchOAuth(context, 'google'),
+                        onKakaoPressed: () =>
+                            _onOAuthPressed(context, ref, 'kakao'),
+                        onGooglePressed: () =>
+                            _onOAuthPressed(context, ref, 'google'),
                         isLoading: isLoading,
                       ),
                       const Spacer(flex: 134),

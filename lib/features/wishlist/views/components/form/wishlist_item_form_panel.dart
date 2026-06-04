@@ -170,10 +170,9 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       if (prefill.price > 0) {
         _priceController.text = _formatPrice(prefill.price);
       }
-      final category = prefill.category.trim();
-      if (category.isNotEmpty && _categories.contains(category)) {
-        _selectedCategory = category;
-      }
+      _selectedCategory = WishlistCategoryUi.resolveFormChipSelection(
+        uiLabel: prefill.category,
+      );
     }
 
     if (rebuild && mounted) {
