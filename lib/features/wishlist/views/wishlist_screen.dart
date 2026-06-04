@@ -221,8 +221,9 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                             children: [
                               MainTabHeader(
                                 backgroundColor: Colors.white,
-                                leading: MainTabHeader.wishlistTitle(
+                                leading: MainTabHeader.countTitle(
                                   filteredItems.length,
+                                  '개의 위시리스트',
                                   scale,
                                 ),
                                 onAlarmPressed: () =>

@@ -18,7 +18,7 @@ class MainTabHeader extends StatelessWidget {
   final Color? backgroundColor;
   final int? badgeCount;
 
-  /// 위시탭 `개의 위시리스트` 제목과 동일 (Figma 20 / w600).
+  /// 탭 헤더 제목 (Figma 20 / w600).
   static TextStyle titleTextStyle(double scale) => TextStyle(
         fontSize: 20 * scale,
         fontWeight: FontWeight.w600,
@@ -30,7 +30,7 @@ class MainTabHeader extends StatelessWidget {
     applyHeightToLastDescent: false,
   );
 
-  /// 위시탭 헤더 타이틀 행 높이 (Figma 40).
+  /// 헤더 타이틀 행 높이 (Figma 40).
   static double titleRowHeight(double scale) => 40 * scale;
 
   static Widget tabTitle(String text, double scale) {
@@ -41,8 +41,8 @@ class MainTabHeader extends StatelessWidget {
     );
   }
 
-  /// 위시 탭 — `N개의 위시리스트` (Figma 27 skyBlue + 20 title).
-  static Widget wishlistTitle(int count, double scale) {
+  /// 숫자 강조 + 제목 (Figma 27 skyBlue + 20 title).
+  static Widget countTitle(int count, String title, double scale) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -57,7 +57,7 @@ class MainTabHeader extends StatelessWidget {
           textHeightBehavior: titleTextHeightBehavior,
         ),
         SizedBox(width: 1 * scale),
-        tabTitle('개의 위시리스트', scale),
+        tabTitle(title, scale),
       ],
     );
   }
