@@ -3,6 +3,7 @@ import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -25,8 +26,11 @@ class FeedEditScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
+  static const int _maxBodyLength = 500;
+
   late final TextEditingController _controller;
   bool _hasContent = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -58,13 +62,31 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
   }
 
   Future<void> _onSubmit() async {
+    if (_isSubmitting) return;
     if (!_hasContent) return;
+
+    final body = _controller.text.trim();
+    if (body.characters.length > _maxBodyLength) {
+      showCapsuleToast(
+        context,
+        backgroundColor: AppColors.skyBlue_400,
+        text: '게시글은 $_maxBodyLength자까지 작성할 수 있어요',
+      );
+      return;
+    }
+
+    _isSubmitting = true;
     final updated = await ref.read(feedProvider.notifier).updatePost(
           widget.postId,
-          UpdatePostRequest(body: _controller.text.trim()),
+          UpdatePostRequest(body: body),
         );
     if (!mounted) return;
-    if (updated != null) context.pop('edited');
+    if (updated != null) {
+      context.pop('edited');
+    } else {
+      // 수정 실패 시 버튼을 다시 활성화해 재시도할 수 있게 합니다.
+      _isSubmitting = false;
+    }
   }
 
   @override
@@ -85,7 +107,13 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
       );
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // 안드로이드 뒤로가기 시에도 X 버튼과 동일하게 그만두기 모달을 띄웁니다.
+        if (!didPop) _onClose();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.white,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -165,6 +193,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
             onSubmit: _onSubmit,
           ),
         ],
+      ),
       ),
     );
   }
