@@ -1,3 +1,4 @@
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';
@@ -279,12 +280,21 @@ class _RouterNotifier extends ChangeNotifier {
     final isLoggedIn = authState.hasValue && authState.value != null;
     final isAuthPage = location == '/login' || location == '/signup';
 
-    if (!isLoggedIn && location == '/') return '/login';
+    if (!isLoggedIn && location == '/') {
+      if (EnvConfig.isDevXUserIdAuth) return '/onboarding/terms';
+      return '/login';
+    }
 
     if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
 
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
+
+    if (EnvConfig.isDevXUserIdAuth && isAuthPage) {
+      final isCompleted =
+          authState.value?.onboardingStatus == 'COMPLETED';
+      return isCompleted ? '/home' : '/onboarding/terms';
+    }
 
     if (isLoggedIn && (location == '/' || isAuthPage)) {
       final isCompleted =

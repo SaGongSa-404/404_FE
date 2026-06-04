@@ -15,11 +15,11 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   Future<UserModel?> build() async {
     final storage = ref.read(secureStorageServiceProvider);
     final token = await storage.getAccessToken();
-    if (token == null) return null;
+    if (token == null && !EnvConfig.isDevXUserIdAuth) return null;
     try {
       return await ref.read(authServiceProvider).getMe();
     } catch (_) {
-      await storage.clearTokens();
+      if (token != null) await storage.clearTokens();
       return null;
     }
   }
