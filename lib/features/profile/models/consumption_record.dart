@@ -25,6 +25,7 @@ class ConsumptionRecord {
   const ConsumptionRecord({
     required this.id,
     required this.itemTitle,
+    this.itemId,
     this.price,
     required this.result,
     this.decidedAt,
@@ -34,6 +35,7 @@ class ConsumptionRecord {
 
   final String id;
   final String itemTitle;
+  final String? itemId;
   final int? price;
   final String result;
   final DateTime? decidedAt;
@@ -44,10 +46,12 @@ class ConsumptionRecord {
 
   factory ConsumptionRecord.fromJson(Map<String, dynamic> json) {
     final decidedAtRaw = json['decidedAt'];
+    final itemIdRaw = json['itemId'] ?? json['wishItemId'];
     return ConsumptionRecord(
       id: json['id'] as String? ?? '',
       itemTitle: json['itemTitle'] as String? ?? '',
-      price: _asIntOrNull(json['price']),
+      itemId: itemIdRaw is String && itemIdRaw.isNotEmpty ? itemIdRaw : null,
+      price: _asIntOrNull(json['price']) ?? _asIntOrNull(json['finalPrice']),
       result: json['result'] as String? ?? '',
       decidedAt:
           decidedAtRaw is String ? DateTime.tryParse(decidedAtRaw) : null,
@@ -60,6 +64,7 @@ class ConsumptionRecord {
     return ConsumptionRecord(
       id: id,
       itemTitle: itemTitle,
+      itemId: itemId,
       price: price,
       result: result ?? this.result,
       decidedAt: decidedAt,
@@ -74,6 +79,12 @@ class ConsumptionRecord {
     required String result,
   }) =>
       '$title|${price ?? 0}|${result.toUpperCase()}';
+
+  static String titleResultKey({
+    required String title,
+    required String result,
+  }) =>
+      '${title.trim()}|${result.toUpperCase()}';
 
   static int _asInt(Object? value) {
     if (value is int) return value;
