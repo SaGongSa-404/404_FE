@@ -59,17 +59,15 @@ class ProfileService {
   }
 
   /// DELETE /api/v1/users/me — 회원 탈퇴 (성공: 204, 이미 없음: 404).
-  ///
-  /// 명세: 요청 본문 없음, 인증 Bearer(운영) / X-User-Id(개발·토큰 없을 때).
   Future<void> deleteMyAccount() async {
-    await _dio.delete<void>(
+    await _dio.request<void>(
       ApiEndpoints.usersMe,
       options: Options(
-        // 본문 없는 DELETE — 기본 Content-Type: application/json 제거
-        contentType: null,
-        headers: const {Headers.contentTypeHeader: null},
+        method: 'DELETE',
+        responseType: ResponseType.plain,
         validateStatus: (status) =>
-            status != null && (status == 204 || status == 404 || status < 300),
+            status != null &&
+            (status == 204 || status == 404 || (status >= 200 && status < 300)),
       ),
     );
   }

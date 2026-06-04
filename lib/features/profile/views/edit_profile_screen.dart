@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
@@ -269,16 +271,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   String _withdrawErrorMessage(Object error) {
+    debugPrint('[withdraw] failed: $error');
     final api = apiExceptionFrom(error);
-    if (api?.statusCode == 500) {
-      return '서버 오류(500)입니다. 요청 형식은 명세와 동일하니 백엔드 로그를 확인해 주세요.';
+    final status = api?.statusCode ??
+        (error is DioException ? error.response?.statusCode : null);
+
+    if (status != null) {
+      debugPrint('[withdraw] status=$status message=${api?.message}');
     }
+
+    if (status == 500) {
+      return '서버 오류(500)입니다. 백엔드 로그를 확인해 주세요.';
+    }
+    if (status == 401) {
+      return '로그인이 만료되었습니다. 다시 로그인한 뒤 탈퇴를 시도해 주세요.';
+    }
+
     final detail = api?.message;
     if (detail != null &&
         detail.isNotEmpty &&
         detail != '요청을 처리하지 못했습니다.' &&
         detail != '네트워크 오류가 발생했습니다.') {
       return detail;
+    }
+
+    if (status != null) {
+      return '탈퇴 처리에 실패했습니다 ($status). 잠시 후 다시 시도해 주세요.';
     }
     return '탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
   }

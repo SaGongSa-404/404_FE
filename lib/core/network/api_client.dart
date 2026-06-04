@@ -117,7 +117,15 @@ class AuthInterceptor extends Interceptor {
 
       final retryOptions = err.requestOptions
         ..headers['Authorization'] = 'Bearer $newAccessToken';
-      final retryResponse = await Dio().fetch<dynamic>(retryOptions);
+      final retryDio = Dio(
+        BaseOptions(
+          baseUrl: err.requestOptions.baseUrl,
+          connectTimeout: err.requestOptions.connectTimeout,
+          receiveTimeout: err.requestOptions.receiveTimeout,
+          headers: err.requestOptions.headers,
+        ),
+      );
+      final retryResponse = await retryDio.fetch<dynamic>(retryOptions);
       handler.resolve(retryResponse);
     } catch (_) {
       await _storage.clearTokens();
