@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fe_app/core/theme/app_theme.dart';
@@ -6,6 +7,7 @@ import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.da
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -292,7 +294,15 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     final spaceBelowStatus = screenH - topInset - _extraTopGap * scale;
     final maxSheetHeight = math.min(screenH * 0.90, math.max(300.0 * scale, spaceBelowStatus));
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          AppExitBackHandler.markBackHandledByChild();
+          unawaited(_dismiss());
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
@@ -430,6 +440,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             ),
           ),
         ],
+      ),
       ),
     );
   }
