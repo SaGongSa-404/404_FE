@@ -10,7 +10,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class FeedWriteScreen extends ConsumerStatefulWidget {
-  const FeedWriteScreen({super.key});
+  const FeedWriteScreen({super.key, this.initialItem});
+
+  final WishlistPlaceholder? initialItem;
 
   @override
   ConsumerState<FeedWriteScreen> createState() => _FeedWriteScreenState();
@@ -18,12 +20,13 @@ class FeedWriteScreen extends ConsumerStatefulWidget {
 
 class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   final _controller = TextEditingController();
-  WishlistPlaceholder? _selectedItem;
+  late WishlistPlaceholder? _selectedItem;
   bool _hasContent = false;
 
   @override
   void initState() {
     super.initState();
+    _selectedItem = widget.initialItem;
     _controller.addListener(() {
       final hasContent = _controller.text.trim().isNotEmpty;
       if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
