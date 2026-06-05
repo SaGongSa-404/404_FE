@@ -4,6 +4,7 @@ import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,9 +20,12 @@ class FeedWriteScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
+  static const int _maxBodyLength = 500;
+
   final _controller = TextEditingController();
   late WishlistPlaceholder? _selectedItem;
   bool _hasContent = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -55,16 +59,34 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   }
 
   Future<void> _onSubmit() async {
-    if (!_hasContent) return;
+    if (_isSubmitting) return;
+    // 글 또는 위시리스트 중 하나라도 있으면 등록 가능
+    if (!_hasContent && _selectedItem == null) return;
+
     final body = _controller.text.trim();
+    if (body.characters.length > _maxBodyLength) {
+      showCapsuleToast(
+        context,
+        backgroundColor: AppColors.skyBlue_400,
+        text: '게시글은 $_maxBodyLength자까지 작성할 수 있어요',
+      );
+      return;
+    }
+
+    _isSubmitting = true;
     final created = await ref.read(feedProvider.notifier).addPost(
           CreatePostRequest(
-            body: body,
+            body: body.isEmpty ? null : body,
             itemId: _selectedItem?.id,
           ),
         );
     if (!mounted) return;
-    if (created != null) context.pop(true);
+    if (created != null) {
+      context.pop(true);
+    } else {
+      // 등록 실패 시 버튼을 다시 활성화해 재시도할 수 있게 합니다.
+      _isSubmitting = false;
+    }
   }
 
   String _formatPrice(int price) {
@@ -78,7 +100,13 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // 안드로이드 뒤로가기 시에도 X 버튼과 동일하게 그만두기 모달을 띄웁니다.
+        if (!didPop) _onClose();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.white,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -160,13 +188,14 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
             ),
           ),
           _BottomButtonSection(
-            canSubmit: _hasContent,
+            canSubmit: _hasContent || _selectedItem != null,
             selectedItem: _selectedItem,
             formatPrice: _formatPrice,
             onPickFromWishlist: _onPickFromWishlist,
             onSubmit: _onSubmit,
           ),
         ],
+      ),
       ),
     );
   }
@@ -333,27 +362,24 @@ class _BottomButtonSection extends StatelessWidget {
             ),
           ),
           SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
-          AnimatedOpacity(
-            opacity: canSubmit ? 1.0 : 0.5,
-            duration: const Duration(milliseconds: 200),
-            child: GestureDetector(
-              onTap: canSubmit ? onSubmit : null,
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
-                decoration: BoxDecoration(
-                  color: AppColors.skyBlue_100,
-                  borderRadius: BorderRadius.circular(40),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '완료',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: (20 * scale).clamp(16.0, 24.0),
-                    color: AppColors.textDark,
-                  ),
+          GestureDetector(
+            onTap: canSubmit ? onSubmit : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: (15 * scale).clamp(12.0, 18.0)),
+              decoration: BoxDecoration(
+                color: canSubmit ? AppColors.skyBlue_100 : AppColors.skyBlue_050,
+                borderRadius: BorderRadius.circular(40),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '완료',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w500,
+                  fontSize: (20 * scale).clamp(16.0, 24.0),
+                  color: canSubmit ? AppColors.textDark : AppColors.textDisabled,
                 ),
               ),
             ),

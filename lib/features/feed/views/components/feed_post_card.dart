@@ -2,6 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/vote_type.dart';
 import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
+import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class FeedPostCard extends StatefulWidget {
     required this.post,
     required this.isOptionActive,
     required this.onVote,
+    required this.onBlockedVote,
     required this.onOptionTap,
     required this.onCommentTap,
     required this.onCardTap,
@@ -21,6 +23,7 @@ class FeedPostCard extends StatefulWidget {
   final FeedPost post;
   final bool isOptionActive;
   final ValueChanged<VoteType> onVote;
+  final VoidCallback onBlockedVote;
   final VoidCallback onOptionTap;
   final VoidCallback onCommentTap;
   final VoidCallback onCardTap;
@@ -70,18 +73,22 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     isOptionActive: widget.isOptionActive,
                     onOptionTap: widget.onOptionTap,
                   ),
-                  SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
-                  _ExpandableText(
-                    text: post.body ?? '',
-                    isExpanded: _isExpanded,
-                    onExpand: () => setState(() => _isExpanded = true),
-                  ),
+                  // 글이 없는(위시리스트만 있는) 게시글은 본문 영역을 그리지 않습니다.
+                  if ((post.body?.trim().isNotEmpty ?? false)) ...[
+                    SizedBox(height: (7 * scale).clamp(5.0, 9.0)),
+                    _ExpandableText(
+                      text: post.body!,
+                      isExpanded: _isExpanded,
+                      onExpand: () => setState(() => _isExpanded = true),
+                    ),
+                  ],
                   SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                   if (post.product != null) ...[
                     _ProductCard(
                       name: post.product!.name,
                       price: post.product!.price,
-                      imageUrl: post.imageUrl,
+                      imageUrl: post.imageUrl ?? post.product!.imageUrl,
+                      link: post.product!.link,
                     ),
                     SizedBox(height: (15 * scale).clamp(12.0, 18.0)),
                   ],
@@ -94,6 +101,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                       stopCount: post.stopCount,
                       onVote: widget.onVote,
                       isDisabled: post.mine,
+                      onDisabledTap: widget.onBlockedVote,
                     ),
                   ),
                   SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
@@ -169,8 +177,8 @@ class _PostHeaderState extends State<_PostHeader> {
             padding: EdgeInsets.only(left: (8 * scale).clamp(6.0, 10.0)),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
-              width: (28 * scale).clamp(22.0, 34.0),
-              height: (28 * scale).clamp(22.0, 34.0),
+              width: (38 * scale).clamp(32.0, 44.0),
+              height: (38 * scale).clamp(32.0, 44.0),
               decoration: BoxDecoration(
                 color: _optionPressed ? AppColors.grey_300 : Colors.transparent,
                 shape: BoxShape.circle,
@@ -180,8 +188,8 @@ class _PostHeaderState extends State<_PostHeader> {
                 widget.isOptionActive
                     ? 'assets/images/option_clicked.svg'
                     : 'assets/images/option.svg',
-                width: (20 * scale).clamp(16.0, 24.0),
-                height: (20 * scale).clamp(16.0, 24.0),
+                width: (28 * scale).clamp(24.0, 32.0),
+                height: (28 * scale).clamp(24.0, 32.0),
               ),
             ),
           ),
@@ -274,32 +282,42 @@ class _ProductCard extends StatelessWidget {
     required this.name,
     this.price,
     this.imageUrl,
+    this.link,
   });
 
   final String name;
   final int? price;
   final String? imageUrl;
+  final String? link;
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
-    return Column(
-      children: [
+    final imageHeight = (150 * scale).clamp(120.0, 180.0);
+    final placeholder = Container(
+      height: imageHeight,
+      width: double.infinity,
+      color: AppColors.skyBlue_100.withValues(alpha: 0.4),
+    );
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    return GestureDetector(
+      // 카드 탭(상세 진입)보다 우선 — 상세 화면과 동일하게 링크 이동 처리
+      behavior: HitTestBehavior.opaque,
+      onTap: () => openProductLink(context: context, url: link),
+      child: Column(
+        children: [
         ClipRRect(
           borderRadius: BorderRadius.vertical(
               top: Radius.circular((22 * scale).clamp(17.0, 27.0))),
-          child: imageUrl != null
+          child: hasImage
               ? Image.network(
                   imageUrl!,
-                  height: (150 * scale).clamp(120.0, 180.0),
+                  height: imageHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => placeholder,
                 )
-              : Container(
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-                ),
+              : placeholder,
         ),
         Container(
           width: double.infinity,
@@ -343,7 +361,8 @@ class _ProductCard extends StatelessWidget {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
