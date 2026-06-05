@@ -1,3 +1,4 @@
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';

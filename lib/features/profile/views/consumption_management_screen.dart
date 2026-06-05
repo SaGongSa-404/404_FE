@@ -23,6 +23,7 @@ class ConsumptionManagementScreen extends ConsumerStatefulWidget {
 
 class _ConsumptionManagementScreenState
     extends ConsumerState<ConsumptionManagementScreen> {
+  bool _didChangeBudget = false;
   @override
   void initState() {
     super.initState();
@@ -70,7 +71,7 @@ class _ConsumptionManagementScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(),
+          onPressed: () => context.pop(_didChangeBudget),
         ),
         title: Text(
           '소비 관리',
@@ -553,15 +554,6 @@ class _ConsumptionManagementScreenState
                     SizedBox(width: 6 * scale),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          final newBudget = int.tryParse(controller.text.replaceAll(',', ''));
-                          if (newBudget != null) {
-                            ref.read(profileNotifierProvider.notifier).updateBudget(newBudget);
-                            // 홈화면의 예산 데이터를 즉시 새로고침해서 UI에 반영
-                            ref.read(homeSummaryProvider.notifier).refresh();
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
                         onTap: isSubmitting
                             ? null
                             : () async {
@@ -583,7 +575,10 @@ class _ConsumptionManagementScreenState
                                     .updateBudget(newBudget);
                                 if (!sheetContext.mounted) return;
                                 setSheetState(() => isSubmitting = false);
-                                if (ok) Navigator.of(sheetContext).pop();
+                                if (ok) {
+                                  _didChangeBudget = true;
+                                  Navigator.of(sheetContext).pop();
+                                }
                               },
                         child: Container(
                           height: 57 * scale,

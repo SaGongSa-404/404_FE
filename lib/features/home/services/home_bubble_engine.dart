@@ -50,6 +50,26 @@ class HomeBubbleEngine {
   Future<HomeBubbleEvaluation?> evaluateForHomeEntry({
     required BubbleHomeStatus status,
   }) async {
+    final localFlags = await _localStore.readFlags();
+
+    // 온보딩 완료 직후 첫 홈 진입에서는,
+    // 과거에 남아 있던 구매 결과 pending 보다 온보딩 말풍선을 우선 노출한다.
+    if (localFlags.pendingOnboardingBubble &&
+        !localFlags.hasShownOnboardingBubble) {
+      final selection = _selector.selectForHomeEntry(
+        status: status,
+        localFlags: localFlags,
+      );
+      if (selection == null) return null;
+
+      return HomeBubbleEvaluation(
+        selection: selection,
+        commit: const HomeBubbleDisplayCommit(
+          markOnboardingShown: true,
+        ),
+      );
+    }
+
     final pendingResult = await _localStore.peekPendingResultBubble();
     if (pendingResult != null) {
       final selection = _selector.selectForResultBubble(pendingResult);
@@ -59,8 +79,6 @@ class HomeBubbleEngine {
         commit: const HomeBubbleDisplayCommit(clearPendingResult: true),
       );
     }
-
-    final localFlags = await _localStore.readFlags();
 
     final type = _selector.selectTypeForHomeEntry(
       status: status,
