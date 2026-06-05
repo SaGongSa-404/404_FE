@@ -46,11 +46,14 @@ class _FeedDetailScreenState extends ConsumerState<FeedDetailScreen> {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
       _showCommentToast('삭제되었습니다');
     } else if (result == 'report') {
-      final reason = await showReportModal(context);
-      if (!mounted || reason == null) return;
-      final ok = await ref
-          .read(feedProvider.notifier)
-          .reportComment(widget.postId, commentId, reason);
+      final submission = await showReportModal(context);
+      if (!mounted || submission == null) return;
+      final ok = await ref.read(feedProvider.notifier).reportComment(
+            widget.postId,
+            commentId,
+            category: submission.category.serverValue,
+            reason: submission.reason,
+          );
       if (!mounted) return;
       if (ok) _showCommentToast('신고가 완료되었습니다');
     } else if (result == 'block') {
@@ -295,9 +298,9 @@ class _DetailPostCard extends StatelessWidget {
           ],
           if (post.product != null) ...[
             GestureDetector(
-              onTap: () => showProductLinkDialog(
+              onTap: () => openProductLink(
                 context: context,
-                productUrl: post.product?.link,
+                url: post.product?.link,
               ),
               child: _DetailProductCard(
                 name: post.product!.name,

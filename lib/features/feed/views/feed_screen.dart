@@ -273,9 +273,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         );
       }
     } else if (result == 'report') {
-      final reason = await showReportModal(context);
-      if (reason == null || !context.mounted) return;
-      final ok = await vm.reportPost(post.id, reason);
+      final submission = await showReportModal(context);
+      if (submission == null || !context.mounted) return;
+      final ok = await vm.reportPost(
+        post.id,
+        category: submission.category.serverValue,
+        reason: submission.reason,
+      );
       if (ok && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           _buildSnackBar(context, '신고가 완료되었습니다',

@@ -283,9 +283,13 @@ class FeedViewModel extends StateNotifier<FeedState> {
     }
   }
 
-  Future<bool> reportPost(String postId, String reason) async {
+  Future<bool> reportPost(
+    String postId, {
+    required String category,
+    String? reason,
+  }) async {
     try {
-      await _service.reportPost(postId, reason);
+      await _service.reportPost(postId, category: category, reason: reason);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
@@ -295,11 +299,13 @@ class FeedViewModel extends StateNotifier<FeedState> {
 
   Future<bool> reportComment(
     String postId,
-    String commentId,
-    String reason,
-  ) async {
+    String commentId, {
+    required String category,
+    String? reason,
+  }) async {
     try {
-      await _service.reportComment(postId, commentId, reason);
+      await _service.reportComment(postId, commentId,
+          category: category, reason: reason);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
@@ -310,12 +316,36 @@ class FeedViewModel extends StateNotifier<FeedState> {
   Future<bool> blockUser({required String authorUserId}) async {
     try {
       await _service.blockUser(authorUserId);
+      // 유저 차단이므로 그 유저가 쓴 댓글을 열려 있는 댓글 목록에서 즉시 제거하고,
+      // 게시글 목록은 서버 기준으로 새로고침해 일관성을 맞춥니다.
+      _removeCommentsByAuthor(authorUserId);
       await refresh();
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
       return false;
     }
+  }
+
+  /// 차단된 유저가 작성한 모든 댓글을 로컬 댓글 목록에서 제거합니다.
+  void _removeCommentsByAuthor(String authorUserId) {
+    final newMap = <String, CommentsPage>{};
+    var changed = false;
+    state.commentsMap.forEach((postId, page) {
+      final removed =
+          page.items.where((c) => c.authorUserId == authorUserId).length;
+      if (removed == 0) {
+        newMap[postId] = page;
+        return;
+      }
+      changed = true;
+      newMap[postId] = page.copyWith(
+        items:
+            page.items.where((c) => c.authorUserId != authorUserId).toList(),
+        total: (page.total - removed).clamp(0, 1 << 31),
+      );
+    });
+    if (changed) state = state.copyWith(commentsMap: newMap);
   }
 
   Future<String?> uploadImage(File file) async {

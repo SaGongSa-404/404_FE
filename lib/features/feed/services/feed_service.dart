@@ -136,21 +136,26 @@ class FeedService {
     );
   }
 
-  Future<void> reportPost(String postId, String reason) async {
+  Future<void> reportPost(
+    String postId, {
+    required String category,
+    String? reason,
+  }) async {
     await _dio.post<void>(
       ApiEndpoints.socialPostReports(postId),
-      data: ReportRequest(reason: reason).toJson(),
+      data: ReportRequest(category: category, reason: reason).toJson(),
     );
   }
 
   Future<void> reportComment(
     String postId,
-    String commentId,
-    String reason,
-  ) async {
+    String commentId, {
+    required String category,
+    String? reason,
+  }) async {
     await _dio.post<void>(
       ApiEndpoints.socialPostCommentReports(postId, commentId),
-      data: ReportRequest(reason: reason).toJson(),
+      data: ReportRequest(category: category, reason: reason).toJson(),
     );
   }
 
