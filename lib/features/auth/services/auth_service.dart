@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/features/auth/models/user.dart';
+import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/utils/profile_json.dart';
 
 part 'auth_service.g.dart';
@@ -18,7 +20,12 @@ class AuthService {
 
   /// 현재 로그인된 유저 정보 조회
   /// GET /api/auth/me 로 기본 정보를, GET /api/v1/users/me 로 onboardingStatus 를 가져와 병합합니다.
+  /// [EnvConfig.isDevXUserIdAuth] 이면 Bearer 없이 `GET /api/v1/users/me` 만 사용합니다.
   Future<UserModel> getMe() async {
+    if (EnvConfig.isDevXUserIdAuth) {
+      return getMeViaDevUserId();
+    }
+
     final authRes = await _dio.get<Map<String, dynamic>>(ApiEndpoints.me);
     final data = Map<String, dynamic>.from(authRes.data!);
 
@@ -38,6 +45,52 @@ class AuthService {
     }
 
     return UserModel.fromJson(data);
+  }
+
+  /// 로컬 `X-User-Id` 세션 — 프로필이 없으면(404) 온보딩용 최소 유저를 반환합니다.
+  Future<UserModel> getMeViaDevUserId() async {
+    final devId = EnvConfig.devUserId!;
+    try {
+      final profileRes = await _dio.get<dynamic>(ApiEndpoints.usersMe);
+      final profile = MyProfile.fromJson(parseProfileJsonMap(profileRes.data));
+      if (profile.isValid) {
+        return _userModelFromProfile(profile);
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 404) rethrow;
+    }
+
+    return UserModel(
+      userId: devId,
+      provider: 'dev',
+      providerUserId: devId,
+      name: 'Developer',
+      principalName: devId,
+      authorities: const [],
+      onboardingStatus: null,
+    );
+  }
+
+  static UserModel _userModelFromProfile(MyProfile profile) {
+    return UserModel(
+      userId: profile.id,
+      provider: profile.provider.isNotEmpty ? profile.provider : 'dev',
+      providerUserId: profile.id,
+      name: profile.nickname,
+      principalName: profile.nickname,
+      authorities: const [],
+      onboardingStatus: profile.onboardingStatus,
+    );
+  }
+
+  /// 앱 심사용 고정 계정 토큰 발급 (POST /api/auth/reviewer-token)
+  Future<({String accessToken, String refreshToken})> issueReviewerToken() async {
+    final res = await _dio.post<Map<String, dynamic>>(ApiEndpoints.reviewerToken);
+    final data = res.data!;
+    return (
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+    );
   }
 
   /// 로그아웃 (POST /api/logout)

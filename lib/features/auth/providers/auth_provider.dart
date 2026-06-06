@@ -8,40 +8,92 @@ import 'package:fe_app/features/auth/services/auth_service.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/services/profile_service.dart';
+import 'package:fe_app/features/auth/utils/oauth_callback_uri.dart';
+import 'package:fe_app/features/auth/utils/oauth_launch.dart';
+import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
   Future<UserModel?> build() async {
     final storage = ref.read(secureStorageServiceProvider);
     final token = await storage.getAccessToken();
-    if (token == null) return null;
+    if (token == null && !EnvConfig.isDevXUserIdAuth) return null;
     try {
       return await ref.read(authServiceProvider).getMe();
     } catch (_) {
-      await storage.clearTokens();
+      if (token != null) await storage.clearTokens();
       return null;
     }
   }
 
+  void resetToLoggedOut() {
+    state = const AsyncData(null);
+  }
+
+  Future<bool> launchOAuthSignIn(String provider) async {
+    if (state.hasError) resetToLoggedOut();
+
+    final base = Uri.parse(EnvConfig.apiBaseUrl);
+    final url = Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: '/oauth2/authorization/$provider',
+      queryParameters: {'redirect_uri': kOAuthRedirectUri},
+    );
+
+    try {
+      return await launchUrl(url, mode: oauthLaunchMode());
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> handleCallback(Uri uri) async {
-    assert(() {
-       debugPrint('[auth] callback received');
-       return true;
-     }());
+    if (kDebugMode) {
+      debugPrint('[auth] callback: ${describeOAuthCallbackUri(uri)}');
+    }
     state = const AsyncLoading();
-    // fragment(#) 또는 query(?) 어느 쪽으로 오든 처리
-    final fragment = Uri.splitQueryString(uri.fragment);
-    final query = uri.queryParameters;
-    final accessToken = fragment['access_token'] ?? query['access_token'];
-    final refreshToken = fragment['refresh_token'] ?? query['refresh_token'];
-    if (accessToken == null || refreshToken == null) {
-      debugPrint('[auth] tokens missing in callback');
+    final params = readOAuthCallbackParams(uri);
+    final accessToken = params['access_token'];
+    final refreshToken = params['refresh_token'];
+    if (accessToken == null ||
+        refreshToken == null ||
+        accessToken.isEmpty ||
+        refreshToken.isEmpty) {
+      debugPrint('[auth] tokens missing in callback (params=${params.keys})');
       state = AsyncError(
         Exception('콜백 URL에서 토큰을 찾을 수 없습니다.'),
         StackTrace.current,
       );
       return;
     }
+    await _persistTokensAndLoadUser(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+  }
+
+  /// 로그인 화면 로고 N회 탭 등 숨겨진 진입점 — 심사용 고정 계정 토큰 발급
+  Future<void> signInWithReviewerToken() async {
+    if (state.isLoading) return;
+    state = const AsyncLoading();
+    try {
+      final tokens = await ref.read(authServiceProvider).issueReviewerToken();
+      await _persistTokensAndLoadUser(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> _persistTokensAndLoadUser({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     final storage = ref.read(secureStorageServiceProvider);
     debugPrint('[auth] saving tokens');
     await storage.saveTokens(

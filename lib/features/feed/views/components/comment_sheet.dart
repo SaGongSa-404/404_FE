@@ -71,11 +71,14 @@ class _CommentSheetContentState extends ConsumerState<_CommentSheetContent> {
       ref.read(feedProvider.notifier).deleteComment(widget.postId, commentId);
       _triggerToast('삭제되었습니다');
     } else if (result == 'report') {
-      final reason = await showReportModal(context);
-      if (!mounted || reason == null) return;
-      final ok = await ref
-          .read(feedProvider.notifier)
-          .reportComment(widget.postId, commentId, reason);
+      final submission = await showReportModal(context);
+      if (!mounted || submission == null) return;
+      final ok = await ref.read(feedProvider.notifier).reportComment(
+            widget.postId,
+            commentId,
+            category: submission.category.serverValue,
+            reason: submission.reason,
+          );
       if (!mounted) return;
       if (ok) _triggerToast('신고가 완료되었습니다');
     } else if (result == 'block') {

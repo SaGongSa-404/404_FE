@@ -10,6 +10,7 @@ abstract class AppColors {
   static const textSecondary = Color(0xFF7B7B7B);
   static const textDark = Color(0xFF333333);
   static const textDate = Color(0xFF969696);
+  static const textDisabled = Color(0xFF8F8F8F);
 
   static const red_100 = Color(0xFFE8C1C1);
   static const red_200 = Color(0xFFD6A5A5);
@@ -23,6 +24,7 @@ abstract class AppColors {
   static const yellow_200 = Color(0xFFFFF8E8);
 
   static const skyBlue_000_clicked = Color(0xFFE8F3F9); // option clicked
+  static const skyBlue_050 = Color(0xFFDAE9F1); // disabled submit button bg
   static const skyBlue_100 = Color(0xFFC1D8E8);
   static const skyBlue_200 = Color(0xFF89ADC4);
   static const skyBlue_300 = Color(0xFF6D96B2);

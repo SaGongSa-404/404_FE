@@ -1,3 +1,4 @@
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';
@@ -7,6 +8,7 @@ import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
+import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/onboarding/views/privacy_policy_screen.dart';
 import 'package:fe_app/features/onboarding/views/service_terms_screen.dart';
 import 'package:fe_app/features/onboarding/views/terms_screen.dart';
@@ -194,7 +196,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'write',
-            builder: (context, state) => const FeedWriteScreen(),
+            builder: (context, state) {
+              final initialItem = state.extra is WishlistPlaceholder
+                  ? state.extra! as WishlistPlaceholder
+                  : null;
+              return FeedWriteScreen(initialItem: initialItem);
+            },
           ),
           GoRoute(
             path: 'edit/:id',
@@ -279,7 +286,10 @@ class _RouterNotifier extends ChangeNotifier {
     final location = state.matchedLocation;
 
     if (authState.isLoading || splashReady.isLoading) {
-      return location == '/' ? null : '/';
+      if (location == '/') return null;
+      // OAuth 외부 브라우저 복귀 시 로그인 화면 유지 (iOS 스플래시 깜빡임·no route 방지)
+      if (location == '/login' && authState.isLoading) return null;
+      return '/';
     }
 
     final isLoggedIn = authState.hasValue && authState.value != null;

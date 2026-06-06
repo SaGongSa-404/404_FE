@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/viewmodels/feed_state.dart';
@@ -6,18 +7,19 @@ import 'package:fe_app/features/feed/viewmodels/feed_viewmodel.dart';
 import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_sheet.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/deleted_post_modal.dart';
 import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/share_modal.dart';
-import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/circle_icon_label.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
+  bool _opening = false;
 
   @override
   void initState() {
@@ -54,7 +57,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   SnackBar _buildSnackBar(BuildContext context, String message, Color bgColor) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
+    final scale = responsiveScale(context);
     return SnackBar(
       content: Text(
         message,
@@ -86,50 +89,46 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
+    final scale = responsiveScale(context);
     final state = ref.watch(feedProvider);
     final vm = ref.read(feedProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        titleSpacing: (30 * scale).clamp(24.0, 36.0),
-        title: Text(
-          '피드',
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            fontSize: (20 * scale).clamp(16.0, 24.0),
-            color: AppColors.textPrimary,
-          ),
-        ),
-        actions: [
-          AlarmButton(onPressed: () => context.push('/notifications')),
-          SizedBox(width: (8 * scale).clamp(6.0, 10.0)),
-        ],
+      floatingActionButton: CircleIconLabel(
+        backgroundColor: AppColors.skyBlue_100,
+        pressedBackgroundColor: AppColors.skyBlue_200,
+        icon: Icons.edit_outlined,
+        iconColor: AppColors.textPrimary,
+        label: '글쓰기',
+        labelColor: AppColors.textPrimary,
+        onTap: () async {
+          final posted = await context.push<bool>('/feed/write');
+          if (posted == true && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              _buildSnackBar(
+                context,
+                '게시글이 등록되었어요!',
+                AppColors.skyBlue_400.withValues(alpha: 0.8),
+              ),
+            );
+          }
+        },
       ),
-      body: Stack(
-        children: [
-          _buildBody(context, state, vm, scale),
-          Positioned(
-            right: (16 * scale).clamp(12.0, 20.0),
-            bottom: (16 * scale).clamp(12.0, 20.0),
-            child: _WriteFab(
-              onTap: () async {
-                final posted = await context.push<bool>('/feed/write');
-                if (posted == true && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    _buildSnackBar(context, '게시글이 등록되었어요!',
-                        AppColors.skyBlue_400.withValues(alpha: 0.8)),
-                  );
-                }
-              },
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MainTabHeader(
+              backgroundColor: AppColors.white,
+              leading: MainTabHeader.tabTitle('피드', scale),
+              onAlarmPressed: () => context.push('/notifications'),
             ),
-          ),
-        ],
+            Expanded(child: _buildBody(context, state, vm, scale)),
+          ],
+        ),
       ),
       bottomNavigationBar: const AppBottomNavigationBar(),
     );
@@ -180,10 +179,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          (24 * scale).clamp(18.0, 30.0),
-          (16 * scale).clamp(12.0, 20.0),
-          (24 * scale).clamp(18.0, 30.0),
-          (100 * scale).clamp(80.0, 120.0),
+          24 * scale,
+          16 * scale,
+          24 * scale,
+          96 * scale,
         ),
         itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) =>
@@ -200,16 +199,39 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             post: post,
             isOptionActive: state.activeOptionPostId == post.id,
             onVote: (vote) => vm.vote(post.id, vote),
+            onBlockedVote: () => ScaffoldMessenger.of(context).showSnackBar(
+              _buildSnackBar(context, '본인 게시글은 투표할 수 없습니다',
+                  AppColors.red_600.withValues(alpha: 0.8)),
+            ),
             onOptionTap: () => _onOptionTap(context, vm, post),
             onCommentTap: () => showCommentSheet(
               context: context,
               postId: post.id,
             ),
-            onCardTap: () => context.push('/feed/${post.id}'),
+            onCardTap: () => _openPost(context, vm, post.id),
           );
         },
       ),
     );
+  }
+
+  /// 상세 진입 전 삭제(404) 여부를 확인하고, 삭제된 글이면 진입 대신 안내 모달을 띄웁니다.
+  Future<void> _openPost(
+      BuildContext context, FeedViewModel vm, String postId) async {
+    if (_opening) return;
+    _opening = true;
+    try {
+      final deleted = await vm.refreshPost(postId);
+      if (!context.mounted) return;
+      if (deleted) {
+        vm.removePost(postId);
+        await showDeletedPostModal(context);
+        return;
+      }
+      if (context.mounted) context.push('/feed/$postId');
+    } finally {
+      _opening = false;
+    }
   }
 
   Future<void> _onOptionTap(
@@ -248,9 +270,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         );
       }
     } else if (result == 'report') {
-      final reason = await showReportModal(context);
-      if (reason == null || !context.mounted) return;
-      final ok = await vm.reportPost(post.id, reason);
+      final submission = await showReportModal(context);
+      if (submission == null || !context.mounted) return;
+      final ok = await vm.reportPost(
+        post.id,
+        category: submission.category.serverValue,
+        reason: submission.reason,
+      );
       if (ok && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           _buildSnackBar(context, '신고가 완료되었습니다',
@@ -268,36 +294,5 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         );
       }
     }
-  }
-}
-
-class _WriteFab extends StatefulWidget {
-  const _WriteFab({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  State<_WriteFab> createState() => _WriteFabState();
-}
-
-class _WriteFabState extends State<_WriteFab> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: SvgPicture.asset(
-        _pressed
-            ? 'assets/images/write_button_clicked.svg'
-            : 'assets/images/write_button.svg',
-        width: (72 * scale).clamp(58.0, 86.0),
-        height: (72 * scale).clamp(58.0, 86.0),
-      ),
-    );
   }
 }

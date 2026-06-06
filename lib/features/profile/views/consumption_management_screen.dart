@@ -2,8 +2,6 @@ import 'dart:math';
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
@@ -23,6 +21,7 @@ class ConsumptionManagementScreen extends ConsumerStatefulWidget {
 
 class _ConsumptionManagementScreenState
     extends ConsumerState<ConsumptionManagementScreen> {
+  bool _didChangeBudget = false;
   @override
   void initState() {
     super.initState();
@@ -70,7 +69,7 @@ class _ConsumptionManagementScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(),
+          onPressed: () => context.pop(_didChangeBudget),
         ),
         title: Text(
           '소비 관리',
@@ -574,7 +573,10 @@ class _ConsumptionManagementScreenState
                                     .updateBudget(newBudget);
                                 if (!sheetContext.mounted) return;
                                 setSheetState(() => isSubmitting = false);
-                                if (ok) Navigator.of(sheetContext).pop();
+                                if (ok) {
+                                  _didChangeBudget = true;
+                                  Navigator.of(sheetContext).pop();
+                                }
                               },
                         child: Container(
                           height: 57 * scale,

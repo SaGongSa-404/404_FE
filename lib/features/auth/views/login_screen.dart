@@ -1,48 +1,69 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'package:fe_app/core/config/env_config.dart';
-import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/components/login_button_section.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
-class LoginScreen extends ConsumerWidget {
+/// 로고 연속 탭 횟수 — 심사용 reviewer-token 발급 진입점
+const int _reviewerLogoTapCount = 5;
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
-  Future<void> _launchOAuth(BuildContext context, String provider) async {
-    const redirectUri = 'sagongsa404://auth/callback';
-    final base = Uri.parse(EnvConfig.apiBaseUrl);
-    final url = Uri(
-      scheme: base.scheme,
-      host: base.host,
-      port: base.hasPort ? base.port : null,
-      path: '/oauth2/authorization/$provider',
-      queryParameters: {'redirect_uri': redirectUri},
-    );
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
 
-    try {
-      final launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
-        );
-      }
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  int _logoTapCount = 0;
+  Timer? _logoTapResetTimer;
+
+  @override
+  void dispose() {
+    _logoTapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onLogoTap() {
+    if (ref.read(authProvider).isLoading) return;
+
+    _logoTapResetTimer?.cancel();
+    _logoTapResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _logoTapCount = 0);
+    });
+
+    final nextCount = _logoTapCount + 1;
+    if (nextCount >= _reviewerLogoTapCount) {
+      _logoTapResetTimer?.cancel();
+      setState(() => _logoTapCount = 0);
+      unawaited(ref.read(authProvider.notifier).signInWithReviewerToken());
+      return;
+    }
+    setState(() => _logoTapCount = nextCount);
+  }
+
+  Future<void> _onOAuthPressed(
+    BuildContext context,
+    WidgetRef ref,
+    String provider,
+  ) async {
+    final launched =
+        await ref.read(authProvider.notifier).launchOAuthSignIn(provider);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('브라우저를 열 수 없어요. 잠시 후 다시 시도해주세요.')),
+      );
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     ref.listen<AsyncValue<UserModel?>>(authProvider, (previous, next) {
       if (next.hasError && previous?.isLoading == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,11 +92,15 @@ class LoginScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       const Spacer(flex: 266),
-                      SvgPicture.asset(
-                        'assets/images/wigul_logo.svg',
-                        width: 125,
-                        height: 112,
-                        fit: BoxFit.contain,
+                      GestureDetector(
+                        onTap: _onLogoTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: SvgPicture.asset(
+                          'assets/images/wigul_logo.svg',
+                          width: 125,
+                          height: 112,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       const Text(
@@ -90,8 +115,10 @@ class LoginScreen extends ConsumerWidget {
                       ),
                       const Spacer(flex: 171),
                       LoginButtonSection(
-                        onKakaoPressed: () => _launchOAuth(context, 'kakao'),
-                        onGooglePressed: () => _launchOAuth(context, 'google'),
+                        onKakaoPressed: () =>
+                            _onOAuthPressed(context, ref, 'kakao'),
+                        onGooglePressed: () =>
+                            _onOAuthPressed(context, ref, 'google'),
                         isLoading: isLoading,
                       ),
                       const Spacer(flex: 134),

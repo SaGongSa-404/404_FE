@@ -80,6 +80,7 @@ class _OptionModalContent extends StatelessWidget {
           defaultColor: AppColors.yellow,
           pressedColor: AppColors.yellow_100,
           textColor: AppColors.textPrimary,
+          enabled: false,
           onTap: () => Navigator.of(context).pop('share'),
         ),
       ];
@@ -110,6 +111,7 @@ class _OptionButton extends StatefulWidget {
     required this.pressedColor,
     required this.textColor,
     required this.onTap,
+    this.enabled = true,
     this.leadingIcon,
   });
 
@@ -118,6 +120,7 @@ class _OptionButton extends StatefulWidget {
   final Color pressedColor;
   final Color textColor;
   final VoidCallback onTap;
+  final bool enabled;
   final Widget? leadingIcon;
 
   @override
@@ -131,12 +134,14 @@ class _OptionButtonState extends State<_OptionButton> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
+      onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp: widget.enabled
+          ? (_) {
+              setState(() => _pressed = false);
+              widget.onTap();
+            }
+          : null,
+      onTapCancel: widget.enabled ? () => setState(() => _pressed = false) : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         width: double.infinity,

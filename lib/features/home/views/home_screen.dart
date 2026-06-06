@@ -7,10 +7,12 @@ import 'package:fe_app/features/home/domain/home_bubble_type.dart';
 import 'package:fe_app/features/home/providers/home_bubble_provider.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:fe_app/features/home/services/home_bubble_engine.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_info_container.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
+import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +45,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   HomeBubbleType? _visibleBubbleType;
   bool _hasHandledBubbleRuntime = false;
   bool _isShowingBubble = false;
+  bool _isRefreshing = false;
 
   String _getDefaultVideoPath(bool isBudgetExhausted) {
     return isBudgetExhausted
@@ -171,11 +174,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  Future<void> _refreshHomeData() async {
+    if (_isRefreshing) return;
+
+    setState(() => _isRefreshing = true);
+    _hasHandledBubbleRuntime = false;
+    ref.read(homeBubbleRefreshProvider)();
+
+    try {
+      await Future.wait([
+        ref.read(homeSummaryProvider.notifier).refresh(),
+        ref.read(consumptionStatsProvider.notifier).load(force: true),
+      ]);
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentVideoPath = 'assets/videos/nugul_home.mp4';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_refreshHomeData());
+    });
   }
 
   @override
@@ -263,7 +290,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final summary = summaryAsync.valueOrNull;
     final authUser = ref.watch(authProvider).valueOrNull;
 
-    final isBudgetExhausted = summary?.budget.isBudgetExhausted ?? false;
+    final statsState = ref.watch(consumptionStatsProvider);
+    final currentRecord = statsState.currentMonthStats;
+
+    final remainingBudget = currentRecord == null
+        ? 1
+        : currentRecord.budgetAmount - currentRecord.spentAmount;
+    final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
     final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
 
     final specialState = ref.watch(homeSpecialEffectProvider);
@@ -326,96 +359,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   )
                 : Container(color: const Color(0xFFD9E9F2)),
           ),
-          SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                MainTabHeader(
-                  leading: SvgPicture.asset(
-                    'assets/images/wigul_logo.svg',
-                    height: 32 * scale,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.textPrimary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                  badgeCount: summary?.notifications.unreadCount,
-                  onAlarmPressed: () => context.push('/notifications'),
-                ),
-                SizedBox(height: 20 * scale),
-                GestureDetector(
-                  onTap: _onNugulTap,
-                  child: Column(
-                    children: [
-                      if (_visibleBalloonMessage != null) ...[
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 40 * scale,
-                            vertical: 16 * scale,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(217),
-                            borderRadius: BorderRadius.circular(40 * scale),
-                          ),
-                          child: Text(
-                            _visibleBalloonMessage!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 16 * scale,
-                              fontWeight: FontWeight.w500,
+          RefreshIndicator(
+            onRefresh: _refreshHomeData,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      children: [
+                        MainTabHeader(
+                          leading: SvgPicture.asset(
+                            'assets/images/wigul_logo.svg',
+                            height: 32 * scale,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.textPrimary,
+                              BlendMode.srcIn,
                             ),
                           ),
+                          badgeCount: summary?.notifications.unreadCount,
+                          onAlarmPressed: () => context.push('/notifications'),
                         ),
-                        CustomPaint(
-                          size: Size(20 * scale, 10 * scale),
-                          painter: TrianglePainter(),
-                        ),
-                      ] else
-                        SizedBox(height: 10 * scale),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24 * scale,
-                    vertical: 40 * scale,
-                  ),
-                  child: HomeInfoContainer(
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        SizedBox(
-                          height: 160 * scale,
-                          child: PageView(
-                            controller: _pageController,
-                            onPageChanged: (index) => setState(() => _currentPage = index),
-                            children: const [
-                              BudgetCard(),
-                              SelectionRateCard(),
+                        SizedBox(height: 20 * scale),
+                        GestureDetector(
+                          onTap: _onNugulTap,
+                          child: Column(
+                            children: [
+                              if (_visibleBalloonMessage != null) ...[
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 40 * scale,
+                                    vertical: 16 * scale,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(217),
+                                    borderRadius: BorderRadius.circular(40 * scale),
+                                  ),
+                                  child: Text(
+                                    _visibleBalloonMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 16 * scale,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                CustomPaint(
+                                  size: Size(20 * scale, 10 * scale),
+                                  painter: TrianglePainter(),
+                                ),
+                              ] else
+                                SizedBox(height: 10 * scale),
                             ],
                           ),
                         ),
-                        Positioned(
-                          top: -12 * scale,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(2, (index) {
-                              return Container(
-                                margin: EdgeInsets.symmetric(horizontal: 3 * scale),
-                                width: (index == _currentPage ? 18 : 8) * scale,
-                                height: 4 * scale,
-                                decoration: BoxDecoration(
-                                  color: index == _currentPage
-                                      ? AppColors.skyBlue_100
-                                      : const Color(0xFFE0E0E0),
-                                  borderRadius: BorderRadius.circular(2 * scale),
+                        const Spacer(),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24 * scale,
+                            vertical: 40 * scale,
+                          ),
+                          child: HomeInfoContainer(
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                SizedBox(
+                                  height: 160 * scale,
+                                  child: PageView(
+                                    controller: _pageController,
+                                    onPageChanged: (index) =>
+                                        setState(() => _currentPage = index),
+                                    children: [
+                                      BudgetCard(
+                                        onTap: () async {
+                                          final updated =
+                                              await context.push<bool>('/my/consumption');
+                                          if (!mounted) return;
+                                          if (updated == true) {
+                                            unawaited(_refreshHomeData());
+                                          }
+                                        },
+                                      ),
+                                      const SelectionRateCard(),
+                                    ],
+                                  ),
                                 ),
-                              );
-                            }),
+                                Positioned(
+                                  top: -12 * scale,
+                                  right: 0,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: List.generate(2, (index) {
+                                      return Container(
+                                        margin: EdgeInsets.symmetric(
+                                          horizontal: 3 * scale,
+                                        ),
+                                        width:
+                                            (index == _currentPage ? 18 : 8) * scale,
+                                        height: 4 * scale,
+                                        decoration: BoxDecoration(
+                                          color: index == _currentPage
+                                              ? const Color(0xFFCACACA)
+                                              : const Color(0xFFE5E5E5),
+                                          borderRadius: BorderRadius.circular(2 * scale),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -425,6 +481,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ],
             ),
           ),
+          if (_isRefreshing)
+            const Positioned.fill(child: NugulLoadingScreen()),
         ],
       ),
       bottomNavigationBar: const AppBottomNavigationBar(),

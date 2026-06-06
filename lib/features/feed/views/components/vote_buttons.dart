@@ -10,6 +10,7 @@ class VoteButtons extends StatelessWidget {
     required this.stopCount,
     required this.onVote,
     this.isDisabled = false,
+    this.onDisabledTap,
   });
 
   final VoteType? myVote;
@@ -17,6 +18,9 @@ class VoteButtons extends StatelessWidget {
   final int stopCount;
   final ValueChanged<VoteType> onVote;
   final bool isDisabled;
+
+  /// 비활성(본인 글) 상태에서 버튼 영역을 탭했을 때 호출됩니다.
+  final VoidCallback? onDisabledTap;
 
   int get _total => goCount + stopCount;
 
@@ -61,7 +65,12 @@ class VoteButtons extends StatelessWidget {
     );
 
     if (isDisabled) {
-      return IgnorePointer(child: buttons);
+      // 본인 글: 버튼 자체는 입력을 무시하고, 영역 탭 시 안내 토스트만 띄웁니다.
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onDisabledTap,
+        child: IgnorePointer(child: buttons),
+      );
     }
     return buttons;
   }
