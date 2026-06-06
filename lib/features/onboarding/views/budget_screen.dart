@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
 import 'package:fe_app/features/onboarding/views/components/budget_input_field.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_header.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -80,17 +82,12 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                  child: SingleChildScrollView(
+                  child: OnboardingSpacedScrollView(
+                    viewportHeight: constraints.maxHeight,
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Spacer(flex: 30),
+                    children: [
+                            OnboardingLayout.topSpacer(),
                             OnboardingProgressIndicator(
                               currentStep: 2,
                               totalSteps: 4,
@@ -129,10 +126,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
-                          ],
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ),

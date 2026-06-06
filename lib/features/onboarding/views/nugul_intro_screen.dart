@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 
 class NugulIntroScreen extends ConsumerStatefulWidget {
@@ -53,15 +55,10 @@ class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
-                  child: SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Spacer(flex: 65),
+                  child: OnboardingSpacedScrollView(
+                    viewportHeight: constraints.maxHeight,
+                    children: [
+                            OnboardingLayout.topSpacer(),
                             OnboardingProgressIndicator(
                               currentStep: 4,
                               totalSteps: 4,
@@ -119,10 +116,7 @@ class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 40),
-                          ],
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ),
