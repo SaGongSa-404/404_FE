@@ -9,6 +9,7 @@ class ProductSection with _$ProductSection {
     required String name,
     int? price,
     String? link,
+    String? imageUrl,
   }) = _ProductSection;
 
   factory ProductSection.fromJson(Map<String, dynamic> json) =>

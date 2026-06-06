@@ -80,18 +80,81 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
     return fallback;
   }
 
-  Future<Map<String, String>> _loadDecisionIdByLookupKey() async {
+  Future<List<ConsumptionRecord>> _loadConsumptionRecords() async {
     final response = await _consumptionService.getMonthlyConsumption(
       month: _yearMonth,
     );
-    return {
-      for (final record in response.items)
-        ConsumptionRecord.lookupKey(
-          title: record.itemTitle,
-          price: record.price,
-          result: record.result,
-        ): record.id,
-    };
+    return response.items;
+  }
+
+  String? _resolveDecisionId(
+    WishHistoryItem wish,
+    List<ConsumptionRecord> records,
+  ) {
+    final existing = wish.decisionId;
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    final title = wish.title.trim();
+    final status = wish.status.toUpperCase();
+    if (title.isEmpty || (status != 'GO' && status != 'STOP')) return null;
+
+    final byItemId = records
+        .where(
+          (record) =>
+              record.itemId != null &&
+              record.itemId!.isNotEmpty &&
+              record.itemId == wish.itemId,
+        )
+        .toList();
+    if (byItemId.length == 1) return byItemId.single.id;
+
+    final exactKey = WishHistoryItem.lookupKey(
+      title: wish.title,
+      price: wish.price,
+      status: wish.status,
+    );
+    final exactMatches =
+        records.where((record) => record.id.isNotEmpty).toList();
+    for (final record in exactMatches) {
+      if (ConsumptionRecord.lookupKey(
+            title: record.itemTitle,
+            price: record.price,
+            result: record.result,
+          ) ==
+          exactKey) {
+        return record.id;
+      }
+    }
+
+    final byTitleResult = records
+        .where(
+          (record) =>
+              record.itemTitle.trim() == title &&
+              record.result.toUpperCase() == status,
+        )
+        .toList();
+    if (byTitleResult.isEmpty) return null;
+    if (byTitleResult.length == 1) return byTitleResult.single.id;
+
+    final wishPrice = wish.price ?? 0;
+    final priceMatches = byTitleResult
+        .where((record) => (record.price ?? 0) == wishPrice)
+        .toList();
+    if (priceMatches.length == 1) return priceMatches.single.id;
+
+    if (status == 'STOP') {
+      final withoutPrice = byTitleResult
+          .where((record) => record.price == null || record.price == 0)
+          .toList();
+      if (withoutPrice.length == 1) return withoutPrice.single.id;
+    }
+
+    byTitleResult.sort((a, b) {
+      final aTime = a.decidedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.decidedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return byTitleResult.first.id;
   }
 
   Future<List<WishHistoryItem>> _fetchWishHistoryForMonth() async {
@@ -120,19 +183,15 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
     try {
       final results = await Future.wait([
         _fetchWishHistoryForMonth(),
-        _loadDecisionIdByLookupKey(),
+        _loadConsumptionRecords(),
       ]);
       final wishes = results[0] as List<WishHistoryItem>;
-      final decisionIds = results[1] as Map<String, String>;
+      final records = results[1] as List<ConsumptionRecord>;
 
       final items = wishes
           .map(
             (wish) => wish.copyWith(
-              decisionId: decisionIds[WishHistoryItem.lookupKey(
-                title: wish.title,
-                price: wish.price,
-                status: wish.status,
-              )],
+              decisionId: _resolveDecisionId(wish, records),
             ),
           )
           .toList();
@@ -153,7 +212,13 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
     final newStatus =
         toGo ? ItemStatus.go.apiValue : ItemStatus.stop.apiValue;
     if (item.status.toUpperCase() == newStatus) return true;
-    if (item.decisionId == null) {
+
+    var decisionId = item.decisionId;
+    if (decisionId == null || decisionId.isEmpty) {
+      final records = await _loadConsumptionRecords();
+      decisionId = _resolveDecisionId(item, records);
+    }
+    if (decisionId == null || decisionId.isEmpty) {
       state = state.copyWith(
         errorMessage: '결정 정보를 찾을 수 없어 수정할 수 없습니다.',
       );
@@ -168,7 +233,7 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
     );
     try {
       final response = await _decisionService.updateDecisionResult(
-        decisionId: item.decisionId!,
+        decisionId: decisionId,
         request: DecisionResultUpdateRequest(
           result: toGo
               ? PurchaseDecisionResult.go.apiValue
@@ -180,7 +245,10 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
       final updatedStatus = response.result.toUpperCase();
       final updatedItems = state.items.map((row) {
         if (row.itemId != item.itemId) return row;
-        return row.copyWith(status: updatedStatus);
+        return row.copyWith(
+          status: updatedStatus,
+          decisionId: decisionId,
+        );
       }).toList();
 
       state = state.copyWith(

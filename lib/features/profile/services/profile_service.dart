@@ -58,6 +58,20 @@ class ProfileService {
     return _parseMyProfile(res.data);
   }
 
+  /// DELETE /api/v1/users/me — 회원 탈퇴 (성공: 204, 이미 없음: 404).
+  Future<void> deleteMyAccount() async {
+    await _dio.request<void>(
+      ApiEndpoints.usersMe,
+      options: Options(
+        method: 'DELETE',
+        responseType: ResponseType.plain,
+        validateStatus: (status) =>
+            status != null &&
+            (status == 204 || status == 404 || (status >= 200 && status < 300)),
+      ),
+    );
+  }
+
   MyProfile _parseMyProfile(Object? data) {
     final profile = MyProfile.fromJson(parseProfileJsonMap(data));
     if (!profile.isValid) {

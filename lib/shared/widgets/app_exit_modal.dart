@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 Future<bool?> showAppExitModal(BuildContext context) {
   return showDialog<bool>(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true,
     barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (_) => const _AppExitDialog(),
   );
@@ -20,6 +20,20 @@ class AppExitBackHandler extends StatefulWidget {
 
   final Widget child;
 
+  /// 하위 [PopScope]/오버레이가 뒤로가기를 처리했을 때 호출합니다.
+  /// 같은 백 이벤트가 부모까지 전달되어 앱 종료 모달이 뜨는 것을 막습니다.
+  static void markBackHandledByChild() {
+    _childHandledBack = true;
+  }
+
+  static bool _childHandledBack = false;
+
+  static bool _consumeChildHandledBack() {
+    if (!_childHandledBack) return false;
+    _childHandledBack = false;
+    return true;
+  }
+
   @override
   State<AppExitBackHandler> createState() => _AppExitBackHandlerState();
 }
@@ -29,8 +43,16 @@ class _AppExitBackHandlerState extends State<AppExitBackHandler> {
 
   Future<void> _handleBack() async {
     if (_isHandlingBack) return;
+    if (AppExitBackHandler._consumeChildHandledBack()) return;
+
     _isHandlingBack = true;
     try {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
+        return;
+      }
+
       final shouldExit = await showAppExitModal(context);
       if (shouldExit == true && mounted) {
         // 다이얼로그가 닫힌 뒤 Activity를 종료합니다. (finishAffinity 대신 표준 API 사용)
@@ -44,13 +66,21 @@ class _AppExitBackHandlerState extends State<AppExitBackHandler> {
     }
   }
 
+  void _scheduleHandleBack() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_handleBack());
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          unawaited(_handleBack());
+          // 하위 PopScope(위시 모달 등)가 먼저 처리할 수 있도록 다음 프레임에 실행
+          _scheduleHandleBack();
         }
       },
       child: widget.child,

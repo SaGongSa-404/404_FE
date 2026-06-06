@@ -106,6 +106,23 @@ class MyPostsViewModel extends StateNotifier<MyPostsState> {
     state = state.copyWith(activeOptionPostId: postId);
   }
 
+  /// 상세 진입 전 삭제(404) 여부를 확인합니다. 삭제됐으면 목록에서 제거하고 true 반환.
+  Future<bool> checkDeletedAndRemove(String postId) async {
+    try {
+      await _feedService.getPost(postId);
+      return false;
+    } catch (e) {
+      if (apiExceptionFrom(e)?.statusCode == 404) {
+        state = state.copyWith(
+          posts: state.posts.where((p) => p.id != postId).toList(),
+          activeOptionPostId: null,
+        );
+        return true;
+      }
+      return false; // 기타 오류는 진입 허용 (캐시 사용)
+    }
+  }
+
   Future<bool> deletePost(String postId) async {
     try {
       await _feedService.deletePost(postId);

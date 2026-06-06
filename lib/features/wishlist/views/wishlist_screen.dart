@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
-import 'package:fe_app/shared/widgets/alarm/alarm_button.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
+import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/circle_icon_label.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
@@ -208,6 +208,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
             fit: StackFit.expand,
             children: [
               SafeArea(
+                top: false,
                 child: Stack(
                   children: [
                     Column(
@@ -218,66 +219,16 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 8 * scale),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 16 * scale),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            height: 40 * scale,
-                                            child: Center(
-                                              child: Text(
-                                                '${filteredItems.length}',
-                                                style: TextStyle(
-                                                  fontSize: 27 * scale,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.skyBlue_300,
-                                                ),
-                                                textHeightBehavior: const TextHeightBehavior(
-                                                  applyHeightToFirstAscent: false,
-                                                  applyHeightToLastDescent: false,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 1 * scale),
-                                          SizedBox(
-                                            height: 40 * scale,
-                                            child: Center(
-                                              child: Text(
-                                                '개의 위시리스트',
-                                                style: TextStyle(
-                                                  fontSize: 20 * scale,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                                textHeightBehavior: const TextHeightBehavior(
-                                                  applyHeightToFirstAscent: false,
-                                                  applyHeightToLastDescent: false,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(right: 8 * scale),
-                                      child: AlarmButton(
-                                        onPressed: () => context.push('/notifications'),
-                                      ),
-                                    ),
-                                  ],
+                              MainTabHeader(
+                                backgroundColor: Colors.white,
+                                leading: MainTabHeader.countTitle(
+                                  filteredItems.length,
+                                  '개의 위시리스트',
+                                  scale,
                                 ),
+                                onAlarmPressed: () =>
+                                    context.push('/notifications'),
                               ),
-                              SizedBox(height: 8 * scale),
                               Padding(
                                 padding: EdgeInsets.only(bottom: 16 * scale),
                                 child: const CategoryFilter(),
@@ -365,10 +316,9 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                                     context,
                                                     onConfirm: () {
                                                       if (!context.mounted) return;
-                                                      showCapsuleToast(
-                                                        context,
-                                                        backgroundColor: const Color(0xFF5F8EAE),
-                                                        text: '피드에 공유되었습니다',
+                                                      context.push(
+                                                        '/feed/write',
+                                                        extra: item,
                                                       );
                                                     },
                                                   );

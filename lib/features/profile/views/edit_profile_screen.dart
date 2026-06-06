@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
@@ -88,11 +89,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Padding(
               padding: EdgeInsets.only(left: 4 * scale, bottom: 8 * scale),
               child: Text(
@@ -225,7 +228,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ],
             ),
             SizedBox(height: 16 * scale),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -270,7 +274,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       actionLabel: '로그아웃',
     );
     if (confirmed == true && context.mounted) {
-      ref.read(authProvider.notifier).logout();
+      await ref.read(authProvider.notifier).logout();
+      if (!context.mounted) return;
       context.go('/login');
     }
   }
@@ -282,19 +287,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       subtitle: '한 번 탈퇴한 계정은 되돌릴 수 없어요',
       actionLabel: '탈퇴하기',
     );
-    if (confirmed == true && context.mounted) {
+    if (confirmed != true || !context.mounted) return;
+
+    final profileNotifier = ref.read(myProfileProvider.notifier);
+    try {
+      await profileNotifier.deleteAccountAndSignOut();
+    } catch (e) {
+      if (!context.mounted) return;
       showCapsuleToast(
         context,
-        backgroundColor: const Color(0xFFD46868),
-        text: '계정이 삭제되었습니다',
+        backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+        text: profileNotifier.withdrawErrorMessage(e),
       );
-
-      await Future.delayed(const Duration(seconds: 2));
-      if (context.mounted) {
-        ref.read(authProvider.notifier).logout();
-        context.go('/login');
-      }
+      return;
     }
+
+    if (!context.mounted) return;
+    showCapsuleToast(
+      context,
+      backgroundColor: const Color(0xFFD46868),
+      text: '계정이 삭제되었습니다',
+    );
+
+    await Future.delayed(const Duration(seconds: 2));
+    if (!context.mounted) return;
+    context.go('/login');
   }
 }
 

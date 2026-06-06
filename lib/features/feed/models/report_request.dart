@@ -6,7 +6,8 @@ part 'report_request.g.dart';
 @freezed
 class ReportRequest with _$ReportRequest {
   const factory ReportRequest({
-    required String reason,
+    required String category,
+    String? reason,
   }) = _ReportRequest;
 
   factory ReportRequest.fromJson(Map<String, dynamic> json) =>

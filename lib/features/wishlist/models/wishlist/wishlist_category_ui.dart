@@ -38,4 +38,14 @@ abstract final class WishlistCategoryUi {
     if (category == null) return '기타';
     return _enumToUiLabel[category] ?? '기타';
   }
+
+  static String resolveFormChipSelection({String? apiCategory, String? uiLabel}) {
+    final fromUi = uiLabel?.trim();
+    if (fromUi != null && fromUi.isNotEmpty) {
+      if (formLabels.contains(fromUi)) return fromUi;
+    }
+    final chip = toUiLabel(apiCategory ?? fromUi);
+    if (formLabels.contains(chip)) return chip;
+    return '기타';
+  }
 }
