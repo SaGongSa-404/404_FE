@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/features/onboarding/viewmodels/onboarding_viewmodel.dart';
+import 'package:fe_app/features/onboarding/views/components/budget_input_field.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_header.dart';
-import 'package:fe_app/features/onboarding/views/components/onboarding_pill_text_field.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 
@@ -18,9 +17,10 @@ class BudgetScreen extends ConsumerStatefulWidget {
 
 class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   static const _designWidth = 412.0;
+  static const _maxDigits = 8;
 
   final _controller = TextEditingController();
-  bool _hasValue = false;
+  String _digits = '';
 
   @override
   void initState() {
@@ -35,14 +35,28 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   }
 
   void _onChanged() {
-    final hasValue = _controller.text.trim().isNotEmpty;
-    if (hasValue != _hasValue) setState(() => _hasValue = hasValue);
+    final digits = _controller.text.replaceAll(',', '');
+    if (digits != _digits) {
+      setState(() => _digits = digits);
+    }
+  }
+
+  String? get _errorMessage {
+    if (_digits.isEmpty) return null;
+    final amount = int.tryParse(_digits) ?? 0;
+    if (amount < 1) return '1원 이상 입력해주세요';
+    return null;
+  }
+
+  bool get _isValid {
+    if (_digits.isEmpty) return false;
+    final amount = int.tryParse(_digits) ?? 0;
+    return amount >= 1 && _digits.length <= _maxDigits;
   }
 
   void _onNext() {
     FocusScope.of(context).unfocus();
-    final digits = _controller.text.replaceAll(',', '');
-    final amount = int.tryParse(digits) ?? 0;
+    final amount = int.tryParse(_digits) ?? 0;
     ref.read(onboardingProvider.notifier).setMonthlyBudget(amount);
     context.push('/onboarding/survey');
   }
@@ -79,10 +93,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 2,
-                              totalSteps: 3,
-                              onBack: () => context.canPop()
-                                  ? context.pop()
-                                  : context.go('/'),
+                              totalSteps: 4,
+                              onBack: () => context.pop(),
                             ),
                             const Spacer(flex: 118),
                             OnboardingHeader(
@@ -104,20 +116,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                                 fit: BoxFit.contain,
                               ),
                             ),
-                            OnboardingPillTextField(
+                            BudgetInputField(
                               controller: _controller,
-                              hintText: '예) 500,000',
+                              errorMessage: _errorMessage,
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                               hintFontSize: (20 * scale).clamp(15.0, 26.0),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                _BudgetFormatter(maxDigits: 9),
-                              ],
                             ),
                             const SizedBox(height: 14),
                             OnboardingPrimaryButton(
                               label: '다음',
-                              onPressed: _hasValue ? _onNext : null,
+                              onPressed: _isValid ? _onNext : null,
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 135),
@@ -132,37 +140,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           },
         ),
       ),
-    );
-  }
-}
-
-class _BudgetFormatter extends TextInputFormatter {
-  _BudgetFormatter({required this.maxDigits});
-
-  final int maxDigits;
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length > maxDigits) {
-      digits = digits.substring(0, maxDigits);
-    }
-    if (digits.isEmpty) {
-      return const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      );
-    }
-    final formatted = int.parse(digits).toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+$)'),
-          (m) => '${m[1]},',
-        );
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

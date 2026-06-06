@@ -24,10 +24,13 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.circular(75);
+    final isEnabled = widget.onPressed != null;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _pressed ? AppColors.skyBlue_200: AppColors.skyBlue_100,
+        color: isEnabled
+            ? (_pressed ? AppColors.skyBlue_200 : AppColors.skyBlue_100)
+            : AppColors.buttonDisabledBg,
         borderRadius: borderRadius,
       ),
       child: Material(
@@ -35,9 +38,9 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
         borderRadius: borderRadius,
         child: InkWell(
           onTap: widget.onPressed,
-          onTapDown: (_) => setState(() => _pressed = true),
-          onTapUp: (_) => setState(() => _pressed = false),
-          onTapCancel: () => setState(() => _pressed = false),
+          onTapDown: isEnabled ? (_) => setState(() => _pressed = true) : null,
+          onTapUp: isEnabled ? (_) => setState(() => _pressed = false) : null,
+          onTapCancel: isEnabled ? () => setState(() => _pressed = false) : null,
           borderRadius: borderRadius,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
@@ -49,7 +52,9 @@ class _OnboardingPrimaryButtonState extends State<OnboardingPrimaryButton> {
                 style: TextStyle(
                   fontSize: widget.fontSize,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: isEnabled
+                      ? AppColors.textPrimary
+                      : AppColors.buttonDisabledText,
                   height: 1.548,
                 ),
               ),

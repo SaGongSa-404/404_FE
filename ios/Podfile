@@ -42,6 +42,11 @@ post_install do |installer|
       strip = '--strip-disallowed-xattrs'
       config.build_settings['OTHER_CODE_SIGN_FLAGS'] =
         flags.include?(strip) ? flags : "#{flags} #{strip}".strip
+
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_NOTIFICATIONS=1',
+      ]
     end
   end
 end

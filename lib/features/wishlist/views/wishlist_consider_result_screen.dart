@@ -204,7 +204,6 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                         await special.preloadCase(caseType);
                         special.markCase(caseType);
                         await HomeBalloonService.markPendingDecisionCase(caseType);
-                        ref.read(considerViewModelProvider.notifier).reset();
                         ref.invalidate(considerViewModelProvider(itemId));
                         context.go('/home');
                       },

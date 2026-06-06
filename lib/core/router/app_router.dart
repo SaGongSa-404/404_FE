@@ -3,6 +3,7 @@ import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
@@ -71,6 +72,14 @@ bool _isAllowedPathForGuest(String location) {
   return false;
 }
 
+/// 스플래시(`/`) 또는 인증 화면 이후 첫 화면.
+/// 로컬 `X-User-Id` 테스트는 COMPLETED 여부와 관계없이 온보딩 플로우를 탑니다.
+String _postSplashDestination(AsyncValue<UserModel?> authState) {
+  if (EnvConfig.isDevXUserIdAuth) return '/onboarding/terms';
+  final isCompleted = authState.value?.onboardingStatus == 'COMPLETED';
+  return isCompleted ? '/home' : '/onboarding/terms';
+}
+
 /// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
@@ -86,7 +95,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            _bottomTabPage(state, const LoginScreen(), exitOnBack: true),
+            _bottomTabPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
@@ -275,18 +284,32 @@ class _RouterNotifier extends ChangeNotifier {
 
     final isLoggedIn = authState.hasValue && authState.value != null;
     final isAuthPage = location == '/login' || location == '/signup';
+    final isDevUser = EnvConfig.devUserId != null;
 
-    if (!isLoggedIn && location == '/') return '/login';
+    // 로컬 dev user(X-User-Id): 소셜 로그인 없이 온보딩 약관부터 진행
+    if (isDevUser) {
+      if (location == '/' || isAuthPage) {
+        return _postSplashDestination(authState);
+      }
+      return null;
+    }
+
+    if (!isLoggedIn && location == '/') return '/onboarding/terms';
 
     if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
 
     // 비로그인 상태 + 보호된 경로 → 로그인으로
     if (!isLoggedIn && !isAuthPage) return '/login';
 
+    if (isLoggedIn &&
+        !EnvConfig.isDevXUserIdAuth &&
+        authState.value?.onboardingStatus == 'COMPLETED' &&
+        location.startsWith('/onboarding')) {
+      return '/home';
+    }
+
     if (isLoggedIn && (location == '/' || isAuthPage)) {
-      final isCompleted =
-          authState.value?.onboardingStatus == 'COMPLETED';
-      return isCompleted ? '/home' : '/onboarding/terms';
+      return _postSplashDestination(authState);
     }
 
     return null;

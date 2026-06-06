@@ -72,7 +72,7 @@ class _SurveyScreenState extends ConsumerState<SurveyScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 3,
-                              totalSteps: 3,
+                              totalSteps: 4,
                               onBack: () => context.canPop()
                                   ? context.pop()
                                   : context.go('/'),

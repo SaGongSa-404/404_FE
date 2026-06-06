@@ -63,6 +63,12 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     state = AsyncData(user.copyWith(name: name));
   }
 
+  void markOnboardingCompleted() {
+    final user = state.valueOrNull;
+    if (user == null) return;
+    state = AsyncData(user.copyWith(onboardingStatus: 'COMPLETED'));
+  }
+
   Future<void> refreshFromServer() async {
     try {
       final user = await ref.read(authServiceProvider).getMe();

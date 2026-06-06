@@ -88,6 +88,10 @@ abstract final class EnvConfig {
     return value != null && value.isNotEmpty ? value : null;
   }
 
+  /// `DEV_AUTH_MODE=x_user_id` 이고 [devUserId]가 설정된 로컬 API 테스트 모드.
+  static bool get isDevXUserIdAuth =>
+      devAuthMode == DevAuthMode.xUserId && devUserId != null;
+
   /// `bearer`(기본): 저장된 access token 우선, 없으면 [devUserId]로 X-User-Id.
   /// `x_user_id`: /api/v1, /api/dev 호출 시 Bearer 없이 X-User-Id만 사용 (로컬 테스트).
   static DevAuthMode get devAuthMode {

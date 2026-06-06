@@ -36,6 +36,9 @@ abstract class AppColors {
   static const white = Color(0xFFFFFFFF);
   static const brown = Color(0xFF70534F);
 
+  static const buttonDisabledBg = Color(0xFFDAE9F1);
+  static const buttonDisabledText = Color(0xFF8F8F8F);
+
 }
 
 abstract class AppTextStyles {

@@ -553,15 +553,6 @@ class _ConsumptionManagementScreenState
                     SizedBox(width: 6 * scale),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          final newBudget = int.tryParse(controller.text.replaceAll(',', ''));
-                          if (newBudget != null) {
-                            ref.read(profileNotifierProvider.notifier).updateBudget(newBudget);
-                            // 홈화면의 예산 데이터를 즉시 새로고침해서 UI에 반영
-                            ref.read(homeSummaryProvider.notifier).refresh();
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
                         onTap: isSubmitting
                             ? null
                             : () async {

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
 class TermsScreen extends StatefulWidget {
   const TermsScreen({super.key});
@@ -14,12 +18,42 @@ class TermsScreen extends StatefulWidget {
 
 class _TermsScreenState extends State<TermsScreen> {
   static const _designWidth = 412.0;
+  static const Color _dimColor = Color(0x59000000);
 
   bool _agreeAll = false;
   bool _agreeService = false;
   bool _agreePrivacy = false;
+  bool _showNotificationDim = false;
 
   bool get _canStart => _agreeService && _agreePrivacy;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_promptNotificationPermissionIfNeeded());
+    });
+  }
+
+  Future<void> _promptNotificationPermissionIfNeeded() async {
+    if (!mounted) return;
+
+    // 스플래시·라우트 전환 직후에는 Activity가 준비되기 전이라 OS 모달이 안 뜰 수 있음
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    if (!await NotificationPermissionService.shouldPrompt()) return;
+
+    setState(() => _showNotificationDim = true);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    if (!mounted) return;
+
+    await NotificationPermissionService.request();
+
+    if (mounted) {
+      setState(() => _showNotificationDim = false);
+    }
+  }
 
   void _toggleAll() {
     setState(() {
@@ -46,10 +80,13 @@ class _TermsScreenState extends State<TermsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppExitBackHandler(
+      child: Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: LayoutBuilder(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: LayoutBuilder(
           builder: (context, constraints) {
             final scale = constraints.maxWidth / _designWidth;
             final hPad = (constraints.maxWidth * (24 / _designWidth))
@@ -73,9 +110,7 @@ class _TermsScreenState extends State<TermsScreen> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: GestureDetector(
-                                onTap: () => context.canPop()
-                                    ? context.pop()
-                                    : context.go('/login'),
+                                onTap: () => confirmAppExit(context),
                                 behavior: HitTestBehavior.opaque,
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),
@@ -210,7 +245,16 @@ class _TermsScreenState extends State<TermsScreen> {
               ),
             );
           },
-        ),
+            ),
+          ),
+          if (_showNotificationDim)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(color: _dimColor),
+              ),
+            ),
+        ],
+      ),
       ),
     );
   }
