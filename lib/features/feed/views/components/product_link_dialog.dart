@@ -1,25 +1,83 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-Future<void> showProductLinkDialog({
+/// "앞으로 이 창을 표시하지 않음" 기기 저장 키.
+const String _kSkipLinkConfirmKey = 'feed_product_link_skip_confirm';
+
+/// http/https 형식이 유효하면 [Uri]를, 아니면 null을 반환합니다.
+Uri? _validHttpUri(String? url) {
+  final trimmed = url?.trim() ?? '';
+  if (trimmed.isEmpty) return null;
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null) return null;
+  if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+  if (uri.host.isEmpty) return null;
+  return uri;
+}
+
+void _showInvalidLinkToast(BuildContext context) {
+  if (!context.mounted) return;
+  showCapsuleToast(
+    context,
+    backgroundColor: AppColors.red_600,
+    text: '링크가 유효하지 않습니다',
+  );
+}
+
+Future<void> _launch(BuildContext context, Uri uri) async {
+  try {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) _showInvalidLinkToast(context);
+  } catch (_) {
+    _showInvalidLinkToast(context);
+  }
+}
+
+/// 상품 링크로 이동합니다.
+/// - 링크가 없거나 유효하지 않으면 즉시 안내 토스트만 띄웁니다.
+/// - "앞으로 표시하지 않음"이 저장돼 있으면 확인 창 없이 바로 이동합니다.
+/// - 그 외에는 확인 바텀시트를 띄운 뒤 확인 시 이동합니다.
+Future<void> openProductLink({
   required BuildContext context,
-  required String? productUrl,
-}) {
-  return showModalBottomSheet<void>(
+  required String? url,
+}) async {
+  // 유효성 검사는 어떤 await보다 먼저(동기) 수행해 토스트 컨텍스트를 안전하게 유지합니다.
+  final uri = _validHttpUri(url);
+  if (uri == null) {
+    _showInvalidLinkToast(context);
+    return;
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+  final skip = prefs.getBool(_kSkipLinkConfirmKey) ?? false;
+  if (skip) {
+    await _launch(context, uri);
+    return;
+  }
+
+  if (!context.mounted) return;
+  final confirmed = await _showConfirmSheet(context);
+  if (confirmed == true) {
+    await _launch(context, uri);
+  }
+}
+
+Future<bool?> _showConfirmSheet(BuildContext context) {
+  return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
-    builder: (_) => _ProductLinkBottomSheet(productUrl: productUrl),
+    builder: (_) => const _ProductLinkBottomSheet(),
   );
 }
 
 class _ProductLinkBottomSheet extends StatefulWidget {
-  const _ProductLinkBottomSheet({required this.productUrl});
-
-  final String? productUrl;
+  const _ProductLinkBottomSheet();
 
   @override
   State<_ProductLinkBottomSheet> createState() =>
@@ -30,12 +88,11 @@ class _ProductLinkBottomSheetState extends State<_ProductLinkBottomSheet> {
   bool _dontShowAgain = false;
 
   Future<void> _onConfirm() async {
-    Navigator.of(context).pop();
-    if (widget.productUrl == null) return;
-    final uri = Uri.parse(widget.productUrl!);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (_dontShowAgain) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kSkipLinkConfirmKey, true);
     }
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
@@ -84,6 +141,7 @@ class _ProductLinkBottomSheetState extends State<_ProductLinkBottomSheet> {
             SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
             GestureDetector(
               onTap: () => setState(() => _dontShowAgain = !_dontShowAgain),
+              behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: (7 * scale).clamp(5.0, 9.0)),
                 child: Row(
@@ -114,7 +172,7 @@ class _ProductLinkBottomSheetState extends State<_ProductLinkBottomSheet> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () => Navigator.of(context).pop(false),
                     child: Container(
                       height: (57 * scale).clamp(46.0, 68.0),
                       decoration: BoxDecoration(

@@ -1,15 +1,13 @@
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/auth/utils/oauth_callback_uri.dart';
 
 part 'deep_link_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 class DeepLinkHandler extends _$DeepLinkHandler {
-  static const _scheme = 'sagongsa404';
-  static const _host   = 'auth';
-  static const _path   = '/callback';
-
   @override
   void build() => _init();
 
@@ -27,9 +25,10 @@ class DeepLinkHandler extends _$DeepLinkHandler {
   }
 
   void _handleUri(Uri uri) {
-    if (uri.scheme == _scheme &&
-        uri.host == _host &&
-        uri.path == _path) {
+    if (kDebugMode) {
+      debugPrint('[deep_link] received: ${describeOAuthCallbackUri(uri)}');
+    }
+    if (isOAuthCallbackUri(uri)) {
       ref.read(authProvider.notifier).handleCallback(uri);
     }
   }

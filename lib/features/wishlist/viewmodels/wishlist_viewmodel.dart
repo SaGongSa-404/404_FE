@@ -324,7 +324,6 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     try {
       final request = _buildSaveRequestForAdd(draft);
       await _wishlistService.createItem(request);
-      await _wishlistService.createItem(request);
       if (isFirstWish) {
         try {
           await HomeBalloonService.markPendingFirstWish();
