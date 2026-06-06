@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/core/utils/video_asset.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/home/domain/home_bubble_type.dart';
 import 'package:fe_app/features/home/providers/home_bubble_provider.dart';
@@ -36,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   VideoPlayerController? _videoController;
   int _currentPage = 0;
   String _currentVideoPath = '';
+  String _currentVideoBaseName = 'nugul_home';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
   bool _hasUserInteractedWithMascot = false;
@@ -47,28 +49,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isShowingBubble = false;
   bool _isRefreshing = false;
 
-  String _getDefaultVideoPath(bool isBudgetExhausted) {
-    return isBudgetExhausted
-        ? 'assets/videos/nugul_embarrassed.mp4'
-        : 'assets/videos/nugul_home.mp4';
+  String _getDefaultVideoBaseName(bool isBudgetExhausted) {
+    return isBudgetExhausted ? 'nugul_budget_left_0' : 'nugul_home';
   }
 
-  Future<void> _initializeVideo(String videoPath, {bool loop = true}) async {
+  Future<void> _initializeVideo(String baseName, {bool loop = true}) async {
     if (_isInitializing) return;
-    
-    if (_currentVideoPath == videoPath && 
-        _videoController != null && 
+
+    if (_currentVideoBaseName == baseName &&
+        _videoController != null &&
         _videoController!.value.isInitialized &&
         !_isPlayingSpecialOnce) {
       return;
     }
 
     _isInitializing = true;
-    final controller = VideoPlayerController.asset(videoPath);
     try {
-      await controller.setVolume(0);
-      await controller.initialize();
-      controller.setLooping(loop);
+      final controller = await createVideoAssetController(baseName, loop: loop);
 
       if (!mounted) {
         await controller.dispose();
@@ -79,13 +76,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       setState(() {
         _videoController = controller;
-        _currentVideoPath = videoPath;
+        _currentVideoPath = controller.dataSource;
+        _currentVideoBaseName = baseName;
       });
 
       await controller.play();
     } catch (e) {
       debugPrint('Video initialization error: $e');
-      await controller.dispose();
     } finally {
       _isInitializing = false;
     }
@@ -104,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Future<void> _playPreloadedSpecialAndRestore({
     required VideoPlayerController preloadedController,
-    required String defaultVideoPath,
+    required String defaultVideoBaseName,
   }) async {
     if (_isPlayingSpecialOnce) return;
     _isPlayingSpecialOnce = true;
@@ -156,7 +153,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         if (!mounted) return;
 
-        await _initializeVideo(defaultVideoPath, loop: true);
+        await _initializeVideo(defaultVideoBaseName, loop: true);
         _isPlayingSpecialOnce = false;
       }
     }
@@ -197,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _currentVideoPath = 'assets/videos/nugul_home.mp4';
+    _currentVideoBaseName = 'nugul_home';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -297,7 +294,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ? 1
         : currentRecord.budgetAmount - currentRecord.spentAmount;
     final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
-    final defaultVideoPath = _getDefaultVideoPath(isBudgetExhausted);
+    final defaultVideoBaseName = _getDefaultVideoBaseName(isBudgetExhausted);
 
     final specialState = ref.watch(homeSpecialEffectProvider);
     final preloadedController = specialState.preloadedController;
@@ -323,15 +320,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (hasSpecial && !_isPlayingSpecialOnce) {
         _playPreloadedSpecialAndRestore(
           preloadedController: preloadedController!,
-          defaultVideoPath: defaultVideoPath,
+          defaultVideoBaseName: defaultVideoBaseName,
         );
         return;
       }
 
-      if (!_isPlayingSpecialOnce && !_isInitializing && _currentVideoPath != defaultVideoPath) {
-        _initializeVideo(defaultVideoPath, loop: true);
+      if (!_isPlayingSpecialOnce &&
+          !_isInitializing &&
+          _currentVideoBaseName != defaultVideoBaseName) {
+        _initializeVideo(defaultVideoBaseName, loop: true);
       } else if (_videoController == null && !_isInitializing) {
-        _initializeVideo(defaultVideoPath, loop: true);
+        _initializeVideo(defaultVideoBaseName, loop: true);
       }
     });
 
