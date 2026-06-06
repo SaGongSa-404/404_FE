@@ -1,4 +1,3 @@
-import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:flutter/material.dart';
@@ -23,22 +22,7 @@ class BudgetCard extends ConsumerWidget {
         if (summary == null) return const SizedBox.shrink();
 
         final budget = summary.budget;
-
-        final monthlyBudgetAmount = budget.monthlyBudgetAmount;
-        final spentAmount = budget.spentAmount;
-        final remainingAmount = budget.remainingAmount;
-
-        final isBudgetExceeded =
-            monthlyBudgetAmount > 0 && spentAmount > monthlyBudgetAmount;
-        final isBudgetZero = !isBudgetExceeded && remainingAmount == 0;
-        final isBudgetAlert = isBudgetZero || isBudgetExceeded;
-        final exceededAmount =
-            isBudgetExceeded ? (spentAmount - monthlyBudgetAmount) : 0;
         const alertColor = Color(0xFFB26D6D);
-
-        final progress = monthlyBudgetAmount <= 0
-            ? 0.0
-            : (spentAmount / monthlyBudgetAmount).clamp(0.0, 1.0);
 
         String format(int value) {
           return value.toString().replaceAllMapped(
@@ -75,12 +59,12 @@ class BudgetCard extends ConsumerWidget {
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: isBudgetExceeded
-                              ? '${format(exceededAmount)}원'
-                              : '${format(remainingAmount)}원',
+                          text: budget.isBudgetExceeded
+                              ? '${format(budget.exceededAmount)}원'
+                              : '${format(budget.remainingAmount)}원',
                           style: TextStyle(
                             fontFamily: 'Pretendard',
-                            color: isBudgetAlert
+                            color: budget.isBudgetAlert
                                 ? alertColor
                                 : const Color(0xFF333333),
                             fontSize: 27 * scale,
@@ -89,10 +73,10 @@ class BudgetCard extends ConsumerWidget {
                           ),
                         ),
                         TextSpan(
-                          text: isBudgetExceeded ? ' 초과' : ' 남음',
+                          text: budget.isBudgetExceeded ? ' 초과' : ' 남음',
                           style: TextStyle(
                             fontFamily: 'Pretendard',
-                            color: isBudgetAlert
+                            color: budget.isBudgetAlert
                                 ? alertColor
                                 : const Color(0xFF7B7B7B),
                             fontSize: 17 * scale,
@@ -116,9 +100,9 @@ class BudgetCard extends ConsumerWidget {
                           ),
                           FractionallySizedBox(
                             alignment: Alignment.centerLeft,
-                            widthFactor: progress,
+                            widthFactor: budget.progress,
                             child: Container(
-                              color: isBudgetAlert
+                              color: budget.isBudgetAlert
                                   ? alertColor
                                   : const Color(0xFF6D96B2),
                             ),
@@ -132,7 +116,7 @@ class BudgetCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${format(spentAmount)}원',
+                        '${format(budget.spentAmount)}원',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           color: const Color(0xFF555555),
@@ -142,7 +126,7 @@ class BudgetCard extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '${format(monthlyBudgetAmount)}원',
+                        '${format(budget.monthlyBudgetAmount)}원',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           color: const Color(0xFF555555),

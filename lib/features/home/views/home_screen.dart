@@ -201,10 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final summaryState = ref.read(homeSummaryProvider);
-      if (summaryState.hasValue || summaryState.hasError) {
-        unawaited(_refreshHomeData());
-      }
+      unawaited(_refreshHomeData());
     });
   }
 
