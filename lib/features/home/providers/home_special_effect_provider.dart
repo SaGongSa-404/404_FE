@@ -1,3 +1,4 @@
+import 'package:fe_app/core/utils/video_asset.dart';
 import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -32,16 +33,15 @@ class HomeSpecialEffectState {
 class HomeSpecialEffectNotifier extends StateNotifier<HomeSpecialEffectState> {
   HomeSpecialEffectNotifier() : super(const HomeSpecialEffectState());
 
-  String _pathForCase(ConsiderCaseType caseType) {
+  String _baseNameForCase(ConsiderCaseType caseType) {
     switch (caseType) {
       case ConsiderCaseType.caseA:
-        return 'assets/videos/nugul_sunny_smile.mp4';
-      case ConsiderCaseType.caseB:
-        return 'assets/videos/nugul_rainy.mp4';
       case ConsiderCaseType.caseC:
-        return 'assets/videos/nugul_sunny_smile.mp4';
+        return 'nugul_just_smile';
+      case ConsiderCaseType.caseB:
+        return 'nugul_rainy';
       case ConsiderCaseType.caseD:
-        return 'assets/videos/nugul_sunny_happy.mp4';
+        return 'nugul_more_excited';
     }
   }
 
@@ -50,11 +50,9 @@ class HomeSpecialEffectNotifier extends StateNotifier<HomeSpecialEffectState> {
 
     await clearPreloadedController();
 
-    final path = _pathForCase(caseType);
-    final controller = VideoPlayerController.asset(path);
-    await controller.setVolume(0);
-    await controller.initialize();
-    controller.setLooping(false);
+    final baseName = _baseNameForCase(caseType);
+    final controller = await createVideoAssetController(baseName, loop: false);
+    final path = controller.dataSource;
 
     state = HomeSpecialEffectState(
       caseType: caseType,
