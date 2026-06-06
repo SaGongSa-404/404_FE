@@ -8,6 +8,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/components/login_button_section.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
 /// 로고 연속 탭 횟수 — 심사용 reviewer-token 발급 진입점
 const int _reviewerLogoTapCount = 5;
@@ -73,7 +74,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final isLoading = ref.watch(authProvider).isLoading;
 
-    return Scaffold(
+    return AppExitBackHandler(
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
@@ -127,6 +129,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

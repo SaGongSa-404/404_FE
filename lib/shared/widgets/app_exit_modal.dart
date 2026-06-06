@@ -14,6 +14,16 @@ Future<bool?> showAppExitModal(BuildContext context) {
   );
 }
 
+Future<void> confirmAppExit(BuildContext context) async {
+  final shouldExit = await showAppExitModal(context);
+  if (shouldExit == true && context.mounted) {
+    await Future<void>.delayed(Duration.zero);
+    if (context.mounted) {
+      await SystemNavigator.pop();
+    }
+  }
+}
+
 /// go_router 루트 탭 화면에서 시스템 뒤로가기 시 종료 확인 모달을 띄웁니다.
 class AppExitBackHandler extends StatefulWidget {
   const AppExitBackHandler({super.key, required this.child});
@@ -46,6 +56,7 @@ class _AppExitBackHandlerState extends State<AppExitBackHandler> {
     if (AppExitBackHandler._consumeChildHandledBack()) return;
 
     _isHandlingBack = true;
+    
     try {
       final navigator = Navigator.of(context);
       if (navigator.canPop()) {
@@ -53,15 +64,9 @@ class _AppExitBackHandlerState extends State<AppExitBackHandler> {
         return;
       }
 
-      final shouldExit = await showAppExitModal(context);
-      if (shouldExit == true && mounted) {
-        // 다이얼로그가 닫힌 뒤 Activity를 종료합니다. (finishAffinity 대신 표준 API 사용)
-        await Future<void>.delayed(Duration.zero);
-        if (mounted) {
-          await SystemNavigator.pop();
-        }
-      }
-    } finally {
+      await confirmAppExit(context);
+    } 
+    finally {
       _isHandlingBack = false;
     }
   }

@@ -10,6 +10,7 @@ import 'package:fe_app/features/onboarding/views/components/onboarding_header.da
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_progress_indicator.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
 class NicknameScreen extends ConsumerStatefulWidget {
   const NicknameScreen({super.key});
@@ -37,13 +38,13 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
   }
 
   void _onChanged() {
-    final next = NicknameValidator.validate(_controller.text);
-    if (next.runtimeType != _result.runtimeType) {
-      setState(() => _result = next);
-    }
+    setState(() {
+      _result = NicknameValidator.validate(_controller.text);
+    });
   }
 
   String? get _errorMessage => switch (_result) {
+        NicknameInvalidWhitespace() => '공백을 제거해주세요',
         NicknameInvalidChars() => '한글, 영어, 숫자만 입력할 수 있어요',
         NicknameInvalidLength() => '2자 이상 8자 이내로 입력해주세요',
         _ => null,
@@ -59,7 +60,8 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
   Widget build(BuildContext context) {
     final isValid = _result is NicknameValid;
 
-    return Scaffold(
+    return AppExitBackHandler(
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
@@ -89,10 +91,8 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
                             const Spacer(flex: 30),
                             OnboardingProgressIndicator(
                               currentStep: 1,
-                              totalSteps: 3,
-                              onBack: () => context.canPop()
-                                  ? context.pop()
-                                  : context.go('/'),
+                              totalSteps: 4,
+                              onBack: () => context.go('/login'),
                             ),
                             const Spacer(flex: 122),
                             OnboardingHeader(
@@ -141,6 +141,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

@@ -7,14 +7,7 @@ import 'package:fe_app/features/onboarding/views/components/onboarding_progress_
 import 'package:fe_app/core/theme/app_theme.dart';
 
 class NugulIntroScreen extends ConsumerStatefulWidget {
-  const NugulIntroScreen({
-    super.key,
-    this.currentStep = 6,
-    this.totalSteps = 6,
-  });
-
-  final int currentStep;
-  final int totalSteps;
+  const NugulIntroScreen({super.key});
 
   @override
   ConsumerState<NugulIntroScreen> createState() => _NugulIntroScreenState();
@@ -70,8 +63,8 @@ class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
                           children: [
                             const Spacer(flex: 65),
                             OnboardingProgressIndicator(
-                              currentStep: widget.currentStep,
-                              totalSteps: widget.totalSteps,
+                              currentStep: 4,
+                              totalSteps: 4,
                               onBack: () {
                                 if (context.canPop()) context.pop();
                               },

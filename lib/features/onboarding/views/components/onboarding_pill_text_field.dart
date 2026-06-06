@@ -14,6 +14,7 @@ class OnboardingPillTextField extends StatelessWidget {
     this.inputFormatters,
     this.textInputAction = TextInputAction.done,
     this.hasError = false,
+    this.suffix,
     this.trailing,
   });
 
@@ -26,6 +27,7 @@ class OnboardingPillTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final TextInputAction textInputAction;
   final bool hasError;
+  final String? suffix;
   final Widget? trailing;
 
   static const _textColor = AppColors.textPrimary;
@@ -53,32 +55,50 @@ class OnboardingPillTextField extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              cursorColor: _textColor,
-              keyboardType: keyboardType,
-              inputFormatters: inputFormatters,
-              textInputAction: textInputAction,
+            child: ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) {
+                final hasText = controller.text.isNotEmpty;
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  cursorColor: _textColor,
+                  keyboardType: keyboardType,
+                  inputFormatters: inputFormatters,
+                  textInputAction: textInputAction,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w500,
+                    color: _textColor,
+                    height: 1.548,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    hintText: hasText ? null : hintText,
+                    hintStyle: TextStyle(
+                      fontSize: hintFontSize,
+                      fontWeight: FontWeight.w500,
+                      color: _hintColor,
+                      height: 1.548,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (suffix != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              suffix!,
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w500,
                 color: _textColor,
                 height: 1.548,
               ),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                isCollapsed: true,
-                hintText: hintText,
-                hintStyle: TextStyle(
-                  fontSize: hintFontSize,
-                  fontWeight: FontWeight.w500,
-                  color: _hintColor,
-                  height: 1.548,
-                ),
-              ),
             ),
-          ),
+          ],
           if (trailing != null) ...[
             const SizedBox(width: 12),
             trailing!,
