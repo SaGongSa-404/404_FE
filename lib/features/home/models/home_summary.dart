@@ -145,11 +145,19 @@ class HomeBudgetSummary {
 
   bool get isBudgetExhausted => exhausted || remainingAmount <= 0;
 
-  double get budgetProgress {
-    if (isBudgetExhausted) return 1.0;
-    if (monthlyBudgetAmount <= 0) return 0.0;
-    return (spentAmount / monthlyBudgetAmount).clamp(0.0, 1.0);
-  }
+  bool get isBudgetExceeded =>
+      monthlyBudgetAmount > 0 && spentAmount > monthlyBudgetAmount;
+
+  bool get isBudgetZero => !isBudgetExceeded && remainingAmount == 0;
+
+  bool get isBudgetAlert => isBudgetZero || isBudgetExceeded;
+
+  int get exceededAmount =>
+      isBudgetExceeded ? spentAmount - monthlyBudgetAmount : 0;
+
+  double get progress => monthlyBudgetAmount <= 0
+      ? 0.0
+      : (spentAmount / monthlyBudgetAmount).clamp(0.0, 1.0);
 
   HomeBudgetSummary copyWith({
     String? yearMonth,
