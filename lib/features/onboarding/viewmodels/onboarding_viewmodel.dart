@@ -61,8 +61,11 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
       state = state.copyWith(regretFrequencyChoice: choice);
 
   Future<void> _markOnboardingFinishedLocally() async {
-    _ref.read(authProvider.notifier).markOnboardingCompleted();
-    await _ref.read(authProvider.notifier).refreshFromServer();
+    final synced =
+        await _ref.read(authProvider.notifier).syncOnboardingCompleted();
+    if (!synced) {
+      throw StateError('온보딩 완료 후 계정 상태를 동기화하지 못했습니다.');
+    }
     try {
       await HomeBalloonService.markPendingOnboarding();
     } catch (_) {

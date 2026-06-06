@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
+import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
+import 'package:fe_app/features/profile/services/profile_service.dart';
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
@@ -68,6 +71,46 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     if (user == null) return;
     state = AsyncData(user.copyWith(onboardingStatus: 'COMPLETED'));
   }
+
+  /// 온보딩 완료 후 auth 상태를 동기화합니다. dev user는 `/api/auth/me` 없이 프로필로 hydrate 합니다.
+  Future<bool> syncOnboardingCompleted() async {
+    if (state.valueOrNull == null && EnvConfig.devUserId != null) {
+      await _hydrateFromDevProfile();
+    }
+
+    markOnboardingCompleted();
+    await refreshFromServer();
+
+    if (_hasCompletedOnboarding) return true;
+
+    if (EnvConfig.devUserId != null) {
+      await _hydrateFromDevProfile();
+      markOnboardingCompleted();
+    }
+
+    return _hasCompletedOnboarding;
+  }
+
+  bool get _hasCompletedOnboarding =>
+      state.valueOrNull?.onboardingStatus == 'COMPLETED';
+
+  Future<void> _hydrateFromDevProfile() async {
+    try {
+      final profile = await ref.read(profileServiceProvider).getMyProfile();
+      if (!profile.isValid) return;
+      state = AsyncData(_userFromProfile(profile));
+    } catch (_) {}
+  }
+
+  UserModel _userFromProfile(MyProfile profile) => UserModel(
+        userId: profile.id,
+        provider: profile.provider.isNotEmpty ? profile.provider : 'dev',
+        providerUserId: profile.id,
+        name: profile.nickname,
+        principalName: profile.nickname,
+        authorities: const [],
+        onboardingStatus: profile.onboardingStatus,
+      );
 
   Future<void> refreshFromServer() async {
     try {
