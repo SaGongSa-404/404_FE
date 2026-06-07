@@ -91,6 +91,14 @@ enum ReflectionRegretLevel {
   final String apiValue;
 }
 
+enum PushPlatform {
+  ios('IOS'),
+  android('ANDROID');
+
+  const PushPlatform(this.apiValue);
+  final String apiValue;
+}
+
 enum NotificationType {
   regretCheckReady('REGRET_CHECK_READY'),
   wishlistReminder('WISHLIST_REMINDER'),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
@@ -19,6 +21,16 @@ class NotificationScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(notificationListProvider(false).notifier).refresh());
+      unawaited(ref.read(notificationLiveProvider.notifier).sync(queueNewBanners: false));
+    });
+  }
+
   Future<void> _onTapNotification(NotificationModel notification) async {
     final result = await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
 
@@ -51,7 +63,9 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     if (!NotificationRouter.shouldNavigate(route)) return;
 
     try {
-      context.push(route);
+      await context.push(route);
+      if (!mounted) return;
+      await ref.read(notificationListProvider(false).notifier).refresh();
     } catch (e) {
       debugPrint('알림 이동 실패: $e');
     }

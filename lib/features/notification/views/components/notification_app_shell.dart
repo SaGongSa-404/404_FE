@@ -5,9 +5,11 @@ import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/models/notification_route_intent.dart';
+import 'package:fe_app/features/notification/providers/fcm_navigation_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_deep_link_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_navigation_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
 import 'package:flutter/material.dart';
@@ -110,10 +112,22 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     await _navigateFromNotification(banner);
   }
 
-  Future<void> _navigateFromNotification(NotificationModel notification) async {
-    final route = NotificationRouter.resolveFromNotification(notification);
-    if (route == null) return;
-    await _navigateToRoute(route);
+  Future<void> _openNotificationsPage() async {
+    await ref.read(notificationListProvider(false).notifier).refresh();
+    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+    unawaited(ref.read(notificationLiveProvider.notifier).sync(queueNewBanners: false));
+    if (!mounted) return;
+
+    final router = GoRouter.of(context);
+    final location = router.state.uri.path;
+    if (location == '/notifications') return;
+
+    try {
+      context.push('/notifications');
+    } catch (error, stackTrace) {
+      debugPrint('open notifications failed: $error\n$stackTrace');
+      ref.read(pendingNotificationRouteProvider.notifier).state = '/notifications';
+    }
   }
 
   Future<void> _navigateToRoute(String route) async {
@@ -145,28 +159,25 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     _handledDeepLinkKey = null;
   }
 
+  Future<void> _navigateFromNotification(NotificationModel notification) async {
+    final route = NotificationRouter.resolveFromNotification(notification);
+    if (route == null) return;
+    await _navigateToRoute(route);
+  }
+
+  Future<void> _handlePushOrDeepLinkOpen() async {
+    await _openNotificationsPage();
+  }
+
   Future<void> _handleDeepLink(NotificationRouteIntent intent) async {
     final key = '${intent.notificationId ?? ''}|${intent.targetPath}';
     if (_handledDeepLinkKey == key) return;
     _handledDeepLinkKey = key;
 
-    final notificationId = intent.notificationId;
-    if (notificationId != null && notificationId.isNotEmpty) {
-      await ref.read(notificationLiveProvider.notifier).markAsRead(notificationId);
-      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
-    }
-
     if (!mounted) return;
 
     try {
-      final route = NotificationRouter.resolveRoute(
-        targetPath: intent.targetPath,
-        itemId: intent.itemId,
-        decisionId: intent.decisionId,
-        reminderId: intent.reminderId,
-      );
-      if (route == null) return;
-      await _navigateToRoute(route);
+      await _handlePushOrDeepLinkOpen();
     } finally {
       _completeDeepLinkHandling();
     }
@@ -186,6 +197,16 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider, (previous, next) {
       if (next != null) {
         _handleDeepLink(next);
+      }
+    });
+
+    ref.listen<bool>(fcmNavigationProvider, (previous, next) {
+      if (next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          await _handlePushOrDeepLinkOpen();
+          ref.read(fcmNavigationProvider.notifier).consume();
+        });
       }
     });
 

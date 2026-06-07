@@ -8,6 +8,7 @@ import 'package:fe_app/features/home/domain/home_bubble_type.dart';
 import 'package:fe_app/features/home/providers/home_bubble_provider.dart';
 import 'package:fe_app/features/home/providers/home_special_effect_provider.dart';
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:fe_app/features/home/services/home_bubble_engine.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
@@ -467,7 +468,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           ),
                           badgeCount: summary?.notifications.unreadCount,
-                          onAlarmPressed: () => context.push('/notifications'),
+                          onAlarmPressed: () => openNotificationsPage(ref, context),
                         ),
                         SizedBox(height: 20 * scale),
                         Expanded(

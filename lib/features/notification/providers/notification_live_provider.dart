@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/notification/models/fcm_message_payload.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
@@ -196,6 +197,56 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     state = state.copyWith(
       bannerQueue: state.bannerQueue.where((item) => item.id != id).toList(growable: false),
     );
+  }
+
+  /// FCM foreground 수신 시 인앱 배너 큐에 추가합니다.
+  Future<void> enqueueFromPush(FcmMessagePayload payload) async {
+    if (_disposed || !_notificationsEnabled) return;
+
+    final notificationId = payload.notificationId;
+    if (notificationId != null &&
+        notificationId.isNotEmpty &&
+        _seenIds.contains(notificationId)) {
+      return;
+    }
+
+    NotificationModel? matched;
+    if (notificationId != null && notificationId.isNotEmpty) {
+      for (final item in state.items) {
+        if (item.id == notificationId) {
+          matched = item;
+          break;
+        }
+      }
+    }
+
+    final candidate = matched ??
+        NotificationModel(
+          id: notificationId ?? DateTime.now().microsecondsSinceEpoch.toString(),
+          title: payload.title ?? '',
+          body: payload.body,
+          time: '방금 전',
+          isRead: false,
+          targetPath: payload.targetPath ?? '',
+          type: payload.type,
+          itemId: payload.itemId,
+          decisionId: payload.decisionId,
+          reminderId: payload.reminderId,
+          createdAt: DateTime.now(),
+        );
+
+    if (!_shouldQueueBanner(candidate)) return;
+
+    if (notificationId != null && notificationId.isNotEmpty) {
+      _seenIds.add(notificationId);
+    }
+
+    state = state.copyWith(
+      bannerQueue: [...state.bannerQueue, candidate],
+    );
+
+    unawaited(sync(queueNewBanners: false));
+    unawaited(_ref.read(homeSummaryProvider.notifier).refresh());
   }
 
   @override

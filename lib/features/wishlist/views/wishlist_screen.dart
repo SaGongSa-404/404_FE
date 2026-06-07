@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
+import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -227,7 +228,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                   scale,
                                 ),
                                 onAlarmPressed: () =>
-                                    context.push('/notifications'),
+                                    openNotificationsPage(ref, context),
                               ),
                               Padding(
                                 padding: EdgeInsets.only(bottom: 16 * scale),
