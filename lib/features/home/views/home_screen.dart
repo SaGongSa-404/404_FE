@@ -29,6 +29,18 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _PendingVideoSyncRequest {
+  const _PendingVideoSyncRequest({
+    required this.defaultVideoBaseName,
+    required this.hasSpecial,
+    this.preloadedController,
+  });
+
+  final String defaultVideoBaseName;
+  final bool hasSpecial;
+  final VideoPlayerController? preloadedController;
+}
+
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   static const _balloonDuration = Duration(seconds: 3);
@@ -40,6 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String _currentVideoBaseName = 'nugul_home';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
+  _PendingVideoSyncRequest? _pendingSyncRequest;
   VoidCallback? _specialListener;
   Timer? _balloonDismissTimer;
   String? _visibleBalloonMessage;
@@ -84,7 +97,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       debugPrint('Video initialization error: $e');
     } finally {
       _isInitializing = false;
+      _tryDrainPendingSyncRequest();
     }
+  }
+
+  void _storePendingSyncRequest({
+    required String defaultVideoBaseName,
+    required bool hasSpecial,
+    required VideoPlayerController? preloadedController,
+  }) {
+    _pendingSyncRequest = _PendingVideoSyncRequest(
+      defaultVideoBaseName: defaultVideoBaseName,
+      hasSpecial: hasSpecial,
+      preloadedController: preloadedController,
+    );
+  }
+
+  void _tryDrainPendingSyncRequest() {
+    if (!mounted || _isInitializing || _isPlayingSpecialOnce) return;
+
+    final pending = _pendingSyncRequest;
+    if (pending == null) return;
+
+    _pendingSyncRequest = null;
+    _syncVideoPlayback(
+      defaultVideoBaseName: pending.defaultVideoBaseName,
+      hasSpecial: pending.hasSpecial,
+      preloadedController: pending.preloadedController,
+    );
   }
 
   Future<void> _cleanupOldController() async {
@@ -102,7 +142,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required VideoPlayerController preloadedController,
     required String defaultVideoBaseName,
   }) async {
-    if (_isPlayingSpecialOnce) return;
+    if (_isPlayingSpecialOnce) {
+      _storePendingSyncRequest(
+        defaultVideoBaseName: defaultVideoBaseName,
+        hasSpecial: true,
+        preloadedController: preloadedController,
+      );
+      return;
+    }
     _isPlayingSpecialOnce = true;
 
     final oldController = _videoController;
@@ -154,6 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         await _initializeVideo(defaultVideoBaseName, loop: true);
         _isPlayingSpecialOnce = false;
+        _tryDrainPendingSyncRequest();
       }
     }
 
@@ -174,7 +222,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required bool hasSpecial,
     required VideoPlayerController? preloadedController,
   }) {
-    if (!mounted || _isPlayingSpecialOnce || _isInitializing) return;
+    if (!mounted) return;
+
+    if (_isPlayingSpecialOnce || _isInitializing) {
+      _storePendingSyncRequest(
+        defaultVideoBaseName: defaultVideoBaseName,
+        hasSpecial: hasSpecial,
+        preloadedController: preloadedController,
+      );
+      return;
+    }
 
     if (hasSpecial && preloadedController != null) {
       unawaited(

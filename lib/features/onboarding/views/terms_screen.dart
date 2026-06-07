@@ -340,7 +340,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -352,14 +352,19 @@ class _InfoRow extends StatelessWidget {
             height: 1.45,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-            height: 1.45,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            softWrap: true,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: fontSize,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
           ),
         ),
       ],
