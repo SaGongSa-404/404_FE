@@ -63,7 +63,9 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
 
   Future<void> _onSubmit() async {
     if (_isSubmitting) return;
-    if (!_hasContent) return;
+    final post = _findPostById(ref.read(feedProvider).posts, widget.postId);
+    // 글 또는 위시리스트 중 하나라도 있으면 수정 완료 가능 (작성 화면과 동일 기준)
+    if (!_hasContent && post?.product == null) return;
 
     final body = _controller.text.trim();
     if (body.characters.length > _maxBodyLength) {
@@ -78,7 +80,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
     _isSubmitting = true;
     final updated = await ref.read(feedProvider.notifier).updatePost(
           widget.postId,
-          UpdatePostRequest(body: body),
+          UpdatePostRequest(body: body.isEmpty ? null : body),
         );
     if (!mounted) return;
     if (updated != null) {
@@ -188,7 +190,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
             ),
           ),
           _BottomButtons(
-            canSubmit: _hasContent,
+            canSubmit: _hasContent || post.product != null,
             onCancel: _onClose,
             onSubmit: _onSubmit,
           ),
