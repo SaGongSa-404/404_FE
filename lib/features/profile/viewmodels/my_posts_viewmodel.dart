@@ -15,6 +15,9 @@ class MyPostsViewModel extends StateNotifier<MyPostsState> {
   final ProfileService _profileService;
   final FeedService _feedService;
 
+  /// 투표 요청이 진행 중인 게시글 ID. 연타로 인한 중복 요청(토글 오동작)을 막습니다.
+  final Set<String> _votingPostIds = {};
+
   String _errorMessage(Object error) =>
       apiExceptionFrom(error)?.message ?? '요청을 처리하지 못했습니다.';
 
@@ -84,6 +87,7 @@ class MyPostsViewModel extends StateNotifier<MyPostsState> {
   }
 
   Future<void> vote(String postId, VoteType voteType) async {
+    if (!_votingPostIds.add(postId)) return;
     try {
       final res = await _feedService.votePost(postId, voteType);
       state = state.copyWith(
@@ -99,6 +103,8 @@ class MyPostsViewModel extends StateNotifier<MyPostsState> {
       );
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
+    } finally {
+      _votingPostIds.remove(postId);
     }
   }
 
