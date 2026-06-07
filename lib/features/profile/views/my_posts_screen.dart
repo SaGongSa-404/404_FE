@@ -6,7 +6,6 @@ import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/views/components/deleted_post_modal.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
-import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/features/profile/providers/my_posts_provider.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_state.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_viewmodel.dart';
@@ -225,8 +224,6 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
           );
         }
       }
-    } else if (result == 'share') {
-      showShareModal(context: context, post: post);
     } else if (result == 'edit') {
       final editResult = await context.push<String>('/feed/edit/${post.id}');
       if (editResult == 'edited' && context.mounted) {
