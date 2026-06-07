@@ -15,6 +15,7 @@ extension WishlistItemMapper on WishlistItem {
       link: displayLink,
       imageUrl: imageUrl,
       status: status,
+      hasFeedPost: selected,
     );
   }
 }

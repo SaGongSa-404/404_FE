@@ -27,6 +27,9 @@ class WishlistItem with _$WishlistItem {
     String? rawPriceText,
     String? rawPayloadJson,
     DateTime? extractedAt,
+
+    /// 본인이 이 위시 상품으로 작성한 살아있는 피드 글 존재 여부 (목록 응답 전용).
+    @Default(false) bool selected,
   }) = _WishlistItem;
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) =>

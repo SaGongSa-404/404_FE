@@ -118,9 +118,12 @@ class _WishlistPickerDialogState
                               horizontal: (10 * scale).clamp(8.0, 12.0),
                             ),
                             decoration: BoxDecoration(
+                              // 이미 글로 작성한 위시는 하이라이트로 구분합니다.
                               color: isSelected
                                   ? const Color(0xFFE6E6E6)
-                                  : AppColors.white,
+                                  : item.hasFeedPost
+                                      ? AppColors.yellow_200
+                                      : AppColors.white,
                               borderRadius: BorderRadius.circular(56),
                               border: Border.all(
                                 color: const Color(0xFFC4C4C4),
