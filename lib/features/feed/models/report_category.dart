@@ -2,7 +2,7 @@
 enum ReportCategory {
   profanity('PROFANITY', '욕설/비방 및 혐오 표현'),
   obscene('OBSCENE', '음란물 및 선정적인 콘텐츠'),
-  illegal('ILLEGAL', '불법 정보 공유'),
+  illegal('ILLEGAL_INFORMATION', '불법 정보 공유'),
   spam('SPAM', '스팸 및 상업적 광고'),
   privacy('PRIVACY', '개인정보 노출 및 사생활 침해'),
   other('OTHER', '기타');

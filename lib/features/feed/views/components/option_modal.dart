@@ -1,6 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 Future<String?> showOptionModal(
   BuildContext context, {
@@ -74,15 +73,6 @@ class _OptionModalContent extends StatelessWidget {
           textColor: AppColors.textPrimary,
           onTap: () => Navigator.of(context).pop('delete'),
         ),
-        SizedBox(height: (12 * scale).clamp(9.0, 15.0)),
-        _OptionButton(
-          label: '공유하기',
-          defaultColor: AppColors.yellow,
-          pressedColor: AppColors.yellow_100,
-          textColor: AppColors.textPrimary,
-          enabled: false,
-          onTap: () => Navigator.of(context).pop('share'),
-        ),
       ];
 
   List<Widget> _othersPostOptions(BuildContext context, double scale) => [
@@ -111,8 +101,6 @@ class _OptionButton extends StatefulWidget {
     required this.pressedColor,
     required this.textColor,
     required this.onTap,
-    this.enabled = true,
-    this.leadingIcon,
   });
 
   final String label;
@@ -120,8 +108,6 @@ class _OptionButton extends StatefulWidget {
   final Color pressedColor;
   final Color textColor;
   final VoidCallback onTap;
-  final bool enabled;
-  final Widget? leadingIcon;
 
   @override
   State<_OptionButton> createState() => _OptionButtonState();
@@ -134,14 +120,12 @@ class _OptionButtonState extends State<_OptionButton> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     return GestureDetector(
-      onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
-      onTapUp: widget.enabled
-          ? (_) {
-              setState(() => _pressed = false);
-              widget.onTap();
-            }
-          : null,
-      onTapCancel: widget.enabled ? () => setState(() => _pressed = false) : null,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         width: double.infinity,
@@ -151,32 +135,15 @@ class _OptionButtonState extends State<_OptionButton> {
           borderRadius: BorderRadius.circular(100),
         ),
         alignment: Alignment.center,
-        child: widget.leadingIcon != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  widget.leadingIcon!,
-                  SizedBox(width: (10 * scale).clamp(8.0, 12.0)),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w600,
-                      fontSize: (20 * scale).clamp(16.0, 24.0),
-                      color: widget.textColor,
-                    ),
-                  ),
-                ],
-              )
-            : Text(
-                widget.label,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: (20 * scale).clamp(16.0, 24.0),
-                  color: widget.textColor,
-                ),
-              ),
+        child: Text(
+          widget.label,
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+            fontSize: (20 * scale).clamp(16.0, 24.0),
+            color: widget.textColor,
+          ),
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ class WishlistPlaceholder {
     required this.link,
     this.imageUrl,
     this.status = 'SAVED',
+    this.hasFeedPost = false,
   });
 
   final String id;
@@ -19,6 +20,9 @@ class WishlistPlaceholder {
   /// 서버 item status (예: SAVED, GO, STOP). 숙려 화면은 SAVED만 진입 가능.
   final String status;
 
+  /// 본인이 이 위시로 작성한 살아있는 피드 글 존재 여부 (BE `selected`).
+  final bool hasFeedPost;
+
   bool get canOpenDeliberation =>
       status.trim().toUpperCase() == 'SAVED' || status.trim().isEmpty;
 
@@ -30,6 +34,7 @@ class WishlistPlaceholder {
     String? link,
     String? imageUrl,
     String? status,
+    bool? hasFeedPost,
     bool clearImageUrl = false,
   }) {
     return WishlistPlaceholder(
@@ -40,6 +45,7 @@ class WishlistPlaceholder {
       link: link ?? this.link,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       status: status ?? this.status,
+      hasFeedPost: hasFeedPost ?? this.hasFeedPost,
     );
   }
 }
