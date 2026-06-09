@@ -32,7 +32,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(myPostsProvider.notifier).loadInitial();
+      ref.read(myPostsProvider.notifier).refresh();
     });
     _scrollController.addListener(_onScroll);
   }

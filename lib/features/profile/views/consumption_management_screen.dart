@@ -26,7 +26,7 @@ class _ConsumptionManagementScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(consumptionStatsProvider.notifier).load(force: true);
+      ref.read(consumptionStatsProvider.notifier).refresh();
     });
   }
 
@@ -113,7 +113,7 @@ class _ConsumptionManagementScreenState
               SizedBox(height: 16 * scale),
               TextButton(
                 onPressed: () =>
-                    ref.read(consumptionStatsProvider.notifier).load(force: true),
+                    ref.read(consumptionStatsProvider.notifier).refresh(),
                 child: const Text('다시 시도'),
               ),
             ],
@@ -124,7 +124,7 @@ class _ConsumptionManagementScreenState
 
     return RefreshIndicator(
       onRefresh: () =>
-          ref.read(consumptionStatsProvider.notifier).load(force: true),
+          ref.read(consumptionStatsProvider.notifier).refresh(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(24 * scale),
