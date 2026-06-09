@@ -2,7 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
 
-/// Figma-based confirm/cancel bottom sheet (412px design width).
+/// Figma-based confirm/cancel modal (412px design width).
 Future<bool?> showConfirmBottomSheet(
   BuildContext context, {
   required String title,
@@ -10,11 +10,11 @@ Future<bool?> showConfirmBottomSheet(
   required String actionLabel,
   bool destructive = true,
 }) {
-  return showModalBottomSheet<bool>(
+  return showDialog<bool>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => _ConfirmBottomSheet(
+    barrierDismissible: true,
+    barrierColor: Colors.black.withValues(alpha: 0.25),
+    builder: (context) => _ConfirmModal(
       title: title,
       subtitle: subtitle,
       actionLabel: actionLabel,
@@ -23,8 +23,8 @@ Future<bool?> showConfirmBottomSheet(
   );
 }
 
-class _ConfirmBottomSheet extends StatefulWidget {
-  const _ConfirmBottomSheet({
+class _ConfirmModal extends StatefulWidget {
+  const _ConfirmModal({
     required this.title,
     this.subtitle,
     required this.actionLabel,
@@ -37,10 +37,10 @@ class _ConfirmBottomSheet extends StatefulWidget {
   final bool destructive;
 
   @override
-  State<_ConfirmBottomSheet> createState() => _ConfirmBottomSheetState();
+  State<_ConfirmModal> createState() => _ConfirmModalState();
 }
 
-class _ConfirmBottomSheetState extends State<_ConfirmBottomSheet> {
+class _ConfirmModalState extends State<_ConfirmModal> {
   bool _actionPressed = false;
 
   @override
@@ -48,13 +48,9 @@ class _ConfirmBottomSheetState extends State<_ConfirmBottomSheet> {
     final scale = responsiveScale(context);
     final horizontalInset = 21 * scale;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        horizontalInset,
-        0,
-        horizontalInset,
-        MediaQuery.paddingOf(context).bottom + 24 * scale,
-      ),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
