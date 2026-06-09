@@ -62,20 +62,14 @@ class NotificationSettingsNotifier
     }
   }
 
-  Future<bool> toggle() async {
+  Future<bool> setEnabled(bool enabled) async {
     if (state.isLoading || state.isUpdating) return false;
 
-    final previous = state.notificationEnabled;
-    final next = !previous;
-    state = state.copyWith(
-      notificationEnabled: next,
-      isUpdating: true,
-      clearError: true,
-    );
+    state = state.copyWith(isUpdating: true, clearError: true);
 
     try {
       final settings = await _profileService.updateNotificationSettings(
-        notificationEnabled: next,
+        notificationEnabled: enabled,
       );
       state = state.copyWith(
         notificationEnabled: settings.notificationEnabled,
@@ -84,7 +78,6 @@ class NotificationSettingsNotifier
       return true;
     } catch (e) {
       state = state.copyWith(
-        notificationEnabled: previous,
         isUpdating: false,
         errorMessage: _errorMessage(e),
       );
