@@ -76,6 +76,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: const AppBottomNavigationBar(),
       body: SafeArea(
         top: false,
         child: Column(
@@ -192,7 +193,6 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNavigationBar(),
     );
   }
 

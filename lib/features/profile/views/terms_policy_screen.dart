@@ -1,178 +1,180 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/legal/widgets/privacy_policy_body.dart';
-import 'package:fe_app/features/legal/widgets/service_terms_body.dart';
+import 'package:fe_app/shared/content/terms_content.dart';
+import 'package:fe_app/shared/widgets/terms_document_view.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class TermsPolicyScreen extends StatefulWidget {
+class TermsPolicyScreen extends StatelessWidget {
   const TermsPolicyScreen({super.key});
 
+  static const Color _backgroundColor = Color(0xFFF5F5F5);
+
+  static const List<BoxShadow> _cardShadow = [
+    BoxShadow(
+      color: Color(0x22000000),
+      blurRadius: 4,
+      spreadRadius: 0,
+      offset: Offset.zero,
+    ),
+  ];
+
   @override
-  State<TermsPolicyScreen> createState() => _TermsPolicyScreenState();
+  Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final cardHeight = (MediaQuery.sizeOf(context).height * 0.34).clamp(240.0, 275.0);
+
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        backgroundColor: _backgroundColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.brown,
+            size: 18 * scale,
+          ),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          '이용약관 및 개인정보 처리방침',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 18 * scale,
+            fontWeight: FontWeight.bold,
+            color: AppColors.brown,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            24 * scale,
+            12 * scale,
+            24 * scale,
+            32 * scale,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 24 * scale),
+              _TermsPolicySection(
+                scale: scale,
+                cardHeight: cardHeight,
+                title: TermsContent.serviceTermsScreenTitle,
+                child: TermsDocumentView(
+                  sections: TermsContent.serviceTerms,
+                  scale: scale,
+                  compact: true,
+                  bottomSpacing: 8 * scale,
+                ),
+              ),
+              SizedBox(height: 25 * scale),
+              _TermsPolicySection(
+                scale: scale,
+                cardHeight: cardHeight,
+                title: TermsContent.privacyPolicyScreenTitle,
+                child: TermsDocumentView(
+                  sections: TermsContent.privacyPolicy,
+                  scale: scale,
+                  compact: true,
+                  bottomSpacing: 8 * scale,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _TermsPolicyScreenState extends State<TermsPolicyScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _TermsPolicySection extends StatefulWidget {
+  const _TermsPolicySection({
+    required this.scale,
+    required this.cardHeight,
+    required this.title,
+    required this.child,
+  });
 
-  static const Color _backgroundColor = Color(0xFFF5F5F5);
+  final double scale;
+  final double cardHeight;
+  final String title;
+  final Widget child;
+
+  @override
+  State<_TermsPolicySection> createState() => _TermsPolicySectionState();
+}
+
+class _TermsPolicySectionState extends State<_TermsPolicySection> {
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = responsiveScale(context);
+    final scale = widget.scale;
 
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: _backgroundColor,
-              padding: EdgeInsets.only(
-                left: 30 * scale,
-                right: 30 * scale,
-                top: 54 * scale,
-                bottom: 16 * scale,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.title,
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 16 * scale,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: 10 * scale),
+        Container(
+          height: widget.cardHeight,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(22 * scale),
+            boxShadow: TermsPolicyScreen._cardShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22 * scale),
+            child: ScrollbarTheme(
+              data: ScrollbarThemeData(
+                thickness: WidgetStateProperty.all((6 * scale).clamp(5.0, 8.0)),
+                radius: Radius.circular(4 * scale),
+                crossAxisMargin: (8 * scale).clamp(6.0, 12.0),
+                mainAxisMargin: (12 * scale).clamp(8.0, 16.0),
+                thumbVisibility: WidgetStateProperty.all(true),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(
-                        Icons.arrow_back_ios_new,
-                        color: AppColors.textPrimary,
-                        size: 18 * scale,
-                      ),
-                      onPressed: () => context.pop(),
-                    ),
+              child: Scrollbar(
+                controller: _scrollController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24 * scale,
+                    vertical: 18 * scale,
                   ),
-                  Text(
-                    '약관 및 정책',
-                    style: TextStyle(
-                      fontSize: 18 * scale,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              color: _backgroundColor,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppColors.textPrimary,
-                unselectedLabelColor: const Color(0xFFADADAD),
-                indicatorColor: AppColors.textPrimary,
-                indicatorWeight: 2 * scale,
-                labelStyle: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.bold),
-                unselectedLabelStyle: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.w500),
-                tabs: const [
-                  Tab(text: '이용약관'),
-                  Tab(text: '개인정보 처리방침'),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                color: _backgroundColor,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildTermsContent(scale),
-                    _buildPrivacyContent(scale),
-                  ],
+                  child: widget.child,
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTermsContent(double scale) {
-    final headingStyle = TextStyle(
-      fontSize: 14 * scale,
-      fontWeight: FontWeight.bold,
-      color: AppColors.textPrimary,
-      height: 1.5,
-    );
-
-    final bodyStyle = TextStyle(
-      fontSize: 13 * scale,
-      color: AppColors.textSecondary,
-      height: 1.5,
-    );
-
-    final requiredTitleStyle = TextStyle(
-      fontSize: 16 * scale,
-      fontWeight: FontWeight.bold,
-      color: AppColors.textPrimary,
-      height: 1.5,
-    );
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 20 * scale),
-      child: ServiceTermsBody(
-        headingStyle: headingStyle,
-        bodyStyle: bodyStyle,
-        sectionGap: SizedBox(height: 14 * scale),
-        showRequiredTitle: true,
-        requiredTitleStyle: requiredTitleStyle,
-      ),
-    );
-  }
-
-  Widget _buildPrivacyContent(double scale) {
-    final headingStyle = TextStyle(
-      fontSize: 14 * scale,
-      fontWeight: FontWeight.bold,
-      color: AppColors.textPrimary,
-      height: 1.5,
-    );
-
-    final bodyStyle = TextStyle(
-      fontSize: 13 * scale,
-      color: AppColors.textSecondary,
-      height: 1.5,
-    );
-
-    final requiredTitleStyle = TextStyle(
-      fontSize: 16 * scale,
-      fontWeight: FontWeight.bold,
-      color: AppColors.textPrimary,
-      height: 1.5,
-    );
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 20 * scale),
-      child: PrivacyPolicyBody(
-        headingStyle: headingStyle,
-        bodyStyle: bodyStyle,
-        sectionGap: SizedBox(height: 14 * scale),
-        showRequiredTitle: true,
-        requiredTitleStyle: requiredTitleStyle,
-      ),
+      ],
     );
   }
 }

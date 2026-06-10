@@ -3,12 +3,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/legal/widgets/privacy_policy_body.dart';
-import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
-import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
+import 'package:fe_app/shared/content/terms_content.dart';
+import 'package:fe_app/shared/widgets/terms_document_view.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
+
+  static const _designWidth = 412.0;
 
   @override
   Widget build(BuildContext context) {
@@ -17,41 +18,39 @@ class PrivacyPolicyScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final scale =
-                constraints.maxWidth / OnboardingLayout.designWidth;
-            final hPad = (constraints.maxWidth * (24 / OnboardingLayout.designWidth))
+            final scale = constraints.maxWidth / _designWidth;
+            final hPad = (constraints.maxWidth * (24 / _designWidth))
                 .clamp(20.0, 48.0);
-            final headerHPad =
-                (constraints.maxWidth * (28 / OnboardingLayout.designWidth))
-                    .clamp(22.0, 56.0);
+            final headerHPad = (constraints.maxWidth * (28 / _designWidth))
+                .clamp(22.0, 56.0);
+            final arrowSize = (18.658 * scale).clamp(15.0, 24.0);
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: OnboardingSpacedScrollView(
-                  viewportHeight: constraints.maxHeight,
-                  children: [
-                    OnboardingLayout.topSpacer(),
-                    _Header(
-                      title: '개인정보 처리방침',
-                      arrowSize: OnboardingLayout.backIconSize,
-                      hPad: headerHPad,
-                      bottomPad: (18 * scale).clamp(14.0, 22.0),
-                      fontSize: (20 * scale).clamp(15.0, 26.0),
-                      onBack: () => context.pop(),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        hPad,
-                        (17 * scale).clamp(12.0, 22.0),
-                        hPad,
-                        (80 * scale).clamp(48.0, 80.0),
-                      ),
-                      child: _PrivacyPolicyContent(scale: scale),
-                    ),
-                  ],
+            return Column(
+              children: [
+                _Header(
+                  title: TermsContent.privacyPolicyScreenTitle,
+                  arrowSize: arrowSize,
+                  hPad: headerHPad,
+                  bottomPad: (18 * scale).clamp(14.0, 22.0),
+                  fontSize: (20 * scale).clamp(15.0, 26.0),
+                  onBack: () => context.pop(),
                 ),
-              ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      hPad,
+                      (17 * scale).clamp(12.0, 22.0),
+                      hPad,
+                      (80 * scale).clamp(48.0, 80.0),
+                    ),
+                    child: TermsDocumentView(
+                      sections: TermsContent.privacyPolicy,
+                      scale: scale,
+                      documentTitle: TermsContent.privacyPolicyDocumentTitle,
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -113,41 +112,6 @@ class _Header extends StatelessWidget {
           SizedBox(width: arrowSize + 8),
         ],
       ),
-    );
-  }
-}
-
-class _PrivacyPolicyContent extends StatelessWidget {
-  const _PrivacyPolicyContent({required this.scale});
-
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    final fontSize = (14 * scale).clamp(11.0, 18.0);
-
-    final headingStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontSize: fontSize,
-      fontWeight: FontWeight.w500,
-      color: AppColors.textPrimary,
-      height: 1.548,
-    );
-
-    final bodyStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontSize: fontSize,
-      fontWeight: FontWeight.w400,
-      color: AppColors.textPrimary,
-      height: 1.548,
-    );
-
-    final gap = SizedBox(height: (14 * scale).clamp(10.0, 18.0));
-
-    return PrivacyPolicyBody(
-      headingStyle: headingStyle,
-      bodyStyle: bodyStyle,
-      sectionGap: gap,
     );
   }
 }

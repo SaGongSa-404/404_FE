@@ -9,14 +9,16 @@ import 'package:fe_app/features/onboarding/repositories/onboarding_repository.da
 
 class OnboardingState {
   const OnboardingState({
-    this.mascotName = '',
+    this.nickname = '',
     this.monthlyBudgetAmount,
     this.regretFrequencyChoice,
     this.isLoading = false,
     this.errorMessage,
   });
 
-  final String mascotName;
+  static const defaultMascotName = '너굴';
+
+  final String nickname;
   final int? monthlyBudgetAmount;
 
   /// LESS_THAN_ONCE | ONE_TO_THREE | FOUR_OR_MORE
@@ -26,7 +28,7 @@ class OnboardingState {
   final String? errorMessage;
 
   OnboardingState copyWith({
-    String? mascotName,
+    String? nickname,
     int? monthlyBudgetAmount,
     String? regretFrequencyChoice,
     bool? isLoading,
@@ -34,7 +36,7 @@ class OnboardingState {
     bool clearError = false,
   }) {
     return OnboardingState(
-      mascotName: mascotName ?? this.mascotName,
+      nickname: nickname ?? this.nickname,
       monthlyBudgetAmount: monthlyBudgetAmount ?? this.monthlyBudgetAmount,
       regretFrequencyChoice:
           regretFrequencyChoice ?? this.regretFrequencyChoice,
@@ -51,8 +53,8 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
   final OnboardingRepository _repository;
   final Ref _ref;
 
-  void setMascotName(String name) =>
-      state = state.copyWith(mascotName: name);
+  void setNickname(String name) =>
+      state = state.copyWith(nickname: name);
 
   void setMonthlyBudget(int amount) =>
       state = state.copyWith(monthlyBudgetAmount: amount);
@@ -100,7 +102,8 @@ class OnboardingViewModel extends StateNotifier<OnboardingState> {
 
     try {
       final request = OnboardingCompleteRequest(
-        mascotName: state.mascotName,
+        nickname: state.nickname,
+        mascotName: OnboardingState.defaultMascotName,
         timezone: await _resolveTimezone(),
         monthlyBudgetAmount: state.monthlyBudgetAmount ?? 0,
         regretFrequencyChoice:

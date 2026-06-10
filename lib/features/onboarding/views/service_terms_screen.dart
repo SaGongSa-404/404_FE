@@ -3,12 +3,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/core/theme/app_theme.dart';
-import 'package:fe_app/features/legal/widgets/service_terms_body.dart';
-import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
-import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
+import 'package:fe_app/shared/content/terms_content.dart';
+import 'package:fe_app/shared/widgets/terms_document_view.dart';
 
 class ServiceTermsScreen extends StatelessWidget {
   const ServiceTermsScreen({super.key});
+
+  static const _designWidth = 412.0;
 
   @override
   Widget build(BuildContext context) {
@@ -17,41 +18,39 @@ class ServiceTermsScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final scale =
-                constraints.maxWidth / OnboardingLayout.designWidth;
-            final hPad = (constraints.maxWidth * (24 / OnboardingLayout.designWidth))
+            final scale = constraints.maxWidth / _designWidth;
+            final hPad = (constraints.maxWidth * (24 / _designWidth))
                 .clamp(20.0, 48.0);
-            final headerHPad =
-                (constraints.maxWidth * (28 / OnboardingLayout.designWidth))
-                    .clamp(22.0, 56.0);
+            final headerHPad = (constraints.maxWidth * (28 / _designWidth))
+                .clamp(22.0, 56.0);
+            final arrowSize = (18.658 * scale).clamp(15.0, 24.0);
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: OnboardingSpacedScrollView(
-                  viewportHeight: constraints.maxHeight,
-                  children: [
-                    OnboardingLayout.topSpacer(),
-                    _Header(
-                      title: '서비스 이용약관',
-                      arrowSize: OnboardingLayout.backIconSize,
-                      hPad: headerHPad,
-                      bottomPad: (18 * scale).clamp(14.0, 22.0),
-                      fontSize: (20 * scale).clamp(15.0, 26.0),
-                      onBack: () => context.pop(),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        hPad,
-                        (17 * scale).clamp(12.0, 22.0),
-                        hPad,
-                        (80 * scale).clamp(48.0, 80.0),
-                      ),
-                      child: _ServiceTermsContent(scale: scale),
-                    ),
-                  ],
+            return Column(
+              children: [
+                _Header(
+                  title: TermsContent.serviceTermsScreenTitle,
+                  arrowSize: arrowSize,
+                  hPad: headerHPad,
+                  bottomPad: (18 * scale).clamp(14.0, 22.0),
+                  fontSize: (20 * scale).clamp(15.0, 26.0),
+                  onBack: () => context.pop(),
                 ),
-              ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      hPad,
+                      (17 * scale).clamp(12.0, 22.0),
+                      hPad,
+                      (80 * scale).clamp(48.0, 80.0),
+                    ),
+                    child: TermsDocumentView(
+                      sections: TermsContent.serviceTerms,
+                      scale: scale,
+                      documentTitle: TermsContent.serviceTermsDocumentTitle,
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -113,41 +112,6 @@ class _Header extends StatelessWidget {
           SizedBox(width: arrowSize + 8),
         ],
       ),
-    );
-  }
-}
-
-class _ServiceTermsContent extends StatelessWidget {
-  const _ServiceTermsContent({required this.scale});
-
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    final fontSize = (14 * scale).clamp(11.0, 18.0);
-
-    final headingStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontSize: fontSize,
-      fontWeight: FontWeight.w500,
-      color: AppColors.textPrimary,
-      height: 1.548,
-    );
-
-    final bodyStyle = TextStyle(
-      fontFamily: 'Pretendard',
-      fontSize: fontSize,
-      fontWeight: FontWeight.w400,
-      color: AppColors.textPrimary,
-      height: 1.548,
-    );
-
-    final gap = SizedBox(height: (14 * scale).clamp(10.0, 18.0));
-
-    return ServiceTermsBody(
-      headingStyle: headingStyle,
-      bodyStyle: bodyStyle,
-      sectionGap: gap,
     );
   }
 }

@@ -9,12 +9,14 @@ class BudgetInputField extends StatelessWidget {
     super.key,
     required this.controller,
     this.errorMessage,
+    this.focusNode,
     this.fontSize = 18,
     this.hintFontSize = 20,
   });
 
   final TextEditingController controller;
   final String? errorMessage;
+  final FocusNode? focusNode;
   final double fontSize;
   final double hintFontSize;
 
@@ -57,6 +59,7 @@ class BudgetInputField extends StatelessWidget {
         ),
         OnboardingPillTextField(
           controller: controller,
+          focusNode: focusNode,
           hintText: '예) 500,000',
           fontSize: fontSize,
           hintFontSize: hintFontSize,

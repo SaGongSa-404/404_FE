@@ -52,36 +52,15 @@ NoTransitionPage<void> _bottomTabPage(
   );
 }
 
-const Set<String> _guestAllowExactPaths = {
-  '/home',
-  '/notifications',
-};
+bool _isAuthPage(String location) =>
+    location == '/login' || location == '/signup';
 
-const Set<String> _guestAllowPathPrefixes = {
-  '/onboarding',
-  '/wishlist',
-  '/tutorial',
-  '/feed',
-  '/my',
-};
-
-bool _isAllowedPathForGuest(String location) {
-  if (_guestAllowExactPaths.contains(location)) return true;
-  for (final prefix in _guestAllowPathPrefixes) {
-    if (location == prefix || location.startsWith('$prefix/')) return true;
-  }
-  return false;
-}
-
-/// 스플래시(`/`) 또는 인증 화면 이후 첫 화면.
-/// 로컬 `X-User-Id` 테스트는 COMPLETED 여부와 관계없이 온보딩 플로우를 탑니다.
 String _postSplashDestination(AsyncValue<UserModel?> authState) {
   if (EnvConfig.isDevXUserIdAuth) return '/onboarding/terms';
   final isCompleted = authState.value?.onboardingStatus == 'COMPLETED';
   return isCompleted ? '/home' : '/onboarding/terms';
 }
 
-/// GoRouter를 Riverpod Provider로 감싸 auth 상태 변화 시 자동 redirect를 지원합니다.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
@@ -171,8 +150,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/my',
-        pageBuilder: (context, state) =>
-            _bottomTabPage(state, const MyPageScreen(), exitOnBack: true),
+        pageBuilder: (context, state) => _bottomTabPage(
+          state,
+          const MyPageScreen(),
+          exitOnBack: true,
+        ),
         routes: [
           GoRoute(
             path: 'edit',
@@ -180,7 +162,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'consumption',
-            builder: (context, state) => const ConsumptionManagementScreen(),
+            builder: (context, state) =>
+                const ConsumptionManagementScreen(),
           ),
           GoRoute(
             path: 'posts',
@@ -288,40 +271,42 @@ class _RouterNotifier extends ChangeNotifier {
     final splashReady = _ref.read(_splashMinDurationProvider);
     final location = state.matchedLocation;
 
-    if (authState.isLoading || splashReady.isLoading) {
-      if (location == '/') return null;
-      // OAuth 외부 브라우저 복귀 시 로그인 화면 유지 (iOS 스플래시 깜빡임·no route 방지)
-      if (location == '/login' && authState.isLoading) return null;
+    // 스플래시(/)는 auth·최소 노출 시간이 끝날 때까지 유지
+    if (location == '/' && (authState.isLoading || splashReady.isLoading)) {
+      return null;
+    }
+
+    // auth 확인 중: 스플래시·로그인·회원가입만 허용
+    if (authState.isLoading) {
+      if (location == '/' || _isAuthPage(location)) return null;
       return '/';
     }
 
     final isLoggedIn = authState.hasValue && authState.value != null;
-    final isAuthPage = location == '/login' || location == '/signup';
     final isDevUser = EnvConfig.devUserId != null;
 
     // 로컬 dev user(X-User-Id): 스플래시 직후에만 온보딩 약관으로 보냄 (로그인 화면 복귀 허용)
     if (isDevUser) {
-      if (location == '/') {
+      if (location == '/' || _isAuthPage(location)) {
         return _postSplashDestination(authState);
       }
       return null;
     }
 
-    if (!isLoggedIn && location == '/') return '/onboarding/terms';
+    // 비로그인: 로그인 화면만 허용 (온보딩·기타 페이지 차단)
+    if (!isLoggedIn) {
+      if (location == '/') return '/login';
+      if (_isAuthPage(location)) return null;
+      return '/login';
+    }
 
-    if (!isLoggedIn && _isAllowedPathForGuest(location)) return null;
-
-    // 비로그인 상태 + 보호된 경로 → 로그인으로
-    if (!isLoggedIn && !isAuthPage) return '/login';
-
-    if (isLoggedIn &&
-        !EnvConfig.isDevXUserIdAuth &&
+    if (!EnvConfig.isDevXUserIdAuth &&
         authState.value?.onboardingStatus == 'COMPLETED' &&
         location.startsWith('/onboarding')) {
       return '/home';
     }
 
-    if (isLoggedIn && (location == '/' || isAuthPage)) {
+    if (location == '/' || _isAuthPage(location)) {
       return _postSplashDestination(authState);
     }
 
