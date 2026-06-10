@@ -23,6 +23,7 @@ import 'package:fe_app/features/profile/views/edit_profile_screen.dart';
 import 'package:fe_app/features/profile/views/my_page_screen.dart';
 import 'package:fe_app/features/profile/views/my_posts_screen.dart';
 import 'package:fe_app/features/profile/views/terms_policy_screen.dart';
+import 'package:fe_app/shared/widgets/my_tab_shell.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
 import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
@@ -166,26 +167,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      GoRoute(
-        path: '/my',
-        pageBuilder: (context, state) =>
-            _bottomTabPage(state, const MyPageScreen(), exitOnBack: true),
+      ShellRoute(
+        builder: (context, state, child) => MyTabShell(child: child),
         routes: [
           GoRoute(
-            path: 'edit',
-            builder: (context, state) => const EditProfileScreen(),
-          ),
-          GoRoute(
-            path: 'consumption',
-            builder: (context, state) => const ConsumptionManagementScreen(),
-          ),
-          GoRoute(
-            path: 'posts',
-            builder: (context, state) => const MyPostsScreen(),
-          ),
-          GoRoute(
-            path: 'terms',
-            builder: (context, state) => const TermsPolicyScreen(),
+            path: '/my',
+            pageBuilder: (context, state) => _bottomTabPage(
+              state,
+              const MyPageScreen(),
+              exitOnBack: true,
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) => const EditProfileScreen(),
+              ),
+              GoRoute(
+                path: 'consumption',
+                builder: (context, state) =>
+                    const ConsumptionManagementScreen(),
+              ),
+              GoRoute(
+                path: 'posts',
+                builder: (context, state) => const MyPostsScreen(),
+              ),
+              GoRoute(
+                path: 'terms',
+                builder: (context, state) => const TermsPolicyScreen(),
+              ),
+            ],
           ),
         ],
       ),
@@ -285,11 +295,16 @@ class _RouterNotifier extends ChangeNotifier {
     final splashReady = _ref.read(_splashMinDurationProvider);
     final location = state.matchedLocation;
 
-    if (authState.isLoading || splashReady.isLoading) {
-      if (location == '/') return null;
-      // OAuth 외부 브라우저 복귀 시 로그인 화면 유지 (iOS 스플래시 깜빡임·no route 방지)
-      if (location == '/login' && authState.isLoading) return null;
-      return '/';
+    // 스플래시(/)는 auth·최소 노출 시간이 끝날 때까지 유지
+    if (location == '/' && (authState.isLoading || splashReady.isLoading)) {
+      return null;
+    }
+
+    // auth 확인 중: 로그인·회원가입 화면은 그대로 두고, 나머지만 스플래시로
+    if (authState.isLoading) {
+      if (location == '/login' || location == '/signup') return null;
+      if (location != '/') return '/';
+      return null;
     }
 
     final isLoggedIn = authState.hasValue && authState.value != null;

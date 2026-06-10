@@ -101,10 +101,6 @@ abstract final class EnvConfig {
       _ => DevAuthMode.bearer,
     };
   }
-
-  /// `DEV_AUTH_MODE=x_user_id` 이고 `DEV_USER_ID` 가 설정된 로컬 개발 세션.
-  static bool get isDevXUserIdAuth =>
-      devAuthMode == DevAuthMode.xUserId && devUserId != null;
 }
 
 enum DevAuthMode {

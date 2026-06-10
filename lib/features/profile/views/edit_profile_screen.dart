@@ -5,8 +5,9 @@ import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/utils/provider_label.dart';
-import 'package:fe_app/features/profile/validators/profile_nickname_validator.dart';
+import 'package:fe_app/features/onboarding/validators/nickname_validator.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
+import 'package:fe_app/shared/widgets/profile_modal_text_field.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -243,6 +244,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _NicknameEditModal(
@@ -330,37 +332,40 @@ class _NicknameEditModal extends StatefulWidget {
 
 class _NicknameEditModalState extends State<_NicknameEditModal> {
   late final TextEditingController _controller;
-  ProfileNicknameValidationResult _validation = const ProfileNicknameEmpty();
+  NicknameValidationResult _validation = const NicknameEmpty();
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialNickname);
-    _validation = ProfileNicknameValidator.validate(widget.initialNickname);
+    _validation = NicknameValidator.validate(widget.initialNickname);
     _controller.addListener(_onTextChanged);
   }
 
   void _onTextChanged() {
     setState(() {
-      _validation = ProfileNicknameValidator.validate(_controller.text);
+      _validation = NicknameValidator.validate(_controller.text);
     });
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
 
   String? get _errorMessage => switch (_validation) {
-        ProfileNicknameInvalidChars() => '한글, 영어, 숫자만 입력할 수 있어요',
-        ProfileNicknameInvalidLength() => '1자 이상 10자 이내로 입력해주세요',
+        NicknameEmpty() => '닉네임을 입력해주세요',
+        NicknameInvalidWhitespace() => '공백을 제거해주세요',
+        NicknameInvalidChars() => '한글, 영어, 숫자만 입력할 수 있어요',
+        NicknameInvalidLength() => '2자 이상 8자 이내로 입력해주세요',
         _ => null,
       };
 
   bool get _canSave =>
-      _validation is ProfileNicknameValid &&
+      _validation is NicknameValid &&
       !_isSaving &&
       _controller.text.trim() != widget.initialNickname.trim();
 
@@ -421,49 +426,19 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
                   child: Text(
                     _errorMessage!,
                     style: TextStyle(
-                      color: AppColors.red_600,
+                      color: AppColors.red_400,
                       fontSize: 13 * scale,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ),
-            TextField(
+            ProfileModalTextField(
               controller: _controller,
+              scale: scale,
+              hasError: hasError,
               autofocus: true,
-              maxLength: ProfileNicknameValidator.maxLength,
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: '입력하기',
-                hintStyle: const TextStyle(color: Color(0xFFADADAD)),
-                counterText: '',
-                filled: true,
-                fillColor: const Color(0xFFF2F2F2),
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: 14 * scale,
-                  horizontal: 20 * scale,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25 * scale),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25 * scale),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25 * scale),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.red_600 : AppColors.textPrimary,
-                    width: 1.5 * scale,
-                  ),
-                ),
-              ),
+              maxLength: NicknameValidator.maxLength,
             ),
             SizedBox(height: 24 * scale),
             Row(
