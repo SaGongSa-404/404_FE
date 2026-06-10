@@ -39,6 +39,9 @@ class ItemImportLinkRequest {
     if (trimmedTitle.isEmpty) {
       throw ArgumentError('Title must not be empty', 'title');
     }
+    if (price != null && price < 0) {
+      throw ArgumentError('Price must be greater than or equal to 0', 'price');
+    }
     return ItemImportLinkRequest(
       inputSource: ItemInputSource.directInput,
       title: trimmedTitle,

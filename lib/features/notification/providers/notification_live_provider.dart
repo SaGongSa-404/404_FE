@@ -159,7 +159,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
   }) {
     if (item.isRead) return false;
 
-    final type = NotificationType.tryParse(item.type);
+    final type = NotificationType.fromApiValue(item.type);
 
     // 폴링으로 감지한 알림은 기획 §2 인앱 알림(투표/댓글/리마인드)만 배너 노출.
     // FCM foreground 수신은 OS 푸시 대체이므로 타입 제한 없이 노출(기획 §1).
@@ -167,7 +167,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
       return false;
     }
 
-    if (type != null && type.isVote) {
+    if (type?.isSocialVoteBannerType == true) {
       final postId = NotificationRouter.extractPostId(item);
       if (postId != null) {
         if (_seenVotePostIds.contains(postId)) return false;

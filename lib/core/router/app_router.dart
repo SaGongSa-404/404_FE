@@ -33,22 +33,32 @@ import 'package:fe_app/features/wishlist/views/wishlist_item_entry_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
+import 'package:fe_app/shared/widgets/my_page_tab_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final _splashMinDurationProvider = FutureProvider<void>((ref) async {
   await Future<void>.delayed(const Duration(milliseconds: 4000));
 });
+
+NoTransitionPage<void> _noTransitionPage(GoRouterState state, Widget child) {
+  return NoTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+  );
+}
 
 NoTransitionPage<void> _bottomTabPage(
   GoRouterState state,
   Widget child, {
   bool exitOnBack = false,
 }) {
-  return NoTransitionPage<void>(
-    key: state.pageKey,
-    child: exitOnBack ? AppExitBackHandler(child: child) : child,
+  return _noTransitionPage(
+    state,
+    exitOnBack ? AppExitBackHandler(child: child) : child,
   );
 }
 
@@ -64,6 +74,7 @@ String _postSplashDestination(AsyncValue<UserModel?> authState) {
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: notifier.redirect,
@@ -148,30 +159,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      GoRoute(
-        path: '/my',
-        pageBuilder: (context, state) => _bottomTabPage(
-          state,
-          const MyPageScreen(),
-          exitOnBack: true,
-        ),
+      ShellRoute(
+        builder: (context, state, child) => MyPageTabShell(child: child),
         routes: [
           GoRoute(
-            path: 'edit',
-            builder: (context, state) => const EditProfileScreen(),
-          ),
-          GoRoute(
-            path: 'consumption',
-            builder: (context, state) =>
-                const ConsumptionManagementScreen(),
-          ),
-          GoRoute(
-            path: 'posts',
-            builder: (context, state) => const MyPostsScreen(),
-          ),
-          GoRoute(
-            path: 'terms',
-            builder: (context, state) => const TermsPolicyScreen(),
+            path: '/my',
+            pageBuilder: (context, state) => _bottomTabPage(
+              state,
+              const MyPageScreen(),
+              exitOnBack: true,
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                pageBuilder: (context, state) =>
+                    _noTransitionPage(state, const EditProfileScreen()),
+              ),
+              GoRoute(
+                path: 'consumption',
+                pageBuilder: (context, state) => _noTransitionPage(
+                  state,
+                  const ConsumptionManagementScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'posts',
+                pageBuilder: (context, state) =>
+                    _noTransitionPage(state, const MyPostsScreen()),
+              ),
+              GoRoute(
+                path: 'terms',
+                pageBuilder: (context, state) =>
+                    _noTransitionPage(state, const TermsPolicyScreen()),
+              ),
+            ],
           ),
         ],
       ),

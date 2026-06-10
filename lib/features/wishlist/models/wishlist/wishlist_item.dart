@@ -34,4 +34,13 @@ class WishlistItem with _$WishlistItem {
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) =>
       _$WishlistItemFromJson(json);
+
+  /// GET /api/v1/wishlist/items summary 응답용. metadata·날짜 필드가 없을 수 있습니다.
+  factory WishlistItem.fromSummaryJson(Map<String, dynamic> json) {
+    final normalized = Map<String, dynamic>.from(json);
+    final now = DateTime.now().toUtc().toIso8601String();
+    normalized['createdAt'] ??= now;
+    normalized['updatedAt'] ??= normalized['createdAt'] ?? now;
+    return WishlistItem.fromJson(normalized);
+  }
 }

@@ -28,6 +28,7 @@ class AuthService {
 
     final authRes = await _dio.get<Map<String, dynamic>>(ApiEndpoints.me);
     final data = Map<String, dynamic>.from(authRes.data!);
+    _normalizeAuthMePayload(data);
 
     try {
       final profileRes = await _dio.get<dynamic>(ApiEndpoints.usersMe);
@@ -95,4 +96,13 @@ class AuthService {
 
   /// 로그아웃 (POST /api/logout)
   Future<void> logout() => _dio.post<void>(ApiEndpoints.logout);
+
+  static void _normalizeAuthMePayload(Map<String, dynamic> data) {
+    final imageUrl = data['profileImageUrl']?.toString().trim();
+    data['profileImageUrl'] =
+        imageUrl != null && imageUrl.isNotEmpty ? imageUrl : null;
+
+    final email = data['email']?.toString().trim();
+    data['email'] = email != null && email.isNotEmpty ? email : null;
+  }
 }

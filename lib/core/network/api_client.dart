@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/core/network/network_error.dart';
+import 'package:fe_app/core/network/network_error_toast.dart';
 import 'package:fe_app/core/network/session_expiration.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
+import 'package:fe_app/features/auth/models/token_refresh_response.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final storage = ref.watch(secureStorageServiceProvider);
@@ -38,6 +41,9 @@ class ApiClient {
 class ApiErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
+    if (isNetworkError(err)) {
+      NetworkErrorToast.scheduleShow();
+    }
     handler.next(
       err.copyWith(error: ApiException.fromDioException(err)),
     );
@@ -107,16 +113,17 @@ class AuthInterceptor extends Interceptor {
         data: {'refreshToken': oldRefreshToken},
       );
 
-      final newAccessToken = res.data!['accessToken'] as String;
-      final newRefreshToken = res.data!['refreshToken'] as String;
+      final tokens = TokenRefreshResponse.fromJson(
+        Map<String, dynamic>.from(res.data!),
+      );
 
       await _storage.saveTokens(
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
       );
 
       final retryOptions = err.requestOptions
-        ..headers['Authorization'] = 'Bearer $newAccessToken';
+        ..headers['Authorization'] = 'Bearer ${tokens.accessToken}';
       final retryDio = Dio(
         BaseOptions(
           baseUrl: err.requestOptions.baseUrl,

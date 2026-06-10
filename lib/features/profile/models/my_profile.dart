@@ -1,3 +1,5 @@
+import 'package:fe_app/shared/enums/api_enums.dart';
+
 class MyProfile {
   const MyProfile({
     required this.id,
@@ -34,6 +36,10 @@ class MyProfile {
   }
 
   bool get isValid => id.isNotEmpty && nickname.isNotEmpty;
+
+  UserStatus? get userStatus => UserStatus.fromApiValue(status);
+
+  bool get isRestrictedAccount => userStatus?.isRestricted ?? false;
 
   MyProfile copyWith({
     String? nickname,

@@ -467,7 +467,7 @@ class _ConsumptionManagementScreenState
           final ok = await ref
               .read(consumptionStatsProvider.notifier)
               .updateBudget(newBudget);
-          if (ok) _didChangeBudget = true;
+          if (ok) setState(() => _hasDataChanged = true);
           return ok;
         },
       ),
@@ -655,61 +655,19 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 6 * scale),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: isSubmitting
-                            ? null
-                            : () async {
-                                final newBudget = int.tryParse(
-                                  controller.text.replaceAll(',', ''),
-                                );
-                                if (newBudget == null || newBudget < 1) {
-                                  showCapsuleToast(
-                                    sheetContext,
-                                    backgroundColor:
-                                        AppColors.red_600.withValues(alpha: 0.8),
-                                    text: '예산은 1원 이상 입력해 주세요.',
-                                  );
-                                  return;
-                                }
-                                setSheetState(() => isSubmitting = true);
-                                final ok = await ref
-                                    .read(consumptionStatsProvider.notifier)
-                                    .updateBudget(newBudget);
-                                if (!sheetContext.mounted) return;
-                                setSheetState(() => isSubmitting = false);
-                                if (ok) {
-                                  _hasDataChanged = true;
-                                  Navigator.of(sheetContext).pop();
-                                }
-                              },
-                        child: Container(
-                          height: 57 * scale,
-                          decoration: BoxDecoration(
-                            color: isSubmitting
-                                ? AppColors.skyBlue_100.withValues(alpha: 0.6)
-                                : AppColors.skyBlue_100,
-                            borderRadius: BorderRadius.circular(57 * scale),
-                          ),
-                          alignment: Alignment.center,
-                          child: isSubmitting
-                              ? SizedBox(
-                                  width: 24 * scale,
-                                  height: 24 * scale,
-                                  child: const CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  '수정완료',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 20 * scale,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                        ),
+                  ),
+                ),
+                SizedBox(width: 6 * scale),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _canSave ? _handleSave : null,
+                    child: Container(
+                      height: 57 * scale,
+                      decoration: BoxDecoration(
+                        color: _canSave
+                            ? AppColors.skyBlue_100
+                            : AppColors.skyBlue_100.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(57 * scale),
                       ),
                       alignment: Alignment.center,
                       child: _isSaving

@@ -13,6 +13,7 @@ import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_requ
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/services/item_import_service.dart';
 import 'package:fe_app/features/wishlist/services/wishlist_service.dart';
+import 'package:fe_app/features/wishlist/utils/wishlist_api_errors.dart';
 import 'package:fe_app/shared/enums/api_enums.dart';
 import 'wishlist_state.dart';
 
@@ -204,8 +205,14 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       final prefill = response.toFormPrefill();
       final saveRequest = response.resolvedSaveRequest();
 
-      if (prefill == null) {
-        if (_isShareImportFlowActive(url)) _handleImportFailure();
+      if (!response.hasPreview || prefill == null) {
+        if (_isShareImportFlowActive(url)) {
+          _handleImportFailure(
+            errorMessage: response.isPartial
+                ? '상품 정보를 일부만 가져왔어요. 직접 입력해 주세요.'
+                : null,
+          );
+        }
         return;
       }
 
@@ -219,6 +226,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         addFormPrefill: prefill,
         addImportSaveRequest: saveRequest,
         addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
+        clearSubmitErrorMessage: true,
       );
     } on ArgumentError {
       if (_isShareImportFlowActive(url)) {
@@ -226,9 +234,17 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       } else {
         _finalizeImportUnlessActive(url);
       }
-    } catch (_) {
+    } catch (e) {
       if (_isShareImportFlowActive(url)) {
-        _handleImportFailure();
+        final api = apiExceptionFrom(e);
+        if (api?.statusCode == 502 || api?.statusCode == 422) {
+          _handleImportFailure();
+          return;
+        }
+        state = state.copyWith(
+          isImportingLink: false,
+          submitErrorMessage: importLinkErrorMessage(e),
+        );
       } else {
         _finalizeImportUnlessActive(url);
       }
@@ -247,7 +263,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(isImportingLink: false);
   }
 
-  void _handleImportFailure() {
+  void _handleImportFailure({String? errorMessage}) {
     state = state.copyWith(
       clearAddWish: true,
       clearAddPrefillLink: true,
@@ -256,6 +272,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddImportSaveRequest: true,
       isImportingLink: false,
       pendingImportFailedNavigation: true,
+      submitErrorMessage: errorMessage,
     );
   }
 
@@ -311,8 +328,16 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   bool _isDuplicateOfDraft(WishlistPlaceholder draft, WishlistItem existing) {
+    final source = _resolveInputSourceForAdd(draft);
+    if (source == ItemInputSource.share) {
+      return _isDuplicateShareItem(draft, existing);
+    }
+    return _isDuplicateDirectInputItem(draft, existing);
+  }
+
+  bool _isDuplicateShareItem(WishlistPlaceholder draft, WishlistItem existing) {
     final draftLink = draft.link.trim();
-    if (draftLink.isEmpty) return true;
+    if (draftLink.isEmpty) return false;
 
     final normalizedDraft = ShareLinkUrl.normalize(draftLink) ?? draftLink;
     final existingOriginal = (existing.originalUrl ?? '').trim();
@@ -322,6 +347,22 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         normalizedDraft == existingOriginal ||
         draftLink == existingNormalized ||
         draftLink == existingOriginal;
+  }
+
+  bool _isDuplicateDirectInputItem(
+    WishlistPlaceholder draft,
+    WishlistItem existing,
+  ) {
+    final sameTitle = draft.title.trim() == existing.title.trim();
+    final samePrice = draft.price == (existing.listedPrice?.round() ?? 0);
+    final sameCategory =
+        WishlistCategoryUi.toApiValue(draft.category) == existing.category;
+    final draftImage = draft.imageUrl?.trim() ?? '';
+    final existingImage = existing.imageUrl?.trim() ?? '';
+    return sameTitle &&
+        samePrice &&
+        sameCategory &&
+        draftImage == existingImage;
   }
 
   ItemInputSource _resolveInputSourceForAdd(WishlistPlaceholder draft) {
@@ -388,9 +429,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       return true;
     } catch (e) {
       final api = apiExceptionFrom(e);
-      if (api != null &&
-          api.statusCode == 409 &&
-          api.code == 'DUPLICATE_SAVED_ITEM') {
+      if (api != null && api.statusCode == 409) {
         final existing = WishlistService.parseDuplicateExistingItem(api);
         if (existing != null && _isDuplicateOfDraft(draft, existing)) {
           final placeholder = existing.toPlaceholder();
@@ -398,7 +437,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
           state = state.copyWith(
             isSubmitting: false,
             items: alreadyListed ? state.items : [...state.items, placeholder],
-            submitErrorMessage: '이미 담긴 상품이에요',
+            submitErrorMessage: wishlistSaveErrorMessage(e),
             clearAddWish: true,
             clearAddPrefillLink: true,
             clearAddLinkReadOnly: true,
@@ -411,8 +450,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
       state = state.copyWith(
         isSubmitting: false,
-        submitErrorMessage: api?.message ??
-            '위시를 담지 못했어요. 잠시 후 다시 시도해 주세요.',
+        submitErrorMessage: wishlistSaveErrorMessage(e),
       );
       return false;
     }

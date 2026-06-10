@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/core/network/network_error.dart';
 import 'package:fe_app/features/profile/models/consumption_record.dart';
 import 'package:fe_app/features/profile/models/wish_history_item.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
@@ -67,10 +67,8 @@ class MonthlyConsumptionNotifier extends StateNotifier<MonthlyConsumptionState> 
   static const int _pageSize = 100;
 
   String _errorMessage(Object error, String fallback) {
-    if (error is DioException &&
-        (error.type == DioExceptionType.connectionError ||
-            error.type == DioExceptionType.connectionTimeout)) {
-      return '서버에 연결할 수 없습니다. API 주소와 백엔드 실행 여부를 확인해 주세요.';
+    if (isNetworkError(error)) {
+      return kNetworkErrorMessage;
     }
     final api = apiExceptionFrom(error);
     if (api != null && api.message != '요청을 처리하지 못했습니다.') {

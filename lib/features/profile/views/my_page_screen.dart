@@ -5,7 +5,6 @@ import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/providers/notification_settings_provider.dart';
-import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
@@ -77,7 +76,6 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: const AppBottomNavigationBar(),
       body: SafeArea(
         top: false,
         child: Column(
@@ -100,9 +98,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                         'assets/images/nugul_face.png',
                         width: 118 * scale,
                         height: 118 * scale,
-
                       ),
-                      SizedBox(height: 16 * scale),
                       RichText(
                         text: TextSpan(
                           style: TextStyle(

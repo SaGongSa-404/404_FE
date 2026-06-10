@@ -10,11 +10,16 @@ class ItemImportLinkResponse {
     this.warnings = const [],
   });
 
-  final String retrievalStatus;
+  final ItemRetrievalStatus? retrievalStatus;
   final SavedItemDraft? item;
   final ItemSourceMetadataDraft? sourceMetadata;
   final WishlistItemSaveRequest? saveRequest;
   final List<String> warnings;
+
+  bool get isPartial => retrievalStatus == ItemRetrievalStatus.partial;
+
+  bool get hasPreview =>
+      saveRequest != null || (item != null && item!.title.trim().isNotEmpty);
 
   factory ItemImportLinkResponse.fromJson(Map<String, dynamic> json) {
     final rawWarnings = json['warnings'];
@@ -22,7 +27,8 @@ class ItemImportLinkResponse {
         ? SavedItemDraft.fromJson(json['item'] as Map<String, dynamic>)
         : null;
     return ItemImportLinkResponse(
-      retrievalStatus: json['retrievalStatus'] as String? ?? '',
+      retrievalStatus:
+          ItemRetrievalStatus.fromApiValue(json['retrievalStatus'] as String?),
       item: item,
       sourceMetadata: json['sourceMetadata'] is Map<String, dynamic>
           ? ItemSourceMetadataDraft.fromJson(
