@@ -12,6 +12,17 @@ Iterable<String> _assetPathsForBaseName(String baseName) {
   return [webmPath, mp4Path];
 }
 
+/// `assets/videos/nugul_home.mp4` → `nugul_home`
+String? videoBaseNameFromDataSource(String dataSource) {
+  if (dataSource.isEmpty) return null;
+  final fileName = dataSource.split('/').last;
+  final dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex <= 0) {
+    return fileName.isEmpty ? null : fileName;
+  }
+  return fileName.substring(0, dotIndex);
+}
+
 /// Creates an initialized [VideoPlayerController] for the given video base name.
 Future<VideoPlayerController> createVideoAssetController(
   String baseName, {

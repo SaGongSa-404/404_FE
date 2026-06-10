@@ -2,6 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/vote_type.dart';
 import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
+import 'package:fe_app/features/feed/views/components/feed_product_card.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/gestures.dart';
@@ -84,11 +85,14 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   ],
                   SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                   if (post.product != null) ...[
-                    _ProductCard(
+                    FeedProductCard(
                       name: post.product!.name,
                       price: post.product!.price,
                       imageUrl: post.imageUrl ?? post.product!.imageUrl,
-                      link: post.product!.link,
+                      onTap: () => openProductLink(
+                        context: context,
+                        url: post.product!.link,
+                      ),
                     ),
                     SizedBox(height: (15 * scale).clamp(12.0, 18.0)),
                   ],
@@ -275,104 +279,6 @@ class _ExpandableText extends StatelessWidget {
       },
     );
   }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.name,
-    this.price,
-    this.imageUrl,
-    this.link,
-  });
-
-  final String name;
-  final int? price;
-  final String? imageUrl;
-  final String? link;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
-    final imageHeight = (150 * scale).clamp(120.0, 180.0);
-    final placeholder = Container(
-      height: imageHeight,
-      width: double.infinity,
-      color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-    );
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-    return GestureDetector(
-      // 카드 탭(상세 진입)보다 우선 — 상세 화면과 동일하게 링크 이동 처리
-      behavior: HitTestBehavior.opaque,
-      onTap: () => openProductLink(context: context, url: link),
-      child: Column(
-        children: [
-        ClipRRect(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular((22 * scale).clamp(17.0, 27.0))),
-          child: hasImage
-              ? Image.network(
-                  imageUrl!,
-                  height: imageHeight,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => placeholder,
-                )
-              : placeholder,
-        ),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: (12 * scale).clamp(9.0, 15.0),
-            vertical: (10 * scale).clamp(8.0, 12.0),
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular((22 * scale).clamp(17.0, 27.0))),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 3,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: (15 * scale).clamp(12.0, 18.0),
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (price != null)
-                Text(
-                  _formatKrw(price!),
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: (14 * scale).clamp(11.0, 17.0),
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatKrw(int price) {
-  final body = price.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
-  return '$body원';
 }
 
 class _CommentPreviewRow extends StatelessWidget {

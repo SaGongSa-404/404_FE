@@ -2,6 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/feed/views/components/feed_product_card.dart';
 import 'package:fe_app/features/feed/views/components/wishlist_picker_sheet.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
@@ -54,7 +55,10 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
   }
 
   Future<void> _onPickFromWishlist() async {
-    final selected = await showWishlistPickerSheet(context);
+    final selected = await showWishlistPickerSheet(
+      context,
+      currentSelection: _selectedItem,
+    );
     if (selected != null) setState(() => _selectedItem = selected);
   }
 
@@ -178,9 +182,10 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
                   ),
                   if (_selectedItem != null) ...[
                     SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
-                    _AttachedProductCard(
-                      item: _selectedItem!,
-                      formatPrice: _formatPrice,
+                    FeedProductCard(
+                      name: _selectedItem!.title,
+                      price: _selectedItem!.price,
+                      imageUrl: _selectedItem!.imageUrl,
                     ),
                   ],
                 ],
@@ -197,96 +202,6 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
         ],
       ),
       ),
-    );
-  }
-}
-
-class _AttachedProductCard extends StatelessWidget {
-  const _AttachedProductCard({
-    required this.item,
-    required this.formatPrice,
-  });
-
-  final WishlistPlaceholder item;
-  final String Function(int) formatPrice;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-          ),
-          child: item.imageUrl != null
-              ? Image.network(
-                  item.imageUrl!,
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                )
-              : Container(
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-                  alignment: Alignment.center,
-                  child: Text(
-                    item.category.substring(0, 1),
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w700,
-                      fontSize: (40 * scale).clamp(32.0, 48.0),
-                      color: AppColors.skyBlue_200,
-                    ),
-                  ),
-                ),
-        ),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: (12 * scale).clamp(9.0, 15.0),
-            vertical: (10 * scale).clamp(8.0, 12.0),
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 3,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.title,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: (15 * scale).clamp(12.0, 18.0),
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                '${formatPrice(item.price)}원',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w500,
-                  fontSize: (14 * scale).clamp(11.0, 17.0),
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -259,7 +259,7 @@ class _BottomActionButtons extends ConsumerWidget {
     final caseType = ref.read(considerViewModelProvider(itemId)).caseType;
     if (caseType == null) return;
 
-    context.push(
+    context.pushReplacement(
       '/wishlist/consider/$itemId/result',
       extra: ConsiderResultRouteArgs(
         response: response,

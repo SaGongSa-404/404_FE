@@ -4,6 +4,7 @@ class HomeSummaryResponse {
   final HomeUserProfile userProfile;
   final HomeMascotSummary mascot;
   final HomeBudgetSummary budget;
+  final HomeBubbleSummary? bubble;
   final HomeNotificationSummary notifications;
   final double? rationalChoiceRate;
 
@@ -12,14 +13,19 @@ class HomeSummaryResponse {
     required this.mascot,
     required this.budget,
     required this.notifications,
+    this.bubble,
     this.rationalChoiceRate,
   });
 
   factory HomeSummaryResponse.fromJson(Map<String, dynamic> json) {
+    final rawBubble = json['bubble'];
     return HomeSummaryResponse(
       userProfile: HomeUserProfile.fromJson(_asMap(json['userProfile'])),
       mascot: HomeMascotSummary.fromJson(_asMap(json['mascot'])),
       budget: HomeBudgetSummary.fromJson(_asMap(json['budget'])),
+      bubble: rawBubble == null
+          ? null
+          : HomeBubbleSummary.fromJson(_asMap(rawBubble)),
       notifications: HomeNotificationSummary.fromJson(
         _asMap(json['notifications']),
       ),
@@ -31,6 +37,8 @@ class HomeSummaryResponse {
     HomeUserProfile? userProfile,
     HomeMascotSummary? mascot,
     HomeBudgetSummary? budget,
+    HomeBubbleSummary? bubble,
+    bool clearBubble = false,
     HomeNotificationSummary? notifications,
     double? rationalChoiceRate,
   }) {
@@ -38,6 +46,7 @@ class HomeSummaryResponse {
       userProfile: userProfile ?? this.userProfile,
       mascot: mascot ?? this.mascot,
       budget: budget ?? this.budget,
+      bubble: clearBubble ? null : (bubble ?? this.bubble),
       notifications: notifications ?? this.notifications,
       rationalChoiceRate: rationalChoiceRate ?? this.rationalChoiceRate,
     );
@@ -105,6 +114,51 @@ class HomeMascotSummary {
       lastReactionMessage: lastReactionMessage ?? this.lastReactionMessage,
       lastStateChangedAt: lastStateChangedAt ?? this.lastStateChangedAt,
       reactionExpiresAt: reactionExpiresAt ?? this.reactionExpiresAt,
+    );
+  }
+}
+
+/// GET /home/summary 의 bubble 필드.
+class HomeBubbleSummary {
+  const HomeBubbleSummary({
+    required this.type,
+    required this.message,
+    required this.priority,
+    required this.shouldShow,
+    this.seenEndpoint,
+  });
+
+  final String type;
+  final String message;
+  final int priority;
+  final bool shouldShow;
+  final String? seenEndpoint;
+
+  factory HomeBubbleSummary.fromJson(Map<String, dynamic> json) {
+    return HomeBubbleSummary(
+      type: _asString(json['type']),
+      message: _asString(json['message']),
+      priority: _asInt(json['priority']),
+      shouldShow: _asBool(json['shouldShow']),
+      seenEndpoint: _asNullableString(json['seenEndpoint']),
+    );
+  }
+
+  HomeBubbleSummary copyWith({
+    String? type,
+    String? message,
+    int? priority,
+    bool? shouldShow,
+    String? seenEndpoint,
+    bool clearSeenEndpoint = false,
+  }) {
+    return HomeBubbleSummary(
+      type: type ?? this.type,
+      message: message ?? this.message,
+      priority: priority ?? this.priority,
+      shouldShow: shouldShow ?? this.shouldShow,
+      seenEndpoint:
+          clearSeenEndpoint ? null : (seenEndpoint ?? this.seenEndpoint),
     );
   }
 }

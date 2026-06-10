@@ -21,7 +21,7 @@ class ConsumptionManagementScreen extends ConsumerStatefulWidget {
 
 class _ConsumptionManagementScreenState
     extends ConsumerState<ConsumptionManagementScreen> {
-  bool _didChangeBudget = false;
+  bool _hasDataChanged = false;
   @override
   void initState() {
     super.initState();
@@ -61,7 +61,13 @@ class _ConsumptionManagementScreenState
     String format(int val) =>
         val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.pop(_hasDataChanged);
+      },
+      child: Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: _backgroundColor,
@@ -69,7 +75,7 @@ class _ConsumptionManagementScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(_didChangeBudget),
+          onPressed: () => context.pop(_hasDataChanged),
         ),
         title: Text(
           '소비 관리',
@@ -82,6 +88,7 @@ class _ConsumptionManagementScreenState
         centerTitle: true,
       ),
       body: _buildBody(statsState, current, format, scale),
+      ),
     );
   }
 
@@ -310,12 +317,17 @@ class _ConsumptionManagementScreenState
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  MonthlySpendingDetailScreen(yearMonth: record.yearMonth),
-            ),
-          ),
+          onTap: () async {
+            final changed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) =>
+                    MonthlySpendingDetailScreen(yearMonth: record.yearMonth),
+              ),
+            );
+            if (changed == true && mounted) {
+              setState(() => _hasDataChanged = true);
+            }
+          },
           borderRadius: BorderRadius.circular(30 * scale),
           highlightColor: Colors.black.withAlpha(25),
           splashColor: Colors.black.withAlpha(15),
@@ -574,7 +586,7 @@ class _ConsumptionManagementScreenState
                                 if (!sheetContext.mounted) return;
                                 setSheetState(() => isSubmitting = false);
                                 if (ok) {
-                                  _didChangeBudget = true;
+                                  _hasDataChanged = true;
                                   Navigator.of(sheetContext).pop();
                                 }
                               },

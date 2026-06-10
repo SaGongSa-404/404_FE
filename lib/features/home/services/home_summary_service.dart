@@ -28,5 +28,24 @@ class HomeSummaryService {
       cancelToken: cancelToken,
     );
   }
+
+  /// summary.bubble.seenEndpoint (예: `/api/v1/home/bubbles/WELCOME/seen`) 호출.
+  Future<void> markBubbleSeenByEndpoint({
+    required String seenEndpoint,
+    CancelToken? cancelToken,
+  }) async {
+    await _dio.post<void>(seenEndpoint, cancelToken: cancelToken);
+  }
+
+  /// POST /api/v1/home/bubbles/{type}/seen
+  Future<void> markBubbleSeenByType({
+    required String type,
+    CancelToken? cancelToken,
+  }) async {
+    await _dio.post<void>(
+      ApiEndpoints.homeBubbleSeen(type),
+      cancelToken: cancelToken,
+    );
+  }
 }
 

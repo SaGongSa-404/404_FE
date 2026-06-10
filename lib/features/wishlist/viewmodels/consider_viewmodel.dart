@@ -211,13 +211,12 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
       );
 
       state = state.copyWith(
-        isSubmitting: false,
         decision: decision,
         caseType: caseType,
         decisionResponse: response,
       );
 
-      await _ref.read(wishlistViewModelProvider.notifier).refreshItems();
+      _ref.read(wishlistViewModelProvider.notifier).refreshItems();
       return response;
     } catch (e) {
       final conflictBody = _parseDecisionFromConflict(e);
@@ -230,12 +229,11 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
           mascotState: conflictBody.mascot?.state,
         );
         state = state.copyWith(
-          isSubmitting: false,
           decision: decision,
           caseType: caseType,
           decisionResponse: conflictBody,
         );
-        await _ref.read(wishlistViewModelProvider.notifier).refreshItems();
+        _ref.read(wishlistViewModelProvider.notifier).refreshItems();
         return conflictBody;
       }
 

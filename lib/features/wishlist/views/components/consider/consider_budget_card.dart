@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
@@ -142,17 +144,37 @@ class ConsiderBudgetCard extends StatelessWidget {
     );
   }
 
+  /// 빨간 막대 = 파란(현재) + 추가 금액 비율. 파란만 최소 원형 보장.
+  ({double current, double total}) _resolveSegmentWidths(
+    double barWidth,
+    double barHeight,
+  ) {
+    if (totalBudget <= 0) return (current: 0, total: 0);
+    if (currentSpent <= 0 && addedAmount <= 0) return (current: 0, total: 0);
+
+    var currentW = currentSpent > 0
+        ? barWidth * (currentSpent / totalBudget).clamp(0.0, 1.0)
+        : 0.0;
+    final addedW = addedAmount > 0
+        ? barWidth * (addedAmount / totalBudget).clamp(0.0, 1.0)
+        : 0.0;
+
+    if (currentSpent > 0 && currentW < barHeight) {
+      currentW = barHeight;
+    }
+
+    final totalW = math.min(currentW + addedW, barWidth);
+    final currentClamped = math.min(currentW, totalW);
+
+    return (current: currentClamped, total: totalW);
+  }
+
   Widget _buildNormalBudgetBar(
     double barWidth,
     double barHeight,
     BorderRadius radius,
   ) {
-    final currentRatio = totalBudget > 0
-        ? (currentSpent / totalBudget).clamp(0.0, 1.0)
-        : 0.0;
-    final totalRatio = totalBudget > 0
-        ? ((currentSpent + addedAmount) / totalBudget).clamp(0.0, 1.0)
-        : 0.0;
+    final widths = _resolveSegmentWidths(barWidth, barHeight);
 
     return Stack(
       clipBehavior: Clip.hardEdge,
@@ -165,12 +187,12 @@ class ConsiderBudgetCard extends StatelessWidget {
             borderRadius: radius,
           ),
         ),
-        if (totalRatio > 0)
+        if (widths.total > 0)
           Positioned(
             left: 0,
             top: 0,
             child: Container(
-              width: barWidth * totalRatio,
+              width: widths.total,
               height: barHeight,
               decoration: BoxDecoration(
                 color: _addedSegmentColor,
@@ -178,12 +200,12 @@ class ConsiderBudgetCard extends StatelessWidget {
               ),
             ),
           ),
-        if (currentRatio > 0)
+        if (widths.current > 0)
           Positioned(
             left: 0,
             top: 0,
             child: Container(
-              width: barWidth * currentRatio,
+              width: widths.current,
               height: barHeight,
               decoration: BoxDecoration(
                 color: _currentSegmentColor,
