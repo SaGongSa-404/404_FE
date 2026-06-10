@@ -109,7 +109,6 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // 타이틀 가운데 정렬을 위한 좌우 균형 패딩
           SizedBox(width: arrowSize + 8),
         ],
       ),

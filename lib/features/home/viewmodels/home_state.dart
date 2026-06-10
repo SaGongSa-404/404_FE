@@ -1,5 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 enum HomeTab { budget, selectionRate }
 
 class HomeState {

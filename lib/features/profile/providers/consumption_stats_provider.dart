@@ -106,7 +106,15 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
   Future<void> load({bool force = false}) async {
     if (state.isLoading) return;
     if (!force && _hasFetched) return;
+    await _fetchStats();
+  }
 
+  /// 화면 진입·당겨서 새로고침 시 최신 소비 통계를 다시 불러옵니다.
+  Future<void> refresh() async {
+    await _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final monthsResponse = await _profileService.getStatsMonths();

@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_back_button.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
 class TermsScreen extends StatefulWidget {
@@ -97,30 +100,12 @@ class _TermsScreenState extends State<TermsScreen> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
-                  child: SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Spacer(flex: 65),
-                            // 뒤로가기
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: GestureDetector(
-                                onTap: () => confirmAppExit(context),
-                                behavior: HitTestBehavior.opaque,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new,
-                                    size: (18 * scale).clamp(14.0, 24.0),
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
+                  child: OnboardingSpacedScrollView(
+                    viewportHeight: constraints.maxHeight,
+                    children: [
+                            OnboardingLayout.topSpacer(),
+                            OnboardingBackButton(
+                              onTap: () => confirmAppExit(context),
                             ),
                             SizedBox(height: (74 * scale).clamp(55.0, 92.0)),
                             // 제목 영역
@@ -236,10 +221,7 @@ class _TermsScreenState extends State<TermsScreen> {
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
                             const Spacer(flex: 40),
-                          ],
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -323,7 +305,7 @@ class _SummaryCard extends StatelessWidget {
           SizedBox(height: (12 * scale).clamp(9.0, 16.0)),
           _InfoRow(
             label: '수집 항목',
-            value: '이메일, 프로필, 고유 식별자',
+            value: '이메일, 프로필 이름, 고유 식별자',
             fontSize: fontSize14,
           ),
           SizedBox(height: rowGap),
@@ -358,7 +340,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -370,14 +352,19 @@ class _InfoRow extends StatelessWidget {
             height: 1.45,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-            height: 1.45,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            softWrap: true,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: fontSize,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
           ),
         ),
       ],

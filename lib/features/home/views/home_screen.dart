@@ -29,6 +29,18 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _PendingVideoSyncRequest {
+  const _PendingVideoSyncRequest({
+    required this.defaultVideoBaseName,
+    required this.hasSpecial,
+    this.preloadedController,
+  });
+
+  final String defaultVideoBaseName;
+  final bool hasSpecial;
+  final VideoPlayerController? preloadedController;
+}
+
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   static const _balloonDuration = Duration(seconds: 3);
@@ -40,7 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String _currentVideoBaseName = 'nugul_home';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
-  bool _hasUserInteractedWithMascot = false;
+  _PendingVideoSyncRequest? _pendingSyncRequest;
   VoidCallback? _specialListener;
   Timer? _balloonDismissTimer;
   String? _visibleBalloonMessage;
@@ -85,7 +97,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       debugPrint('Video initialization error: $e');
     } finally {
       _isInitializing = false;
+      _tryDrainPendingSyncRequest();
     }
+  }
+
+  void _storePendingSyncRequest({
+    required String defaultVideoBaseName,
+    required bool hasSpecial,
+    required VideoPlayerController? preloadedController,
+  }) {
+    _pendingSyncRequest = _PendingVideoSyncRequest(
+      defaultVideoBaseName: defaultVideoBaseName,
+      hasSpecial: hasSpecial,
+      preloadedController: preloadedController,
+    );
+  }
+
+  void _tryDrainPendingSyncRequest() {
+    if (!mounted || _isInitializing || _isPlayingSpecialOnce) return;
+
+    final pending = _pendingSyncRequest;
+    if (pending == null) return;
+
+    _pendingSyncRequest = null;
+    _syncVideoPlayback(
+      defaultVideoBaseName: pending.defaultVideoBaseName,
+      hasSpecial: pending.hasSpecial,
+      preloadedController: pending.preloadedController,
+    );
   }
 
   Future<void> _cleanupOldController() async {
@@ -103,7 +142,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required VideoPlayerController preloadedController,
     required String defaultVideoBaseName,
   }) async {
-    if (_isPlayingSpecialOnce) return;
+    if (_isPlayingSpecialOnce) {
+      _storePendingSyncRequest(
+        defaultVideoBaseName: defaultVideoBaseName,
+        hasSpecial: true,
+        preloadedController: preloadedController,
+      );
+      return;
+    }
     _isPlayingSpecialOnce = true;
 
     final oldController = _videoController;
@@ -155,6 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         await _initializeVideo(defaultVideoBaseName, loop: true);
         _isPlayingSpecialOnce = false;
+        _tryDrainPendingSyncRequest();
       }
     }
 
@@ -163,11 +210,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _onNugulTap() {
-    _hasUserInteractedWithMascot = true;
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
       controller.seekTo(Duration.zero);
       controller.play();
+    }
+  }
+
+  void _syncVideoPlayback({
+    required String defaultVideoBaseName,
+    required bool hasSpecial,
+    required VideoPlayerController? preloadedController,
+  }) {
+    if (!mounted) return;
+
+    if (_isPlayingSpecialOnce || _isInitializing) {
+      _storePendingSyncRequest(
+        defaultVideoBaseName: defaultVideoBaseName,
+        hasSpecial: hasSpecial,
+        preloadedController: preloadedController,
+      );
+      return;
+    }
+
+    if (hasSpecial && preloadedController != null) {
+      unawaited(
+        _playPreloadedSpecialAndRestore(
+          preloadedController: preloadedController,
+          defaultVideoBaseName: defaultVideoBaseName,
+        ),
+      );
+      return;
+    }
+
+    if (_currentVideoBaseName != defaultVideoBaseName ||
+        _videoController == null) {
+      unawaited(_initializeVideo(defaultVideoBaseName, loop: true));
     }
   }
 
@@ -199,6 +277,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_refreshHomeData());
+      _syncVideoPlayback(
+        defaultVideoBaseName: 'nugul_home',
+        hasSpecial: false,
+        preloadedController: null,
+      );
     });
   }
 
@@ -296,10 +379,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
     final defaultVideoBaseName = _getDefaultVideoBaseName(isBudgetExhausted);
 
-    final specialState = ref.watch(homeSpecialEffectProvider);
-    final preloadedController = specialState.preloadedController;
-    final hasSpecial = specialState.caseType != null && preloadedController != null;
-
     if (authUser != null) {
       ref.watch(homeBubbleRuntimeProvider);
       ref.listen<AsyncValue<HomeBubbleRuntimeState>>(
@@ -314,24 +393,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      if (hasSpecial && !_isPlayingSpecialOnce) {
-        _playPreloadedSpecialAndRestore(
-          preloadedController: preloadedController!,
+    ref.listen(homeSpecialEffectProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _syncVideoPlayback(
           defaultVideoBaseName: defaultVideoBaseName,
+          hasSpecial: next.caseType != null && next.preloadedController != null,
+          preloadedController: next.preloadedController,
         );
-        return;
-      }
+      });
+    });
 
-      if (!_isPlayingSpecialOnce &&
-          !_isInitializing &&
-          _currentVideoBaseName != defaultVideoBaseName) {
-        _initializeVideo(defaultVideoBaseName, loop: true);
-      } else if (_videoController == null && !_isInitializing) {
-        _initializeVideo(defaultVideoBaseName, loop: true);
-      }
+    ref.listen(consumptionStatsProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final record = next.currentMonthStats;
+        final remaining = record == null
+            ? 1
+            : record.budgetAmount - record.spentAmount;
+        final isExhausted = record != null && remaining <= 0;
+        final specialState = ref.read(homeSpecialEffectProvider);
+        _syncVideoPlayback(
+          defaultVideoBaseName: _getDefaultVideoBaseName(isExhausted),
+          hasSpecial: specialState.caseType != null &&
+              specialState.preloadedController != null,
+          preloadedController: specialState.preloadedController,
+        );
+      });
     });
 
     final videoController = _videoController;
@@ -382,40 +470,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           onAlarmPressed: () => context.push('/notifications'),
                         ),
                         SizedBox(height: 20 * scale),
-                        GestureDetector(
-                          onTap: _onNugulTap,
-                          child: Column(
-                            children: [
-                              if (_visibleBalloonMessage != null) ...[
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 40 * scale,
-                                    vertical: 16 * scale,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withAlpha(217),
-                                    borderRadius: BorderRadius.circular(40 * scale),
-                                  ),
-                                  child: Text(
-                                    _visibleBalloonMessage!,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 16 * scale,
-                                      fontWeight: FontWeight.w500,
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _onNugulTap,
+                            child: Column(
+                              children: [
+                                if (_visibleBalloonMessage != null) ...[
+                                  Flexible(
+                                    child: SingleChildScrollView(
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 40 * scale,
+                                              vertical: 16 * scale,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withAlpha(217),
+                                              borderRadius:
+                                                  BorderRadius.circular(40 * scale),
+                                            ),
+                                            child: Text(
+                                              _visibleBalloonMessage!,
+                                              textAlign: TextAlign.center,
+                                              maxLines: 4,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontSize: 16 * scale,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          CustomPaint(
+                                            size: Size(20 * scale, 10 * scale),
+                                            painter: TrianglePainter(),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                                CustomPaint(
-                                  size: Size(20 * scale, 10 * scale),
-                                  painter: TrianglePainter(),
-                                ),
-                              ] else
-                                SizedBox(height: 10 * scale),
-                            ],
+                                ] else
+                                  SizedBox(height: 10 * scale),
+                                const Spacer(),
+                              ],
+                            ),
                           ),
                         ),
-                        const Spacer(),
                         Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: 24 * scale,

@@ -4,7 +4,6 @@ import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';
 import 'package:fe_app/features/auth/views/signup_screen.dart';
 import 'package:fe_app/features/feed/views/feed_detail_screen.dart';
-import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/features/feed/views/feed_edit_screen.dart';
 import 'package:fe_app/features/feed/views/feed_screen.dart';
 import 'package:fe_app/features/feed/views/feed_write_screen.dart';
