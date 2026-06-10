@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/models/notification_route_intent.dart';
+import 'package:fe_app/features/notification/providers/fcm_navigation_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_deep_link_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_navigation_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_sync_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class NotificationAppShell extends ConsumerStatefulWidget {
   const NotificationAppShell({super.key, required this.child});
@@ -103,22 +103,30 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
 
   Future<void> _handleBannerTap(NotificationModel banner) async {
     _dismissTimer?.cancel();
-    await ref.read(notificationLiveProvider.notifier).markAsRead(banner.id);
-    ref.read(notificationLiveProvider.notifier).consumeBanner(banner.id);
-    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+    await ref.read(notificationSyncProvider).markBannerAsRead(banner.id);
     if (!mounted) return;
     await _navigateFromNotification(banner);
   }
 
-  Future<void> _navigateFromNotification(NotificationModel notification) async {
-    final route = NotificationRouter.resolveFromNotification(notification);
-    if (route == null) return;
-    await _navigateToRoute(route);
+  Future<void> _openNotificationsPage() async {
+    await ref.read(notificationSyncProvider).prepareNotificationsScreen();
+    if (!mounted) return;
+
+    final router = GoRouter.of(context);
+    final location = router.state.uri.path;
+    if (location == '/notifications') return;
+
+    try {
+      context.push('/notifications');
+    } catch (error, stackTrace) {
+      debugPrint('open notifications failed: $error\n$stackTrace');
+      ref.read(pendingNotificationRouteProvider.notifier).state = '/notifications';
+    }
   }
 
   Future<void> _navigateToRoute(String route) async {
     if (NotificationRouter.isExternalUrl(route)) {
-      await _launchExternalUrl(Uri.parse(route));
+      await NotificationRouter.launchExternalUrl(Uri.parse(route));
       return;
     }
     if (!NotificationRouter.shouldNavigate(route)) return;
@@ -131,18 +139,19 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     }
   }
 
-  Future<void> _launchExternalUrl(Uri uri) async {
-    try {
-      if (!await canLaunchUrl(uri)) return;
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (error, stackTrace) {
-      debugPrint('notification external link failed: $error\n$stackTrace');
-    }
-  }
-
   void _completeDeepLinkHandling() {
     ref.read(notificationDeepLinkProvider.notifier).consume();
     _handledDeepLinkKey = null;
+  }
+
+  Future<void> _navigateFromNotification(NotificationModel notification) async {
+    final route = NotificationRouter.resolveFromNotification(notification);
+    if (route == null) return;
+    await _navigateToRoute(route);
+  }
+
+  Future<void> _handlePushOrDeepLinkOpen() async {
+    await _openNotificationsPage();
   }
 
   Future<void> _handleDeepLink(NotificationRouteIntent intent) async {
@@ -150,23 +159,10 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     if (_handledDeepLinkKey == key) return;
     _handledDeepLinkKey = key;
 
-    final notificationId = intent.notificationId;
-    if (notificationId != null && notificationId.isNotEmpty) {
-      await ref.read(notificationLiveProvider.notifier).markAsRead(notificationId);
-      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
-    }
-
     if (!mounted) return;
 
     try {
-      final route = NotificationRouter.resolveRoute(
-        targetPath: intent.targetPath,
-        itemId: intent.itemId,
-        decisionId: intent.decisionId,
-        reminderId: intent.reminderId,
-      );
-      if (route == null) return;
-      await _navigateToRoute(route);
+      await _handlePushOrDeepLinkOpen();
     } finally {
       _completeDeepLinkHandling();
     }
@@ -186,6 +182,23 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider, (previous, next) {
       if (next != null) {
         _handleDeepLink(next);
+      }
+    });
+
+    ref.listen<bool>(fcmNavigationProvider, (previous, next) {
+      if (next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            if (mounted) {
+              await _handlePushOrDeepLinkOpen();
+            }
+          } finally {
+            // 예외/조기 반환 시에도 플래그가 true로 고정되지 않도록 항상 consume.
+            if (mounted) {
+              ref.read(fcmNavigationProvider.notifier).consume();
+            }
+          }
+        });
       }
     });
 

@@ -19,12 +19,14 @@ class NotificationListNotifier
   final bool _unreadOnly;
   CancelToken? _cancelToken;
 
-  Future<void> load() async {
+  Future<void> load({bool showLoading = true}) async {
     _cancelToken?.cancel('reload');
     final token = CancelToken();
     _cancelToken = token;
 
-    state = const AsyncLoading();
+    if (showLoading || state.valueOrNull == null) {
+      state = const AsyncLoading();
+    }
     try {
       final items = await _service.fetchNotifications(
         unreadOnly: _unreadOnly,
@@ -38,7 +40,8 @@ class NotificationListNotifier
     }
   }
 
-  Future<void> refresh() => load();
+  Future<void> refresh({bool showLoading = true}) =>
+      load(showLoading: showLoading);
 
   /// 읽음 처리. 404이면 만료/삭제된 알림으로 보고 목록에서 제거합니다.
   Future<MarkAsReadResult> markAsRead(String id) async {

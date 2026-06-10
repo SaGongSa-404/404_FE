@@ -3,6 +3,8 @@ import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 abstract final class WishlistItemFormValidation {
   WishlistItemFormValidation._();
 
+  static const int maxTitleLength = 200;
+
   static int? parsePriceDigits(String priceText) {
     final digits = priceText.replaceAll(',', '').trim();
     if (digits.isEmpty) return null;
@@ -39,7 +41,8 @@ abstract final class WishlistItemFormValidation {
     required bool linkReadOnly,
     required bool editLinkReadOnly,
   }) {
-    if (title.trim().isEmpty) return false;
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty || trimmedTitle.length > maxTitleLength) return false;
     if (category == null || category.trim().isEmpty) return false;
     if (isLinkInvalid(
       isAdd: isAdd,

@@ -30,17 +30,20 @@ class FeedService {
   final Dio _dio;
 
   static const int defaultPageSize = 20;
+  static const int minPageSize = 1;
+  static const int maxPageSize = 100;
 
   Future<CursorPage<FeedPost>> listPosts({
     String? cursor,
     int size = defaultPageSize,
     CancelToken? cancelToken,
   }) async {
+    final boundedSize = size.clamp(minPageSize, maxPageSize);
     final res = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.socialPosts,
       queryParameters: {
-        'size': size,
-        if (cursor != null) 'cursor': cursor,
+        'size': boundedSize,
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
       },
       cancelToken: cancelToken,
     );
@@ -61,7 +64,7 @@ class FeedService {
   Future<FeedPost> createPost(CreatePostRequest request) async {
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.socialPosts,
-      data: request.toJson(),
+      data: request.toApiJson(),
     );
     return FeedPost.fromJson(requireJsonMap(res.data));
   }
@@ -123,9 +126,10 @@ class FeedService {
   }
 
   Future<FeedComment> createComment(String postId, String body) async {
+    final request = CreateCommentRequest.fromCompose(body: body);
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.socialPostComments(postId),
-      data: CreateCommentRequest(body: body).toJson(),
+      data: request.toApiJson(),
     );
     return FeedComment.fromJson(requireJsonMap(res.data));
   }
@@ -141,9 +145,13 @@ class FeedService {
     required String category,
     String? reason,
   }) async {
+    final request = ReportRequest.fromSubmission(
+      category: category,
+      reason: reason,
+    );
     await _dio.post<void>(
       ApiEndpoints.socialPostReports(postId),
-      data: ReportRequest(category: category, reason: reason).toJson(),
+      data: request.toApiJson(),
     );
   }
 
@@ -153,9 +161,28 @@ class FeedService {
     required String category,
     String? reason,
   }) async {
+    final request = ReportRequest.fromSubmission(
+      category: category,
+      reason: reason,
+    );
     await _dio.post<void>(
       ApiEndpoints.socialPostCommentReports(postId, commentId),
-      data: ReportRequest(category: category, reason: reason).toJson(),
+      data: request.toApiJson(),
+    );
+  }
+
+  Future<void> reportUser(
+    String targetUserId, {
+    required String category,
+    String? reason,
+  }) async {
+    final request = ReportRequest.fromSubmission(
+      category: category,
+      reason: reason,
+    );
+    await _dio.post<void>(
+      ApiEndpoints.userReport(targetUserId),
+      data: request.toApiJson(),
     );
   }
 

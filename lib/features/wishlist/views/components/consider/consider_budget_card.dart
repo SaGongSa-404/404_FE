@@ -144,7 +144,6 @@ class ConsiderBudgetCard extends StatelessWidget {
     );
   }
 
-  /// 빨간 막대 = 파란(현재) + 추가 금액 비율. 파란만 최소 원형 보장.
   ({double current, double total}) _resolveSegmentWidths(
     double barWidth,
     double barHeight,
@@ -155,12 +154,16 @@ class ConsiderBudgetCard extends StatelessWidget {
     var currentW = currentSpent > 0
         ? barWidth * (currentSpent / totalBudget).clamp(0.0, 1.0)
         : 0.0;
-    final addedW = addedAmount > 0
+    var addedW = addedAmount > 0
         ? barWidth * (addedAmount / totalBudget).clamp(0.0, 1.0)
         : 0.0;
 
     if (currentSpent > 0 && currentW < barHeight) {
       currentW = barHeight;
+    }
+
+    if (currentSpent <= 0 && addedAmount > 0 && addedW < barHeight) {
+      addedW = barHeight;
     }
 
     final totalW = math.min(currentW + addedW, barWidth);

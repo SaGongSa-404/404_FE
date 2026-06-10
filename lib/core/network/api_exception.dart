@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:fe_app/core/network/network_error.dart';
 
 String parseApiErrorMessage(Object? data, {String? fallback}) {
   if (data is Map<String, dynamic>) {
@@ -35,6 +36,10 @@ class ApiException implements Exception {
   final Object? responseData;
 
   factory ApiException.fromDioException(DioException error) {
+    if (isNetworkError(error)) {
+      return const ApiException(message: kNetworkErrorMessage);
+    }
+
     final response = error.response;
     final data = response?.data;
     final code = data is Map<String, dynamic> ? data['code']?.toString() : null;

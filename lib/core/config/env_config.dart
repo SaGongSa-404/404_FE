@@ -101,6 +101,28 @@ abstract final class EnvConfig {
       _ => DevAuthMode.bearer,
     };
   }
+
+  /// Firebase(FCM) Dart 초기화용. 모두 설정되어 있을 때만 [isFirebaseConfigured]가 true.
+  static bool get isFirebaseConfigured =>
+      firebaseApiKey != null &&
+      firebaseAppId != null &&
+      firebaseMessagingSenderId != null &&
+      firebaseProjectId != null;
+
+  static String? get firebaseApiKey => _optionalEnv('FIREBASE_API_KEY');
+  static String? get firebaseAppId => _optionalEnv('FIREBASE_APP_ID');
+  static String? get firebaseMessagingSenderId =>
+      _optionalEnv('FIREBASE_MESSAGING_SENDER_ID');
+  static String? get firebaseProjectId => _optionalEnv('FIREBASE_PROJECT_ID');
+  static String? get firebaseStorageBucket =>
+      _optionalEnv('FIREBASE_STORAGE_BUCKET');
+  static String? get firebaseIosBundleId =>
+      _optionalEnv('FIREBASE_IOS_BUNDLE_ID');
+
+  static String? _optionalEnv(String key) {
+    final value = dotenv.env[key]?.trim();
+    return value != null && value.isNotEmpty ? value : null;
+  }
 }
 
 enum DevAuthMode {

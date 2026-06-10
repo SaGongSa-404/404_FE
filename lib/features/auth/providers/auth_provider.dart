@@ -3,10 +3,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/config/env_config.dart';
+import 'package:fe_app/core/network/api_endpoints.dart';
+import 'package:fe_app/core/network/network_error.dart';
 import 'package:fe_app/core/network/session_expiration.dart';
+import 'package:fe_app/features/auth/utils/auth_error.dart';
+import 'package:fe_app/features/auth/utils/auth_error_toast.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
+import 'package:fe_app/features/notification/services/push_token_lifecycle.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/services/profile_service.dart';
@@ -33,8 +38,11 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     if (token == null && !EnvConfig.isDevXUserIdAuth) return null;
     try {
       return await ref.read(authServiceProvider).getMe();
-    } catch (_) {
+    } catch (e) {
       if (token != null) await storage.clearTokens();
+      if (isRestrictedAccountError(e)) {
+        RestrictedAccountToast.scheduleShow();
+      }
       return null;
     }
   }
@@ -52,13 +60,8 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   Future<bool> launchOAuthSignIn(String provider) async {
     if (state.hasError) resetToLoggedOut();
 
-    final base = Uri.parse(EnvConfig.apiBaseUrl);
-    final url = Uri(
-      scheme: base.scheme,
-      host: base.host,
-      port: base.hasPort ? base.port : null,
-      path: '/oauth2/authorization/$provider',
-      queryParameters: {'redirect_uri': kOAuthRedirectUri},
+    final url = Uri.parse(
+      '${EnvConfig.apiBaseUrl}${ApiEndpoints.oauthAuthorization(provider, kOAuthRedirectUri)}',
     );
 
     try {
@@ -104,7 +107,14 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         refreshToken: tokens.refreshToken,
       );
     } catch (e, st) {
-      state = AsyncError(e, st);
+      if (isNetworkError(e)) {
+        state = const AsyncData(null);
+      } else if (isRestrictedAccountError(e)) {
+        state = const AsyncData(null);
+        RestrictedAccountToast.scheduleShow();
+      } else {
+        state = AsyncError(e, st);
+      }
     }
   }
 
@@ -126,7 +136,14 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     } catch (e, st) {
       debugPrint('[auth] /api/auth/me failed: $e\n$st');
       await storage.clearTokens();
-      state = AsyncError(e, st);
+      if (isNetworkError(e)) {
+        state = const AsyncData(null);
+      } else if (isRestrictedAccountError(e)) {
+        state = const AsyncData(null);
+        RestrictedAccountToast.scheduleShow();
+      } else {
+        state = AsyncError(e, st);
+      }
     }
   }
 
@@ -187,16 +204,25 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       final user = await ref.read(authServiceProvider).getMe();
       state = AsyncData(user);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        if (e.response?.statusCode == 403) {
+          RestrictedAccountToast.scheduleShow();
+        }
         await sessionExpired();
       }
-    } catch (_) {
+    } catch (e) {
+      if (isRestrictedAccountError(e)) {
+        RestrictedAccountToast.scheduleShow();
+        await sessionExpired();
+        return;
+      }
       // 표시용 닉네임은 [updateDisplayName] 으로 이미 반영됨
     }
   }
 
   Future<void> logout() async {
     try {
+      await deactivateStoredPushToken(ref);
       await ref.read(authServiceProvider).logout();
     } finally {
       await ref.read(secureStorageServiceProvider).clearTokens();

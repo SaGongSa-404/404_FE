@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fe_app/features/home/providers/home_summary_provider.dart';
+import 'package:fe_app/features/notification/models/fcm_message_payload.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
@@ -154,11 +155,19 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
   bool _shouldQueueBanner(
     NotificationModel item, {
     Set<String>? batchVotePostIds,
+    bool fromPush = false,
   }) {
     if (item.isRead) return false;
 
-    final type = item.type?.toUpperCase();
-    if (type == NotificationType.socialVote.apiValue) {
+    final type = NotificationType.fromApiValue(item.type);
+
+    // 폴링으로 감지한 알림은 기획 §2 인앱 알림(투표/댓글/리마인드)만 배너 노출.
+    // FCM foreground 수신은 OS 푸시 대체이므로 타입 제한 없이 노출(기획 §1).
+    if (!fromPush && (type == null || !type.isInAppRealtime)) {
+      return false;
+    }
+
+    if (type?.isSocialVoteBannerType == true) {
       final postId = NotificationRouter.extractPostId(item);
       if (postId != null) {
         if (_seenVotePostIds.contains(postId)) return false;
@@ -196,6 +205,61 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     state = state.copyWith(
       bannerQueue: state.bannerQueue.where((item) => item.id != id).toList(growable: false),
     );
+  }
+
+  /// FCM foreground 수신 시 인앱 배너 큐에 추가합니다.
+  Future<void> enqueueFromPush(FcmMessagePayload payload) async {
+    if (_disposed || !_notificationsEnabled) return;
+
+    final notificationId = payload.notificationId;
+    if (notificationId != null &&
+        notificationId.isNotEmpty &&
+        _seenIds.contains(notificationId)) {
+      return;
+    }
+
+    NotificationModel? matched;
+    if (notificationId != null && notificationId.isNotEmpty) {
+      for (final item in state.items) {
+        if (item.id == notificationId) {
+          matched = item;
+          break;
+        }
+      }
+    }
+
+    final candidate = matched ??
+        NotificationModel(
+          id: notificationId ?? DateTime.now().microsecondsSinceEpoch.toString(),
+          title: payload.title ?? '',
+          body: payload.body,
+          time: '방금 전',
+          isRead: false,
+          targetPath: payload.targetPath ?? '',
+          type: payload.type,
+          itemId: payload.itemId,
+          decisionId: payload.decisionId,
+          reminderId: payload.reminderId,
+          createdAt: DateTime.now(),
+        );
+
+    if (!_shouldQueueBanner(candidate, fromPush: true)) return;
+
+    if (notificationId != null && notificationId.isNotEmpty) {
+      _seenIds.add(notificationId);
+    }
+
+    final votePostId = NotificationRouter.extractPostId(candidate);
+    if (votePostId != null) {
+      _seenVotePostIds.add(votePostId);
+    }
+
+    state = state.copyWith(
+      bannerQueue: [...state.bannerQueue, candidate],
+    );
+
+    unawaited(sync(queueNewBanners: false));
+    unawaited(_ref.read(homeSummaryProvider.notifier).refresh());
   }
 
   @override

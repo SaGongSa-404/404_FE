@@ -1,6 +1,10 @@
+import 'package:fe_app/core/network/network_error.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:flutter/material.dart';
+
+DateTime? _lastNetworkToastAt;
+const Duration _networkToastCooldown = Duration(seconds: 2);
 
 /// 화면 하단(바텀 네비 위쪽)에 잠깐 띄우는 캡슐 토스트.
 void showCapsuleToast(
@@ -10,6 +14,15 @@ void showCapsuleToast(
   Duration duration = const Duration(milliseconds: 2000),
   double bottomOffset = 88,
 }) {
+  if (text == kNetworkErrorMessage) {
+    final now = DateTime.now();
+    if (_lastNetworkToastAt != null &&
+        now.difference(_lastNetworkToastAt!) < _networkToastCooldown) {
+      return;
+    }
+    _lastNetworkToastAt = now;
+  }
+
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
 

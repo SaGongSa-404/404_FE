@@ -1,4 +1,5 @@
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/feed/models/create_comment_request.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/models/vote_type.dart';
@@ -11,6 +12,7 @@ import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -501,6 +503,11 @@ class _BottomCommentBarState extends State<_BottomCommentBar> {
             ),
             child: TextField(
               controller: _controller,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(
+                  CreateCommentRequest.maxBodyLength,
+                ),
+              ],
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,

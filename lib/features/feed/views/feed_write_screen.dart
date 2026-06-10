@@ -78,10 +78,13 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
     }
 
     _isSubmitting = true;
+    final item = _selectedItem;
     final created = await ref.read(feedProvider.notifier).addPost(
-          CreatePostRequest(
+          CreatePostRequest.fromCompose(
             body: body.isEmpty ? null : body,
-            itemId: _selectedItem?.id,
+            itemId: item?.id,
+            imageUrl: item?.imageUrl,
+            price: item?.price,
           ),
         );
     if (!mounted) return;

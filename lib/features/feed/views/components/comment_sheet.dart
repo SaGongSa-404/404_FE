@@ -4,11 +4,13 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
+import 'package:fe_app/features/feed/models/create_comment_request.dart';
 import 'package:fe_app/features/feed/models/feed_comment.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -416,6 +418,11 @@ class _CommentInputState extends State<_CommentInput> {
             ),
             child: TextField(
               controller: _controller,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(
+                  CreateCommentRequest.maxBodyLength,
+                ),
+              ],
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
