@@ -38,7 +38,7 @@ class FcmMessagePayload {
       itemId: _pick(data, const ['itemId', 'item_id']),
       decisionId: _pick(data, const ['decisionId', 'decision_id']),
       reminderId: _pick(data, const ['reminderId', 'reminder_id']),
-      type: _pick(data, const ['type']),
+      type: _pick(data, const ['notificationType', 'notification_type', 'type']),
     );
   }
 
@@ -55,7 +55,7 @@ class FcmMessagePayload {
       itemId: _pick(data, const ['itemId', 'item_id']),
       decisionId: _pick(data, const ['decisionId', 'decision_id']),
       reminderId: _pick(data, const ['reminderId', 'reminder_id']),
-      type: _pick(data, const ['type']),
+      type: _pick(data, const ['notificationType', 'notification_type', 'type']),
     );
   }
 

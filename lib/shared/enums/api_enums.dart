@@ -99,14 +99,51 @@ enum PushPlatform {
   final String apiValue;
 }
 
+/// API_SPEC 2026-06-10 (NF-67) 기준 12종.
 enum NotificationType {
   regretCheckReady('REGRET_CHECK_READY'),
+  regretCheckFollowUp('REGRET_CHECK_FOLLOW_UP'),
   wishlistReminder('WISHLIST_REMINDER'),
   budgetWarning('BUDGET_WARNING'),
-  socialVote('SOCIAL_VOTE');
+  budgetReset('BUDGET_RESET'),
+  socialVote('SOCIAL_VOTE'),
+  socialFirstVote('SOCIAL_FIRST_VOTE'),
+  socialVoteSummary('SOCIAL_VOTE_SUMMARY'),
+  socialDecisionNudge('SOCIAL_DECISION_NUDGE'),
+  socialComment('SOCIAL_COMMENT'),
+  appUpdate('APP_UPDATE'),
+  maintenanceNotice('MAINTENANCE_NOTICE');
 
   const NotificationType(this.apiValue);
   final String apiValue;
+
+  static NotificationType? tryParse(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final normalized = value.trim().toUpperCase();
+    for (final type in NotificationType.values) {
+      if (type.apiValue == normalized) return type;
+    }
+    return null;
+  }
+
+  /// 기획 §2 인앱 알림: 앱 실행 중 실시간 반응(투표/댓글/리마인드)만
+  /// 폴링 기반 인앱 배너로 노출합니다.
+  bool get isInAppRealtime {
+    switch (this) {
+      case NotificationType.socialVote:
+      case NotificationType.socialFirstVote:
+      case NotificationType.socialComment:
+      case NotificationType.wishlistReminder:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// 투표 알림 여부. 동일 게시글 인앱 배너 중복 방지 대상.
+  bool get isVote =>
+      this == NotificationType.socialVote ||
+      this == NotificationType.socialFirstVote;
 }
 
 enum TermsType {

@@ -228,16 +228,39 @@ abstract final class LocalNotificationPresenter {
     );
 
     if (!kIsWeb && Platform.isAndroid) {
-      const channel = AndroidNotificationChannel(
-        _androidChannelId,
-        _androidChannelName,
-        description: '위굴 서비스 알림',
-        importance: Importance.high,
-      );
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      // BE FCM 메시지의 channelId와 일치해야 채널별 알림 관리가 동작합니다.
+      // (social_activity / consumption_management / service_notice)
+      const channels = [
+        AndroidNotificationChannel(
+          _androidChannelId,
+          _androidChannelName,
+          description: '위굴 서비스 알림',
+          importance: Importance.high,
+        ),
+        AndroidNotificationChannel(
+          'social_activity',
+          '소셜 활동',
+          description: '투표·댓글 등 소셜 반응 알림',
+          importance: Importance.high,
+        ),
+        AndroidNotificationChannel(
+          'consumption_management',
+          '소비 관리',
+          description: '위시 돌아보기·리마인드·예산 알림',
+          importance: Importance.high,
+        ),
+        AndroidNotificationChannel(
+          'service_notice',
+          '서비스 공지',
+          description: '앱 업데이트·점검 공지',
+          importance: Importance.high,
+        ),
+      ];
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      for (final channel in channels) {
+        await androidPlugin?.createNotificationChannel(channel);
+      }
     }
 
     _initialized = true;

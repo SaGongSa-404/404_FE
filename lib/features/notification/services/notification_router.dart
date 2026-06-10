@@ -50,41 +50,57 @@ abstract final class NotificationRouter {
     if (isExternalUrl(trimmed)) return trimmed;
 
     final normalized = trimmed.startsWith('/') ? trimmed : '/$trimmed';
+    final uri = Uri.tryParse(normalized);
+    final path = uri?.path ?? normalized;
+    final query = uri?.queryParameters ?? const <String, String>{};
 
-    final socialPost = RegExp(r'^/social/posts/([^/]+)$').firstMatch(normalized);
+    final socialPost = RegExp(r'^/social/posts/([^/]+)$').firstMatch(path);
     if (socialPost != null) {
       return '/feed/${socialPost.group(1)}';
     }
 
-    final wishlistItem = RegExp(r'^/wishlist/items/([^/]+)$').firstMatch(normalized);
+    final wishlistItem = RegExp(r'^/wishlist/items/([^/]+)$').firstMatch(path);
     if (wishlistItem != null) {
       return '/wishlist/item?id=${wishlistItem.group(1)}';
     }
 
-    final reflection = RegExp(r'^/wishlist/reflections/([^/]+)$').firstMatch(normalized);
-    if (reflection != null) {
-      final id = itemId ?? reflection.group(1);
-      if (id != null && id.isNotEmpty) {
+    // 위시 돌아보기: BE는 /reflections?decisionId={id} 형태로 내려줍니다.
+    // /reflections/{id}, /wishlist/reflections/{id} 경로 형태도 함께 지원합니다.
+    // 돌아보기 화면은 itemId 기준이므로 itemId를 우선 사용합니다.
+    if (path == '/reflections' ||
+        RegExp(r'^/(wishlist/)?reflections/[^/]+$').hasMatch(path)) {
+      final segment =
+          RegExp(r'^/(?:wishlist/)?reflections/([^/]+)$').firstMatch(path)?.group(1);
+      final id = _firstNonEmpty([
+        itemId,
+        query['itemId'],
+        segment,
+        decisionId,
+        query['decisionId'],
+      ]);
+      if (id != null) {
         return '/wishlist/reflect?id=$id';
       }
+      return null;
     }
 
-    final apiReflection = RegExp(r'^/reflections/([^/]+)$').firstMatch(normalized);
-    if (apiReflection != null) {
-      final id = decisionId ?? apiReflection.group(1);
-      if (id != null && id.isNotEmpty) {
-        return '/wishlist/reflect?id=$id';
-      }
-    }
-
-    if (normalized == '/home' ||
-        normalized.startsWith('/feed/') ||
-        normalized.startsWith('/wishlist/') ||
-        normalized.startsWith('/my')) {
+    if (path == '/home' ||
+        path.startsWith('/feed/') ||
+        path.startsWith('/wishlist/') ||
+        path.startsWith('/my')) {
       return normalized;
     }
 
     return normalized;
+  }
+
+  static String? _firstNonEmpty(List<String?> candidates) {
+    for (final candidate in candidates) {
+      if (candidate != null && candidate.trim().isNotEmpty) {
+        return candidate.trim();
+      }
+    }
+    return null;
   }
 
   static String? resolveFromNotification(NotificationModel notification) {
@@ -108,10 +124,11 @@ abstract final class NotificationRouter {
     if (trimmed.isEmpty) return null;
 
     final normalized = trimmed.startsWith('/') ? trimmed : '/$trimmed';
-    final social = RegExp(r'^/social/posts/([^/]+)$').firstMatch(normalized);
+    final pathOnly = Uri.tryParse(normalized)?.path ?? normalized;
+    final social = RegExp(r'^/social/posts/([^/]+)$').firstMatch(pathOnly);
     if (social != null) return social.group(1);
 
-    final feed = RegExp(r'^/feed/([^/]+)$').firstMatch(normalized);
+    final feed = RegExp(r'^/feed/([^/]+)$').firstMatch(pathOnly);
     if (feed != null) return feed.group(1);
 
     return null;
