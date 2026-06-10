@@ -1,11 +1,13 @@
 class OnboardingCompleteRequest {
   const OnboardingCompleteRequest({
+    required this.nickname,
     required this.mascotName,
     required this.timezone,
     required this.monthlyBudgetAmount,
     required this.regretFrequencyChoice,
   });
 
+  final String nickname;
   final String mascotName;
   final String timezone;
   final int monthlyBudgetAmount;
@@ -14,6 +16,7 @@ class OnboardingCompleteRequest {
   final String regretFrequencyChoice;
 
   Map<String, dynamic> toJson() => {
+        'nickname': nickname,
         'mascotName': mascotName,
         'timezone': timezone,
         'monthlyBudgetAmount': monthlyBudgetAmount,

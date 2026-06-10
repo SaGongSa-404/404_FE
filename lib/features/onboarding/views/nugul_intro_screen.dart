@@ -37,7 +37,7 @@ class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingProvider);
-    final mascotName = state.mascotName;
+    final nickname = state.nickname;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -95,7 +95,7 @@ class _NugulIntroScreenState extends ConsumerState<NugulIntroScreen> {
                                 children: [
                                   _SpeechBubble(
                                     nickname:
-                                        mascotName.isEmpty ? '친구' : mascotName,
+                                        nickname.isEmpty ? '친구' : nickname,
                                     width: charW,
                                     scale: scale,
                                   ),
