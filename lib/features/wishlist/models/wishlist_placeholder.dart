@@ -1,3 +1,5 @@
+import 'package:fe_app/shared/enums/api_enums.dart';
+
 class WishlistPlaceholder {
   const WishlistPlaceholder({
     required this.id,
@@ -6,6 +8,7 @@ class WishlistPlaceholder {
     required this.category,
     required this.link,
     this.imageUrl,
+    this.inputSource,
     this.status = 'SAVED',
     this.hasFeedPost = false,
   });
@@ -16,6 +19,7 @@ class WishlistPlaceholder {
   final String category;
   final String link;
   final String? imageUrl;
+  final ItemInputSource? inputSource;
 
   /// 서버 item status (예: SAVED, GO, STOP). 숙려 화면은 SAVED만 진입 가능.
   final String status;
@@ -33,6 +37,7 @@ class WishlistPlaceholder {
     String? category,
     String? link,
     String? imageUrl,
+    ItemInputSource? inputSource,
     String? status,
     bool? hasFeedPost,
     bool clearImageUrl = false,
@@ -44,6 +49,7 @@ class WishlistPlaceholder {
       category: category ?? this.category,
       link: link ?? this.link,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      inputSource: inputSource ?? this.inputSource,
       status: status ?? this.status,
       hasFeedPost: hasFeedPost ?? this.hasFeedPost,
     );

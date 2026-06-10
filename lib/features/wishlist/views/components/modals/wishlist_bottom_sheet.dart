@@ -125,9 +125,14 @@ class _WishlistModalPillButtonState extends State<WishlistModalPillButton> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: widget.onPressed,
-          onTapDown: (_) => setState(() => _pressed = true),
-          onTapUp: (_) => setState(() => _pressed = false),
-          onTapCancel: () => setState(() => _pressed = false),
+          onTapDown: widget.onPressed != null
+              ? (_) => setState(() => _pressed = true)
+              : null,
+          onTapUp: widget.onPressed != null
+              ? (_) => setState(() => _pressed = false)
+              : null,
+          onTapCancel:
+              widget.onPressed != null ? () => setState(() => _pressed = false) : null,
           borderRadius: radius,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
