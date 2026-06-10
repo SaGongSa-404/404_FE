@@ -152,14 +152,6 @@ enum ReflectionRegretLevel {
   }
 }
 
-enum PushPlatform {
-  ios('IOS'),
-  android('ANDROID');
-
-  const PushPlatform(this.apiValue);
-  final String apiValue;
-}
-
 /// API_SPEC 2026-06-10 (NF-67) 기준 12종.
 enum NotificationType {
   regretCheckReady('REGRET_CHECK_READY'),
