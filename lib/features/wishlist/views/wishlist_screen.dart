@@ -97,24 +97,6 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     );
 
     ref.listen<bool>(
-      wishlistViewModelProvider.select((s) => s.isImportingLink),
-      (prev, next) {
-        if (prev != true || next != false) return;
-        final hasPrefill =
-            ref.read(wishlistViewModelProvider).addFormPrefill != null;
-        if (!hasPrefill) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          showCapsuleToast(
-            context,
-            backgroundColor: const Color(0xFF5F8EAE),
-            text: '성공적으로 불러왔습니다.',
-          );
-        });
-      },
-    );
-
-    ref.listen<bool>(
       wishlistViewModelProvider.select((s) => s.pendingImportFailedNavigation),
       (prev, next) {
         if (next != true) return;
@@ -266,7 +248,12 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                             physics: const BouncingScrollPhysics(
                                               parent: AlwaysScrollableScrollPhysics(),
                                             ),
-                                            padding: EdgeInsets.fromLTRB(24 * scale, 20 * scale, 24 * scale, 20 * scale),
+                                            padding: EdgeInsets.fromLTRB(
+                                              24 * scale,
+                                              20 * scale,
+                                              24 * scale,
+                                              24 * scale,
+                                            ),
                                             itemCount: filteredItems.length +
                                                 (state.isLoadingMore ? 1 : 0),
                                             separatorBuilder: (context, index) =>

@@ -44,10 +44,10 @@ class _WishlistAddEntryModalPanel extends StatefulWidget {
 }
 
 class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel> {
-  static const Color _radiusBorder = Color(0xFFE2E2E2);
-  static const Color _urlButtonBg = Color(0xFFFFECBD);
-  static const Color _urlButtonBorder = Color(0xFFFFC943);
-  static const Color _urlButtonPressedBg = Color(0xFFE5C169);
+  static const Color _radiusBorder = Color(0xFFE0E0E0);
+  static const Color _urlButtonBg = Color(0xFFEBF5FB);
+  static const Color _urlButtonBorder = Color(0xFFD1E3F0);
+  static const Color _urlButtonPressedBg = Color(0xFFDCEEF8);
   static const double _radius = 22;
 
   @override
@@ -110,28 +110,18 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
               textColor: AppColors.textSecondary,
               alignLeft: true,
             ),
-            SizedBox(height: 28 * scale),
-            Align(
-              alignment: Alignment.center,
-              child: IntrinsicWidth(
-                child: _pillButton(
-                  scale: scale,
-                  label: '직접 입력하기',
-                  onTap: widget.onManualInput,
-                  backgroundColor: AppColors.white,
-                  pressedBackgroundColor: AppColors.grey_e6,
-                  borderColor: _radiusBorder,
-                  borderWidth: 1.6,
-                  textColor: AppColors.textPrimary,
-                  useFullWidth: false,
-                  contentPadding: EdgeInsets.fromLTRB(
-                    20 * scale,
-                    12 * scale,
-                    20 * scale,
-                    12 * scale,
-                  ),
-                ),
-              ),
+            SizedBox(height: 12 * scale),
+            _pillButton(
+              scale: scale,
+              label: '직접 입력하기',
+              onTap: widget.onManualInput,
+              backgroundColor: AppColors.white,
+              pressedBackgroundColor: AppColors.grey_e6,
+              borderColor: _radiusBorder,
+              borderWidth: 1,
+              textColor: AppColors.textPrimary,
+              fontSize: 16,
+              fixedHeight: 41,
             ),
             SizedBox(height: 12 * scale),
             Center(
@@ -175,6 +165,8 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
     required Color textColor,
     bool alignLeft = false,
     bool useFullWidth = true,
+    double fontSize = 18,
+    double? fixedHeight,
     EdgeInsetsGeometry? contentPadding,
   }) {
     return _AddEntryPillButton(
@@ -188,6 +180,8 @@ class _WishlistAddEntryModalPanelState extends State<_WishlistAddEntryModalPanel
       textColor: textColor,
       alignLeft: alignLeft,
       useFullWidth: useFullWidth,
+      fontSize: fontSize,
+      fixedHeight: fixedHeight,
       contentPadding: contentPadding ??
           EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 16 * scale),
     );
@@ -206,6 +200,8 @@ class _AddEntryPillButton extends StatefulWidget {
     required this.textColor,
     required this.alignLeft,
     required this.useFullWidth,
+    required this.fontSize,
+    this.fixedHeight,
     required this.contentPadding,
   });
 
@@ -219,6 +215,8 @@ class _AddEntryPillButton extends StatefulWidget {
   final Color textColor;
   final bool alignLeft;
   final bool useFullWidth;
+  final double fontSize;
+  final double? fixedHeight;
   final EdgeInsetsGeometry contentPadding;
 
   @override
@@ -246,6 +244,7 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
         highlightColor: Colors.transparent,
         child: Ink(
           width: widget.useFullWidth ? double.infinity : null,
+          height: widget.fixedHeight != null ? widget.fixedHeight! * scale : null,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999 * scale),
             border: Border.all(
@@ -253,7 +252,9 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
               width: widget.borderWidth * scale,
             ),
           ),
-          padding: widget.contentPadding,
+          padding: widget.fixedHeight != null
+              ? EdgeInsets.symmetric(horizontal: 20 * scale)
+              : widget.contentPadding,
           child: Align(
             alignment: widget.alignLeft ? Alignment.centerLeft : Alignment.center,
             child: Transform.translate(
@@ -261,7 +262,7 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
               child: Text(
                 widget.label,
                 strutStyle: StrutStyle(
-                  fontSize: 18 * scale,
+                  fontSize: widget.fontSize * scale,
                   height: 1.0,
                   leading: 0,
                   forceStrutHeight: true,
@@ -273,7 +274,7 @@ class _AddEntryPillButtonState extends State<_AddEntryPillButton> {
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
-                  fontSize: 18 * scale,
+                  fontSize: widget.fontSize * scale,
                   height: 1.0,
                   color: widget.textColor,
                 ),

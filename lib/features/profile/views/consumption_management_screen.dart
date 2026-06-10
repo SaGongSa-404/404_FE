@@ -23,7 +23,7 @@ class ConsumptionManagementScreen extends ConsumerStatefulWidget {
 
 class _ConsumptionManagementScreenState
     extends ConsumerState<ConsumptionManagementScreen> {
-  bool _didChangeBudget = false;
+  bool _hasDataChanged = false;
   @override
   void initState() {
     super.initState();
@@ -63,15 +63,21 @@ class _ConsumptionManagementScreenState
     String format(int val) =>
         val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.pop(_hasDataChanged);
+      },
+      child: Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: _backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
-              color: AppColors.brown, size: 18 * scale),
-          onPressed: () => context.pop(_didChangeBudget),
+              color: AppColors.textPrimary, size: 18 * scale),
+          onPressed: () => context.pop(_hasDataChanged),
         ),
         title: Text(
           '소비 관리',
@@ -84,6 +90,7 @@ class _ConsumptionManagementScreenState
         centerTitle: true,
       ),
       body: _buildBody(statsState, current, format, scale),
+      ),
     );
   }
 
@@ -312,12 +319,17 @@ class _ConsumptionManagementScreenState
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  MonthlySpendingDetailScreen(yearMonth: record.yearMonth),
-            ),
-          ),
+          onTap: () async {
+            final changed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) =>
+                    MonthlySpendingDetailScreen(yearMonth: record.yearMonth),
+              ),
+            );
+            if (changed == true && mounted) {
+              setState(() => _hasDataChanged = true);
+            }
+          },
           borderRadius: BorderRadius.circular(30 * scale),
           highlightColor: Colors.black.withAlpha(25),
           splashColor: Colors.black.withAlpha(15),
@@ -643,19 +655,61 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
                         ),
                       ),
                     ),
-                  ),
-                ),
-                SizedBox(width: 6 * scale),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _canSave ? _handleSave : null,
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: _canSave
-                            ? AppColors.skyBlue_100
-                            : AppColors.skyBlue_100.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(57 * scale),
+                    SizedBox(width: 6 * scale),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: isSubmitting
+                            ? null
+                            : () async {
+                                final newBudget = int.tryParse(
+                                  controller.text.replaceAll(',', ''),
+                                );
+                                if (newBudget == null || newBudget < 1) {
+                                  showCapsuleToast(
+                                    sheetContext,
+                                    backgroundColor:
+                                        AppColors.red_600.withValues(alpha: 0.8),
+                                    text: '예산은 1원 이상 입력해 주세요.',
+                                  );
+                                  return;
+                                }
+                                setSheetState(() => isSubmitting = true);
+                                final ok = await ref
+                                    .read(consumptionStatsProvider.notifier)
+                                    .updateBudget(newBudget);
+                                if (!sheetContext.mounted) return;
+                                setSheetState(() => isSubmitting = false);
+                                if (ok) {
+                                  _hasDataChanged = true;
+                                  Navigator.of(sheetContext).pop();
+                                }
+                              },
+                        child: Container(
+                          height: 57 * scale,
+                          decoration: BoxDecoration(
+                            color: isSubmitting
+                                ? AppColors.skyBlue_100.withValues(alpha: 0.6)
+                                : AppColors.skyBlue_100,
+                            borderRadius: BorderRadius.circular(57 * scale),
+                          ),
+                          alignment: Alignment.center,
+                          child: isSubmitting
+                              ? SizedBox(
+                                  width: 24 * scale,
+                                  height: 24 * scale,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  '수정완료',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 20 * scale,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                        ),
                       ),
                       alignment: Alignment.center,
                       child: _isSaving

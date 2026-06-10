@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -27,6 +28,9 @@ class AppBottomNavigationBar extends ConsumerWidget {
   static const _paths = ['/home', '/wishlist', '/feed', '/my'];
 
   void _onTabTap(BuildContext context, WidgetRef ref, int index) {
+    if (index == 0) {
+      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+    }
     if (index == 2) {
       unawaited(ref.read(feedProvider.notifier).refresh());
     }

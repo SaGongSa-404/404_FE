@@ -26,6 +26,8 @@ class MonthlySpendingDetailScreen extends ConsumerStatefulWidget {
 
 class _MonthlySpendingDetailScreenState
     extends ConsumerState<MonthlySpendingDetailScreen> {
+  bool _hasDataChanged = false;
+
   @override
   void initState() {
     super.initState();
@@ -87,7 +89,13 @@ class _MonthlySpendingDetailScreenState
     String format(int val) =>
         val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.pop(_hasDataChanged);
+      },
+      child: Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: _backgroundColor,
@@ -95,7 +103,7 @@ class _MonthlySpendingDetailScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(),
+          onPressed: () => context.pop(_hasDataChanged),
         ),
         title: Text(
           '$monthTitle월의 소비 기록',
@@ -261,6 +269,7 @@ class _MonthlySpendingDetailScreenState
                 ),
               ),
             ),
+      ),
     );
   }
 

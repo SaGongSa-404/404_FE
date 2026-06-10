@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class NugulLoadingScreen extends StatelessWidget {
   const NugulLoadingScreen({
     super.key,
-    this.message = '잠시만 기다려주시구리',
+    this.message = '잠시만 기다려주세요',
   });
 
   final String message;
@@ -21,12 +21,12 @@ class NugulLoadingScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const NugulLoadingIndicator(),
-            SizedBox(height: 25 * scale),
+            SizedBox(height: 24 * scale),
             Text(
               message,
               textAlign: TextAlign.center,
               strutStyle: StrutStyle(
-                fontSize: 20 * scale,
+                fontSize: 18 * scale,
                 height: 1.35,
                 leading: 0,
                 forceStrutHeight: true,
@@ -37,7 +37,7 @@ class NugulLoadingScreen extends StatelessWidget {
               ),
               style: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 20 * scale,
+                fontSize: 18 * scale,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textDark,
                 height: 1.35,
@@ -51,110 +51,51 @@ class NugulLoadingScreen extends StatelessWidget {
   }
 }
 
-/// 인라인·센터 로딩용 (점 애니메이션 + 너굴 이미지).
 class NugulLoadingIndicator extends StatelessWidget {
   const NugulLoadingIndicator({
     super.key,
+    this.ringSize,
     this.imageSize,
-    this.gap,
+    this.strokeWidth,
   });
 
+  final double? ringSize;
   final double? imageSize;
-  final double? gap;
+  final double? strokeWidth;
+
+  static const _ringTrackColor = AppColors.grey_e6;
+  static const _ringProgressColor = Color(0xFFB0CFDF);
 
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final resolvedImageSize = imageSize ?? 132 * scale;
-    final resolvedGap = gap ?? 25 * scale;
+    final resolvedRingSize = ringSize ?? 120 * scale;
+    final resolvedImageSize = imageSize ?? 84 * scale;
+    final resolvedStrokeWidth = strokeWidth ?? 8 * scale;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const NugulLoadingDots(),
-        SizedBox(height: resolvedGap),
-        Image.asset(
-          'assets/images/nugul_loading.png',
-          width: resolvedImageSize,
-          height: resolvedImageSize,
-          fit: BoxFit.contain,
-        ),
-      ],
-    );
-  }
-}
-
-class NugulLoadingDots extends StatefulWidget {
-  const NugulLoadingDots({super.key});
-
-  @override
-  State<NugulLoadingDots> createState() => _NugulLoadingDotsState();
-}
-
-class _NugulLoadingDotsState extends State<NugulLoadingDots>
-    with SingleTickerProviderStateMixin {
-  static const _dotColors = [
-    Color(0xFFDBC4C2),
-    Color(0xFFBC9893),
-    Color(0xFF875A54),
-  ];
-
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = responsiveScale(context);
-    final dotSize = 12 * scale;
-    final dotGap = 12 * scale;
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(_dotColors.length, (index) {
-            final phase = (_controller.value + index / _dotColors.length) % 1.0;
-            final emphasis = Curves.easeInOut.transform(
-              phase < 0.5 ? phase * 2 : (1 - phase) * 2,
-            );
-            final scaleFactor = 0.75 + emphasis * 0.25;
-            final opacity = 0.45 + emphasis * 0.55;
-
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: dotGap / 2),
-              child: Opacity(
-                opacity: opacity,
-                child: Transform.scale(
-                  scale: scaleFactor,
-                  child: Container(
-                    width: dotSize,
-                    height: dotSize,
-                    decoration: BoxDecoration(
-                      color: _dotColors[index],
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
+    return SizedBox(
+      width: resolvedRingSize,
+      height: resolvedRingSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: resolvedRingSize,
+            height: resolvedRingSize,
+            child: CircularProgressIndicator(
+              strokeWidth: resolvedStrokeWidth,
+              backgroundColor: _ringTrackColor,
+              valueColor: const AlwaysStoppedAnimation<Color>(_ringProgressColor),
+            ),
+          ),
+          Image.asset(
+            'assets/images/nugul_loading.png',
+            width: resolvedImageSize,
+            height: resolvedImageSize,
+            fit: BoxFit.contain,
+          ),
+        ],
+      ),
     );
   }
 }

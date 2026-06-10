@@ -15,16 +15,18 @@ class LoadingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
-    final imageSize = compact ? 72 * scale : null;
-    final gap = compact ? 12 * scale : null;
+    final ringSize = compact ? 72 * scale : null;
+    final imageSize = compact ? 54 * scale : null;
+    final strokeWidth = compact ? 4.5 * scale : null;
 
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           NugulLoadingIndicator(
+            ringSize: ringSize,
             imageSize: imageSize,
-            gap: gap,
+            strokeWidth: strokeWidth,
           ),
           if (message != null) ...[
             SizedBox(height: 16 * scale),

@@ -26,6 +26,7 @@ abstract final class ApiEndpoints {
   static const String homeSummary = '$v1/home/summary';
   static const String homeBudgetExhaustionBubbleSeen =
       '$v1/home/budget-exhaustion-bubble/seen';
+  static String homeBubbleSeen(String type) => '$v1/home/bubbles/$type/seen';
 
   // ── Item import ──────────────────────────────────────────────────────────
   static const String itemsImportLink = '$v1/items/import-link';

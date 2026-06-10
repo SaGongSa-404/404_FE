@@ -181,7 +181,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           24 * scale,
           16 * scale,
           24 * scale,
-          96 * scale,
+          24 * scale,
         ),
         itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) =>

@@ -3,6 +3,7 @@ import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/features/feed/views/components/feed_product_card.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -179,10 +180,10 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
                   ),
                   if (post.product != null) ...[
                     SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
-                    _ProductCard(
+                    FeedProductCard(
                       name: post.product!.name,
                       price: post.product!.price,
-                      imageUrl: post.imageUrl,
+                      imageUrl: post.imageUrl ?? post.product!.imageUrl,
                     ),
                   ],
                 ],
@@ -199,95 +200,6 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
       ),
     );
   }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.name,
-    this.price,
-    this.imageUrl,
-  });
-
-  final String name;
-  final int? price;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-          ),
-          child: imageUrl != null
-              ? Image.network(
-                  imageUrl!,
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                )
-              : Container(
-                  height: (150 * scale).clamp(120.0, 180.0),
-                  width: double.infinity,
-                  color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-                ),
-        ),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: (12 * scale).clamp(9.0, 15.0),
-            vertical: (10 * scale).clamp(8.0, 12.0),
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 3,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: (15 * scale).clamp(12.0, 18.0),
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (price != null)
-                Text(
-                  _formatKrw(price!),
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: (14 * scale).clamp(11.0, 17.0),
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-String _formatKrw(int price) {
-  final body = price.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
-  return '$body원';
 }
 
 class _BottomButtons extends StatefulWidget {
