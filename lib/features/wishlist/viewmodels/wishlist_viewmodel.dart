@@ -6,7 +6,8 @@ import 'package:fe_app/features/wishlist/models/item_import/item_import_link_req
 import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
-import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_category_update_request.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_update_request.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -151,6 +152,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   void openAddPanel() {
     state = state.copyWith(
       isAddWishOpen: true,
+      isImportingLink: false,
       clearEditingItemId: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
@@ -194,7 +196,10 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         ItemImportLinkRequest.share(url),
       );
 
-      if (!_isShareImportFlowActive(url)) return;
+      if (!_isShareImportFlowActive(url)) {
+        _finalizeImportUnlessActive(url);
+        return;
+      }
 
       final prefill = response.toFormPrefill();
       final saveRequest = response.resolvedSaveRequest();
@@ -204,7 +209,10 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         return;
       }
 
-      if (!_isShareImportFlowActive(url)) return;
+      if (!_isShareImportFlowActive(url)) {
+        _finalizeImportUnlessActive(url);
+        return;
+      }
 
       state = state.copyWith(
         isImportingLink: false,
@@ -213,9 +221,17 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
       );
     } on ArgumentError {
-      if (_isShareImportFlowActive(url)) _handleImportFailure();
+      if (_isShareImportFlowActive(url)) {
+        _handleImportFailure();
+      } else {
+        _finalizeImportUnlessActive(url);
+      }
     } catch (_) {
-      if (_isShareImportFlowActive(url)) _handleImportFailure();
+      if (_isShareImportFlowActive(url)) {
+        _handleImportFailure();
+      } else {
+        _finalizeImportUnlessActive(url);
+      }
     }
   }
 
@@ -223,6 +239,12 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     return state.isAddWishOpen &&
         state.isImportingLink &&
         state.addPrefillLink == url;
+  }
+
+  void _finalizeImportUnlessActive(String url) {
+    if (!state.isImportingLink) return;
+    if (state.addPrefillLink != url) return;
+    state = state.copyWith(isImportingLink: false);
   }
 
   void _handleImportFailure() {
@@ -255,6 +277,12 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(
       editingItemId: itemId,
       isAddWishOpen: false,
+      isImportingLink: false,
+      clearAddPrefillLink: true,
+      clearAddLinkReadOnly: true,
+      clearAddFormPrefill: true,
+      clearAddImportSaveRequest: true,
+      clearSubmitErrorMessage: true,
     );
   }
 
@@ -282,6 +310,20 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     state = state.copyWith(clearSubmitErrorMessage: true);
   }
 
+  bool _isDuplicateOfDraft(WishlistPlaceholder draft, WishlistItem existing) {
+    final draftLink = draft.link.trim();
+    if (draftLink.isEmpty) return true;
+
+    final normalizedDraft = ShareLinkUrl.normalize(draftLink) ?? draftLink;
+    final existingOriginal = (existing.originalUrl ?? '').trim();
+    final existingNormalized = (existing.normalizedUrl ?? '').trim();
+
+    return normalizedDraft == existingNormalized ||
+        normalizedDraft == existingOriginal ||
+        draftLink == existingNormalized ||
+        draftLink == existingOriginal;
+  }
+
   ItemInputSource _resolveInputSourceForAdd(WishlistPlaceholder draft) {
     final link = draft.link.trim();
     if (link.isEmpty) return ItemInputSource.directInput;
@@ -290,12 +332,13 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   WishlistItemSaveRequest _buildSaveRequestForAdd(WishlistPlaceholder draft) {
-    final imported = state.addImportSaveRequest;
+    final imported =
+        state.isAddLinkReadOnly ? state.addImportSaveRequest : null;
     if (imported != null) {
       return imported.copyWith(
         title: draft.title.trim(),
-        listedPrice: draft.price > 0 ? draft.price : null,
-        currencyCode: draft.price > 0 ? (imported.currencyCode ?? 'KRW') : null,
+        listedPrice: draft.price,
+        currencyCode: imported.currencyCode ?? 'KRW',
         category: WishlistCategoryUi.toApiValue(draft.category),
         categoryLockedByUser: imported.categoryLockedByUser ?? true,
         imageUrl: draft.imageUrl ?? imported.imageUrl,
@@ -334,6 +377,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
       state = state.copyWith(
         isSubmitting: false,
+        clearSubmitErrorMessage: true,
         clearAddWish: true,
         clearAddPrefillLink: true,
         clearAddLinkReadOnly: true,
@@ -348,7 +392,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
           api.statusCode == 409 &&
           api.code == 'DUPLICATE_SAVED_ITEM') {
         final existing = WishlistService.parseDuplicateExistingItem(api);
-        if (existing != null) {
+        if (existing != null && _isDuplicateOfDraft(draft, existing)) {
           final placeholder = existing.toPlaceholder();
           final alreadyListed = state.items.any((i) => i.id == placeholder.id);
           state = state.copyWith(
@@ -378,27 +422,42 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     final exists = state.items.any((item) => item.id == updatedItem.id);
     if (!exists) return false;
 
+    final inputSource = updatedItem.inputSource ?? ItemInputSource.directInput;
+
     state = state.copyWith(
       isSubmitting: true,
       clearSubmitErrorMessage: true,
     );
 
     try {
-      await _wishlistService.updateItemCategory(
+      final saved = await _wishlistService.updateItem(
         itemId: updatedItem.id,
-        request: WishlistItemCategoryUpdateRequest(
-          category: WishlistCategoryUi.toApiValue(updatedItem.category),
+        request: WishlistItemUpdateRequest.fromForm(
+          title: updatedItem.title,
+          uiCategoryLabel: updatedItem.category,
+          inputSource: inputSource,
+          link: updatedItem.link,
+          listedPrice: updatedItem.price,
         ),
       );
+      final placeholder = saved.toPlaceholder();
+      state = state.copyWith(
+        isSubmitting: false,
+        items: [
+          for (final item in state.items)
+            if (item.id == placeholder.id) placeholder else item,
+        ],
+      );
       await _fetchFirstPage();
-      state = state.copyWith(isSubmitting: false);
       return true;
     } catch (e) {
       final api = apiExceptionFrom(e);
       state = state.copyWith(
         isSubmitting: false,
-        submitErrorMessage: api?.message ??
-            '카테고리를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
+        submitErrorMessage: api?.statusCode == 409
+            ? '이미 등록된 링크예요'
+            : api?.message ??
+                '위시를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
       return false;
     }

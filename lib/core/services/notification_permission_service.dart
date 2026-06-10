@@ -49,4 +49,27 @@ class NotificationPermissionService {
       debugPrint('[notification] request result=$result');
     }
   }
+
+  static Future<PermissionStatus> get status => Permission.notification.status;
+
+  static Future<bool> get isGranted async =>
+      (await Permission.notification.status).isGranted;
+
+  static Future<bool> get isPermanentlyDenied async =>
+      (await Permission.notification.status).isPermanentlyDenied;
+
+  /// OS 알림 권한 다이얼로그를 띄우고 결과를 반환합니다.
+  static Future<PermissionStatus> requestPermission() async {
+    if (kDebugMode) {
+      debugPrint('[notification] requesting OS permission (explicit)...');
+    }
+    final result = await Permission.notification.request();
+    if (kDebugMode) {
+      debugPrint('[notification] request result=$result');
+    }
+    return result;
+  }
+
+  /// 기기 설정 앱의 알림 권한 화면으로 이동합니다.
+  static Future<bool> openSettings() => openAppSettings();
 }

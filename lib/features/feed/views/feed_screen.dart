@@ -12,7 +12,6 @@ import 'package:fe_app/features/feed/views/components/feed_empty_view.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
-import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/circle_icon_label.dart';
@@ -183,7 +182,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           24 * scale,
           16 * scale,
           24 * scale,
-          96 * scale,
+          24 * scale,
         ),
         itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) =>
@@ -260,8 +259,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           );
         }
       }
-    } else if (result == 'share') {
-      showShareModal(context: context, post: post);
     } else if (result == 'edit') {
       final editResult = await context.push<String>('/feed/edit/${post.id}');
       if (editResult == 'edited' && context.mounted) {

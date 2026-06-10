@@ -4,18 +4,25 @@ import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-Future<WishlistPlaceholder?> showWishlistPickerSheet(BuildContext context) {
+Future<WishlistPlaceholder?> showWishlistPickerSheet(
+  BuildContext context, {
+  WishlistPlaceholder? currentSelection,
+}) {
   return showModalBottomSheet<WishlistPlaceholder>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
-    builder: (_) => const _WishlistPickerDialog(),
+    builder: (_) => _WishlistPickerDialog(
+      currentSelection: currentSelection,
+    ),
   );
 }
 
 class _WishlistPickerDialog extends ConsumerStatefulWidget {
-  const _WishlistPickerDialog();
+  const _WishlistPickerDialog({this.currentSelection});
+
+  final WishlistPlaceholder? currentSelection;
 
   @override
   ConsumerState<_WishlistPickerDialog> createState() =>
@@ -29,9 +36,24 @@ class _WishlistPickerDialogState
   @override
   void initState() {
     super.initState();
+    _selected = _resolveItem(
+      ref.read(wishlistViewModelProvider).items,
+      widget.currentSelection,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(wishlistViewModelProvider.notifier).reloadOnScreenOpen();
     });
+  }
+
+  WishlistPlaceholder? _resolveItem(
+    List<WishlistPlaceholder> items,
+    WishlistPlaceholder? source,
+  ) {
+    if (source == null) return null;
+    for (final item in items) {
+      if (item.id == source.id) return item;
+    }
+    return source;
   }
 
   String _formatPrice(int price) {
@@ -45,8 +67,10 @@ class _WishlistPickerDialogState
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 412.0;
     final items = ref.watch(wishlistViewModelProvider).items;
+    final selected =
+        _selected == null ? null : _resolveItem(items, _selected);
     final horizontalInset = MediaQuery.of(context).size.width * 21 / 412;
-    final hasSelection = _selected != null;
+    final hasSelection = selected != null;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -106,7 +130,7 @@ class _WishlistPickerDialogState
                           SizedBox(height: (9 * scale).clamp(7.0, 11.0)),
                       itemBuilder: (_, index) {
                         final item = items[index];
-                        final isSelected = _selected?.id == item.id;
+                        final isSelected = selected?.id == item.id;
                         return GestureDetector(
                           onTap: () => setState(
                             () => _selected = isSelected ? null : item,
@@ -150,7 +174,7 @@ class _WishlistPickerDialogState
               duration: const Duration(milliseconds: 200),
               child: GestureDetector(
                 onTap: hasSelection
-                    ? () => Navigator.of(context).pop(_selected)
+                    ? () => Navigator.of(context).pop(selected)
                     : null,
                 child: Container(
                   width: double.infinity,

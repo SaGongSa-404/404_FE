@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/profile/models/wish_history_item.dart';
@@ -24,6 +26,8 @@ class MonthlySpendingDetailScreen extends ConsumerStatefulWidget {
 
 class _MonthlySpendingDetailScreenState
     extends ConsumerState<MonthlySpendingDetailScreen> {
+  bool _hasDataChanged = false;
+
   @override
   void initState() {
     super.initState();
@@ -85,7 +89,13 @@ class _MonthlySpendingDetailScreenState
     String format(int val) =>
         val.toString().replaceAllMapped(numberFormat, (m) => ',');
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.pop(_hasDataChanged);
+      },
+      child: Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: _backgroundColor,
@@ -93,7 +103,7 @@ class _MonthlySpendingDetailScreenState
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.textPrimary, size: 18 * scale),
-          onPressed: () => context.pop(),
+          onPressed: () => context.pop(_hasDataChanged),
         ),
         title: Text(
           '$monthTitle월의 소비 기록',
@@ -259,6 +269,7 @@ class _MonthlySpendingDetailScreenState
                 ),
               ),
             ),
+      ),
     );
   }
 
@@ -406,6 +417,7 @@ class _MonthlySpendingDetailScreenState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
@@ -415,12 +427,15 @@ class _MonthlySpendingDetailScreenState
               ref.watch(monthlyConsumptionProvider(widget.yearMonth));
           final isSubmitting = consumptionState.updatingItemId == item.itemId;
 
+          final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+          final systemBottomPadding = MediaQuery.paddingOf(sheetContext).bottom;
+
           return Padding(
             padding: EdgeInsets.fromLTRB(
               horizontalInset,
               0,
               horizontalInset,
-              MediaQuery.paddingOf(sheetContext).bottom + 24 * scale,
+              max(systemBottomPadding, bottomInset) + 24 * scale,
             ),
             child: Container(
               decoration: BoxDecoration(
@@ -442,7 +457,7 @@ class _MonthlySpendingDetailScreenState
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 20 * scale),
+                  SizedBox(height: 32 * scale),
                   Row(
                     children: [
                       Expanded(
@@ -453,7 +468,7 @@ class _MonthlySpendingDetailScreenState
                           scale,
                         ),
                       ),
-                      SizedBox(width: 12 * scale),
+                      SizedBox(width: 6 * scale),
                       Expanded(
                         child: _buildDialogButton(
                           '샀어요',
@@ -464,7 +479,7 @@ class _MonthlySpendingDetailScreenState
                       ),
                     ],
                   ),
-                  SizedBox(height: 24 * scale),
+                  SizedBox(height: 10 * scale),
                   GestureDetector(
                     onTap: isSubmitting
                         ? null
@@ -477,7 +492,16 @@ class _MonthlySpendingDetailScreenState
                                   toGo: selectedGo,
                                 );
                             if (!sheetContext.mounted) return;
-                            if (ok) Navigator.of(sheetContext).pop();
+                            if (ok) {
+                              Navigator.of(sheetContext).pop();
+                              if (context.mounted) {
+                                showCapsuleToast(
+                                  context,
+                                  backgroundColor: const Color(0xFF5F8EAE),
+                                  text: '수정되었습니다',
+                                );
+                              }
+                            }
                           },
                     child: Container(
                       width: double.infinity,
@@ -489,22 +513,14 @@ class _MonthlySpendingDetailScreenState
                         borderRadius: BorderRadius.circular(57 * scale),
                       ),
                       alignment: Alignment.center,
-                      child: isSubmitting
-                          ? SizedBox(
-                              width: 24 * scale,
-                              height: 24 * scale,
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              '저장하기',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 20 * scale,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                      child: Text(
+                        '저장하기',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 20 * scale,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -518,32 +534,24 @@ class _MonthlySpendingDetailScreenState
 
   Widget _buildDialogButton(
       String label, bool isSelected, VoidCallback onTap, double scale) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16 * scale),
-        highlightColor: Colors.black.withAlpha(20),
-        child: Ink(
-          height: 48 * scale,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFE8F3F9) : const Color(0xFFF5F5F5),
-            border: Border.all(
-              color: isSelected ? AppColors.skyBlue_300 : const Color(0xFFE0E0E0),
-              width: 1.5 * scale,
-            ),
-            borderRadius: BorderRadius.circular(16 * scale),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 15 * scale,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color:
-                    isSelected ? AppColors.skyBlue_300 : AppColors.textSecondary,
-              ),
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 57 * scale,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.background : AppColors.white,
+          border: isSelected
+              ? null
+              : Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          borderRadius: BorderRadius.circular(57 * scale),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 20 * scale,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
         ),
       ),

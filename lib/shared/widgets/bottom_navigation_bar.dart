@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/feed/providers/feed_provider.dart';
+import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,10 +22,20 @@ abstract final class _BottomNavBarShadow {
   ];
 }
 
-class AppBottomNavigationBar extends StatelessWidget {
+class AppBottomNavigationBar extends ConsumerWidget {
   const AppBottomNavigationBar({super.key});
 
   static const _paths = ['/home', '/wishlist', '/feed', '/my'];
+
+  void _onTabTap(BuildContext context, WidgetRef ref, int index) {
+    if (index == 0) {
+      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+    }
+    if (index == 2) {
+      unawaited(ref.read(feedProvider.notifier).refresh());
+    }
+    context.go(_paths[index]);
+  }
 
   int _currentIndex(String location) {
     if (location.startsWith('/wishlist') || location.startsWith('/login')) return 1;
@@ -31,7 +46,7 @@ class AppBottomNavigationBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final router = GoRouter.maybeOf(context);
     if (router == null) {
       return const SizedBox.shrink();
@@ -62,7 +77,7 @@ class AppBottomNavigationBar extends StatelessWidget {
                   tabIndex: i,
                   label: _labels[i],
                   scale: scale,
-                  onTap: () => context.go(_paths[i]),
+                  onTap: () => _onTabTap(context, ref, i),
                 ),
               ),
           ],

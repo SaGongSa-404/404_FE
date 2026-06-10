@@ -86,30 +86,12 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
       (prev, next) {
         if (next == null || next.isEmpty) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
           viewModel.clearSubmitError();
+          if (!context.mounted) return;
           showCapsuleToast(
             context,
             backgroundColor: const Color(0xFFD46868),
             text: next,
-          );
-        });
-      },
-    );
-
-    ref.listen<bool>(
-      wishlistViewModelProvider.select((s) => s.isImportingLink),
-      (prev, next) {
-        if (prev != true || next != false) return;
-        final hasPrefill =
-            ref.read(wishlistViewModelProvider).addFormPrefill != null;
-        if (!hasPrefill) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          showCapsuleToast(
-            context,
-            backgroundColor: const Color(0xFF5F8EAE),
-            text: '성공적으로 불러왔습니다.',
           );
         });
       },
@@ -267,7 +249,12 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                             physics: const BouncingScrollPhysics(
                                               parent: AlwaysScrollableScrollPhysics(),
                                             ),
-                                            padding: EdgeInsets.fromLTRB(24 * scale, 20 * scale, 24 * scale, 20 * scale),
+                                            padding: EdgeInsets.fromLTRB(
+                                              24 * scale,
+                                              20 * scale,
+                                              24 * scale,
+                                              24 * scale,
+                                            ),
                                             itemCount: filteredItems.length +
                                                 (state.isLoadingMore ? 1 : 0),
                                             separatorBuilder: (context, index) =>
@@ -345,9 +332,20 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         ),
         if (editingItem != null)
           WishlistItemFormPanel.edit(
+            key: ValueKey('wishlist-edit-${editingItem.id}'),
             item: editingItem,
             onClose: viewModel.closeEditPanel,
-            onSubmit: viewModel.updateItem,
+            onSubmit: (item) async {
+              final ok = await viewModel.updateItem(item);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFF5F8EAE),
+                  text: '수정되었습니다',
+                );
+              }
+              return ok;
+            },
             isSubmitting: state.isSubmitting,
             onDelete: () async {
               final ok = await viewModel.dropItem(editingItem.id);

@@ -54,7 +54,7 @@ class _NicknameScreenState extends ConsumerState<NicknameScreen> {
 
   void _onNext() {
     FocusScope.of(context).unfocus();
-    ref.read(onboardingProvider.notifier).setMascotName(_controller.text);
+    ref.read(onboardingProvider.notifier).setNickname(_controller.text);
     context.push('/onboarding/budget');
   }
 

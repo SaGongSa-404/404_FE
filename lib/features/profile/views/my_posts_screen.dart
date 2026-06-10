@@ -6,7 +6,6 @@ import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
 import 'package:fe_app/features/feed/views/components/deleted_post_modal.dart';
 import 'package:fe_app/features/feed/views/components/feed_post_card.dart';
 import 'package:fe_app/features/feed/views/components/option_modal.dart';
-import 'package:fe_app/features/feed/views/components/share_modal.dart';
 import 'package:fe_app/features/profile/providers/my_posts_provider.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_state.dart';
 import 'package:fe_app/features/profile/viewmodels/my_posts_viewmodel.dart';
@@ -33,7 +32,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(myPostsProvider.notifier).loadInitial();
+      ref.read(myPostsProvider.notifier).refresh();
     });
     _scrollController.addListener(_onScroll);
   }
@@ -87,7 +86,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: AppColors.textPrimary,
+            color: AppColors.brown,
             size: 18 * scale,
           ),
           onPressed: () => context.pop(),
@@ -97,7 +96,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
           style: TextStyle(
             fontSize: 18 * scale,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: AppColors.brown,
           ),
         ),
       ),
@@ -136,12 +135,18 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
     if (state.posts.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => vm.refresh(),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            SizedBox(height: 80 * scale),
-            _MyPostsEmptyView(scale: scale),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: _MyPostsEmptyView(scale: scale),
+                ),
+              ),
+            );
+          },
         ),
       );
     }
@@ -225,8 +230,6 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
           );
         }
       }
-    } else if (result == 'share') {
-      showShareModal(context: context, post: post);
     } else if (result == 'edit') {
       final editResult = await context.push<String>('/feed/edit/${post.id}');
       if (editResult == 'edited' && context.mounted) {
@@ -252,36 +255,34 @@ class _MyPostsEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'assets/images/nugul_empty.png',
-            width: 150 * scale,
-            height: 150 * scale,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          'assets/images/nugul_empty.png',
+          width: 150 * scale,
+          height: 150 * scale,
+        ),
+        SizedBox(height: 24 * scale),
+        Text(
+          '아직 작성한 게시글이 없어요!',
+          style: TextStyle(
+            fontSize: 16 * scale,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
-          SizedBox(height: 24 * scale),
-          Text(
-            '아직 작성한 게시글이 없어요!',
-            style: TextStyle(
-              fontSize: 16 * scale,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+        ),
+        SizedBox(height: 12 * scale),
+        Text(
+          '커뮤니티에서 다른 너구리들과\n함께 소통하며 현명한 소비를 해봐요.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14 * scale,
+            color: AppColors.textSecondary,
+            height: 1.5,
           ),
-          SizedBox(height: 12 * scale),
-          Text(
-            '커뮤니티에서 다른 너구리들과\n함께 소통하며 현명한 소비를 해봐요.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14 * scale,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

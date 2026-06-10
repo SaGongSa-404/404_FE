@@ -109,7 +109,7 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: const Color(0xFFF1F1F1),
       body: SafeArea(
         child: LayoutBuilder(
@@ -120,7 +120,6 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
                 constraints.maxWidth - (horizontalPadding * 2);
             final videoWidth =
                 (innerWidth * 0.87).clamp(260.0, 360.0);
-            final videoHeight = videoWidth * (362 / 318);
 
             return Center(
               child: ConstrainedBox(
@@ -150,7 +149,6 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
                             Center(
                               child: _VideoCard(
                                 width: videoWidth,
-                                height: videoHeight,
                                 controller: _controller,
                                 initialized: _videoInitialized,
                               ),
@@ -180,6 +178,16 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
           },
         ),
       ),
+    );
+
+    if (widget.onBack == null) return scaffold;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _handleBack();
+      },
+      child: scaffold,
     );
   }
 }
@@ -245,19 +253,25 @@ class _StepHeader extends StatelessWidget {
 class _VideoCard extends StatelessWidget {
   const _VideoCard({
     required this.width,
-    required this.height,
     required this.controller,
     required this.initialized,
   });
 
   final double width;
-  final double height;
   final VideoPlayerController controller;
   final bool initialized;
+
+  /// `wishlist_demo*.mp4` 실제 해상도 기준 (660×824, 652×818).
+  static const double _fallbackAspectRatio = 660 / 824;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(22);
+    final videoSize = controller.value.size;
+    final aspectRatio = initialized && videoSize.width > 0
+        ? videoSize.width / videoSize.height
+        : _fallbackAspectRatio;
+    final height = width / aspectRatio;
 
     return Container(
       width: width,
@@ -274,16 +288,24 @@ class _VideoCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: radius,
-        child: initialized
-            ? FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: controller.value.size.width,
-                  height: controller.value.size.height,
-                  child: VideoPlayer(controller),
-                ),
-              )
-            : null,
+        clipBehavior: Clip.antiAlias,
+        child: ColoredBox(
+          color: Colors.white,
+          child: initialized
+              ? SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.hardEdge,
+                    child: SizedBox(
+                      width: videoSize.width,
+                      height: videoSize.height,
+                      child: VideoPlayer(controller),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
       ),
     );
   }

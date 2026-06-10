@@ -1,14 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
+
+Iterable<String> _assetPathsForBaseName(String baseName) {
+  final webmPath = 'assets/videos/$baseName.WebM';
+  final mp4Path = 'assets/videos/$baseName.mp4';
+  final preferMp4 = defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+  if (preferMp4) {
+    return [mp4Path, webmPath];
+  }
+  return [webmPath, mp4Path];
+}
+
+/// `assets/videos/nugul_home.mp4` → `nugul_home`
+String? videoBaseNameFromDataSource(String dataSource) {
+  if (dataSource.isEmpty) return null;
+  final fileName = dataSource.split('/').last;
+  final dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex <= 0) {
+    return fileName.isEmpty ? null : fileName;
+  }
+  return fileName.substring(0, dotIndex);
+}
 
 /// Creates an initialized [VideoPlayerController] for the given video base name.
 Future<VideoPlayerController> createVideoAssetController(
   String baseName, {
   bool loop = false,
 }) async {
-  final webmPath = 'assets/videos/$baseName.WebM';
-  final mp4Path = 'assets/videos/$baseName.mp4';
-
-  for (final path in [webmPath, mp4Path]) {
+  for (final path in _assetPathsForBaseName(baseName)) {
     final controller = VideoPlayerController.asset(path);
     try {
       await controller.setVolume(0);

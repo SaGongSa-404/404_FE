@@ -6,28 +6,14 @@ import 'package:video_player/video_player.dart';
 class HomeSpecialEffectState {
   final ConsiderCaseType? caseType;
   final VideoPlayerController? preloadedController;
-  final String? preloadedPath;
 
   const HomeSpecialEffectState({
     this.caseType,
     this.preloadedController,
-    this.preloadedPath,
   });
 
-  HomeSpecialEffectState copyWith({
-    ConsiderCaseType? caseType,
-    VideoPlayerController? preloadedController,
-    String? preloadedPath,
-    bool clearController = false,
-  }) {
-    return HomeSpecialEffectState(
-      caseType: caseType ?? this.caseType,
-      preloadedController:
-      clearController ? null : (preloadedController ?? this.preloadedController),
-      preloadedPath:
-      clearController ? null : (preloadedPath ?? this.preloadedPath),
-    );
-  }
+  bool get hasPendingSpecial =>
+      caseType != null && preloadedController != null;
 }
 
 class HomeSpecialEffectNotifier extends StateNotifier<HomeSpecialEffectState> {
@@ -46,32 +32,43 @@ class HomeSpecialEffectNotifier extends StateNotifier<HomeSpecialEffectState> {
   }
 
   Future<void> preloadCase(ConsiderCaseType caseType) async {
-    if (state.caseType == caseType && state.preloadedController != null) return;
+    final existing = state.preloadedController;
+    if (state.caseType == caseType &&
+        existing != null &&
+        existing.value.isInitialized &&
+        !existing.value.hasError) {
+      return;
+    }
 
-    await clearPreloadedController();
+    await _disposePreloadedController();
 
     final baseName = _baseNameForCase(caseType);
     final controller = await createVideoAssetController(baseName, loop: false);
-    final path = controller.dataSource;
 
     state = HomeSpecialEffectState(
       caseType: caseType,
       preloadedController: controller,
-      preloadedPath: path,
     );
   }
 
-  void markCase(ConsiderCaseType caseType) {
-    state = state.copyWith(caseType: caseType);
-  }
-
-  Future<void> clearPreloadedController() async {
+  /// HomeScreen이 재생을 시작할 때 provider 소유권을 넘깁니다.
+  VideoPlayerController? takePreloadedController() {
     final controller = state.preloadedController;
+    if (controller == null) return null;
 
-    state = state.copyWith(
-      caseType: null,
-      clearController: true,
-    );
+    state = const HomeSpecialEffectState();
+    return controller;
+  }
+
+  void detachController(VideoPlayerController controller) {
+    if (state.preloadedController == controller) {
+      state = const HomeSpecialEffectState();
+    }
+  }
+
+  Future<void> _disposePreloadedController() async {
+    final controller = state.preloadedController;
+    state = const HomeSpecialEffectState();
 
     if (controller != null) {
       await controller.dispose();
@@ -84,6 +81,6 @@ class HomeSpecialEffectNotifier extends StateNotifier<HomeSpecialEffectState> {
 }
 
 final homeSpecialEffectProvider =
-StateNotifierProvider<HomeSpecialEffectNotifier, HomeSpecialEffectState>((ref) {
-  return HomeSpecialEffectNotifier();
-});
+    StateNotifierProvider<HomeSpecialEffectNotifier, HomeSpecialEffectState>(
+  (ref) => HomeSpecialEffectNotifier(),
+);

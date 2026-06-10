@@ -6,6 +6,7 @@ import 'package:fe_app/features/feed/providers/feed_provider.dart';
 import 'package:fe_app/features/feed/utils/feed_date_formatter.dart';
 import 'package:fe_app/features/feed/views/components/block_modal.dart';
 import 'package:fe_app/features/feed/views/components/comment_option_modal.dart';
+import 'package:fe_app/features/feed/views/components/feed_product_card.dart';
 import 'package:fe_app/features/feed/views/components/product_link_dialog.dart';
 import 'package:fe_app/features/feed/views/components/report_modal.dart';
 import 'package:fe_app/features/feed/views/components/vote_buttons.dart';
@@ -297,15 +298,13 @@ class _DetailPostCard extends StatelessWidget {
             SizedBox(height: (19 * scale).clamp(15.0, 23.0)),
           ],
           if (post.product != null) ...[
-            GestureDetector(
+            FeedProductCard(
+              name: post.product!.name,
+              price: post.product!.price,
+              imageUrl: post.imageUrl ?? post.product!.imageUrl,
               onTap: () => openProductLink(
                 context: context,
                 url: post.product?.link,
-              ),
-              child: _DetailProductCard(
-                name: post.product!.name,
-                price: post.product!.price,
-                imageUrl: post.imageUrl ?? post.product!.imageUrl,
               ),
             ),
             SizedBox(height: (17 * scale).clamp(13.0, 21.0)),
@@ -322,99 +321,6 @@ class _DetailPostCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DetailProductCard extends StatelessWidget {
-  const _DetailProductCard({
-    required this.name,
-    this.price,
-    this.imageUrl,
-  });
-
-  final String name;
-  final int? price;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 412.0;
-    final imageHeight = (150 * scale).clamp(120.0, 180.0);
-    final placeholder = Container(
-      height: imageHeight,
-      width: double.infinity,
-      color: AppColors.skyBlue_100.withValues(alpha: 0.4),
-    );
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-          ),
-          child: hasImage
-              ? Image.network(
-                  imageUrl!,
-                  height: imageHeight,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => placeholder,
-                )
-              : placeholder,
-        ),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: (12 * scale).clamp(9.0, 15.0),
-            vertical: (10 * scale).clamp(8.0, 12.0),
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular((22 * scale).clamp(17.0, 27.0)),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 3,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  fontSize: (15 * scale).clamp(12.0, 18.0),
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (price != null)
-                Text(
-                  _formatKrw(price!),
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    fontSize: (14 * scale).clamp(11.0, 17.0),
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-String _formatKrw(int price) {
-  final body = price.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
-  return '$body원';
 }
 
 class _CommentList extends StatelessWidget {

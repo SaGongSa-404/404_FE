@@ -14,7 +14,9 @@ extension WishlistItemMapper on WishlistItem {
       category: WishlistCategoryUi.toUiLabel(category),
       link: displayLink,
       imageUrl: imageUrl,
+      inputSource: ItemInputSource.fromApiValue(inputSource),
       status: status,
+      hasFeedPost: selected,
     );
   }
 }
@@ -35,7 +37,7 @@ extension WishlistPlaceholderMapper on WishlistPlaceholder {
       title: title,
       uiCategoryLabel: category,
       link: link,
-      listedPrice: price > 0 ? price : null,
+      listedPrice: price,
       imageUrl: imageUrl,
       categoryConfidence: categoryConfidence,
       categoryLockedByUser: categoryLockedByUser,

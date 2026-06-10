@@ -1,3 +1,5 @@
+import 'package:fe_app/shared/enums/api_enums.dart';
+
 class WishlistPlaceholder {
   const WishlistPlaceholder({
     required this.id,
@@ -6,7 +8,9 @@ class WishlistPlaceholder {
     required this.category,
     required this.link,
     this.imageUrl,
+    this.inputSource,
     this.status = 'SAVED',
+    this.hasFeedPost = false,
   });
 
   final String id;
@@ -15,9 +19,13 @@ class WishlistPlaceholder {
   final String category;
   final String link;
   final String? imageUrl;
+  final ItemInputSource? inputSource;
 
   /// 서버 item status (예: SAVED, GO, STOP). 숙려 화면은 SAVED만 진입 가능.
   final String status;
+
+  /// 본인이 이 위시로 작성한 살아있는 피드 글 존재 여부 (BE `selected`).
+  final bool hasFeedPost;
 
   bool get canOpenDeliberation =>
       status.trim().toUpperCase() == 'SAVED' || status.trim().isEmpty;
@@ -29,7 +37,9 @@ class WishlistPlaceholder {
     String? category,
     String? link,
     String? imageUrl,
+    ItemInputSource? inputSource,
     String? status,
+    bool? hasFeedPost,
     bool clearImageUrl = false,
   }) {
     return WishlistPlaceholder(
@@ -39,7 +49,9 @@ class WishlistPlaceholder {
       category: category ?? this.category,
       link: link ?? this.link,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      inputSource: inputSource ?? this.inputSource,
       status: status ?? this.status,
+      hasFeedPost: hasFeedPost ?? this.hasFeedPost,
     );
   }
 }
