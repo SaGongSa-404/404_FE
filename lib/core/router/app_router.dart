@@ -129,11 +129,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'result',
                 builder: (context, state) {
                   final itemId = state.pathParameters['itemId']!;
-                  final args = state.extra as ConsiderResultRouteArgs;
+                  final extra = state.extra;
+                  if (extra is! ConsiderResultRouteArgs) {
+                    return WishlistConsiderScreen(itemId: itemId);
+                  }
                   return WishlistConsiderResultScreen(
                     itemId: itemId,
-                    response: args.response,
-                    caseType: args.caseType,
+                    response: extra.response,
+                    caseType: extra.caseType,
                   );
                 },
               ),

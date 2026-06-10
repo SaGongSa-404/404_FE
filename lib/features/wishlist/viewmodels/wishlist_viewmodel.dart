@@ -454,10 +454,10 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       final api = apiExceptionFrom(e);
       state = state.copyWith(
         isSubmitting: false,
-        submitErrorMessage: api?.message ??
-            (api?.statusCode == 409
-                ? '이미 등록된 링크예요'
-                : '위시를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.'),
+        submitErrorMessage: api?.statusCode == 409
+            ? '이미 등록된 링크예요'
+            : api?.message ??
+                '위시를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
       return false;
     }

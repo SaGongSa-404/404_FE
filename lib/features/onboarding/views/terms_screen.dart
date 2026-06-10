@@ -25,6 +25,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   bool _agreeService = false;
   bool _agreePrivacy = false;
   bool _showNotificationDim = false;
+  bool _isHandlingBack = false;
 
   bool get _canStart => _agreeService && _agreePrivacy;
 
@@ -80,9 +81,15 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   }
 
   Future<void> _onBack() async {
-    await ref.read(authProvider.notifier).logout();
-    if (!mounted) return;
-    context.go('/login');
+    if (_isHandlingBack) return;
+    _isHandlingBack = true;
+    try {
+      await ref.read(authProvider.notifier).logout();
+      if (!mounted) return;
+      context.go('/login');
+    } finally {
+      if (mounted) _isHandlingBack = false;
+    }
   }
 
   @override

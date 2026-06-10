@@ -6,6 +6,7 @@ import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
+import 'package:fe_app/features/wishlist/utils/wishlist_item_form_validation.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
 import 'package:fe_app/shared/enums/api_enums.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
@@ -225,64 +226,51 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     super.dispose();
   }
 
-  bool get _linkEmpty => _linkController.text.trim().isEmpty;
   bool get _titleEmpty => _nameController.text.trim().isEmpty;
-  bool get _priceEmpty => _priceController.text.replaceAll(',', '').trim().isEmpty;
-  bool get _categoryEmpty => _selectedCategory == null || _selectedCategory!.trim().isEmpty;
+  bool get _categoryEmpty =>
+      _selectedCategory == null || _selectedCategory!.trim().isEmpty;
 
-  bool get _linkRequired => _isAdd && widget.linkReadOnly;
+  bool get _linkInvalid => WishlistItemFormValidation.isLinkInvalid(
+        isAdd: _isAdd,
+        linkReadOnly: widget.linkReadOnly,
+        editLinkReadOnly: _editLinkReadOnly,
+        link: _linkController.text,
+      );
 
-  bool get _linkEditable =>
-      _isAdd ? !widget.linkReadOnly : !_editLinkReadOnly;
-
-  bool get _linkHasValue => !_linkEmpty;
-
-  bool get _linkFormatInvalid {
-    if (!_linkHasValue) return false;
-    final trimmed = _linkController.text.trim().toLowerCase();
-    return !trimmed.startsWith('http://') && !trimmed.startsWith('https://');
-  }
-
-  int? _parsePriceDigits() {
-    final digits = _priceController.text.replaceAll(',', '').trim();
-    if (digits.isEmpty) return null;
-    return int.tryParse(digits);
-  }
-
-  bool get _linkInvalid =>
-      (_linkRequired && _linkEmpty) || (_linkEditable && _linkFormatInvalid);
   bool get _titleInvalid => _titleEmpty;
-  bool get _priceInvalid => _priceEmpty || _parsePriceDigits() == null;
   bool get _categoryInvalid => _categoryEmpty;
 
-  bool get _linkShowsError => _validationAttempted && _linkInvalid;
+  bool get _priceInvalid =>
+      WishlistItemFormValidation.parsePriceDigits(_priceController.text) == null;
 
-  String? get _linkErrorMessage {
-    if (!_validationAttempted || !_linkFormatInvalid) return null;
-    return 'http 또는 https로 시작하는 링크를 입력해주세요';
-  }
+  bool get _priceIsZero =>
+      WishlistItemFormValidation.parsePriceDigits(_priceController.text) == 0;
+
+  bool get _linkShowsError => _validationAttempted && _linkInvalid;
   bool get _titleShowsError => _validationAttempted && _titleInvalid;
   bool get _categoryShowsError => _validationAttempted && _categoryInvalid;
-
-  bool get _priceIsZero {
-    final parsed = _parsePriceDigits();
-    return parsed != null && parsed == 0;
-  }
-
   bool get _priceShowsError =>
       _validationAttempted && (_priceInvalid || _priceIsZero);
 
-  String? get _priceErrorMessage {
-    if (_validationAttempted && _priceIsZero) return '1원 이상 입력해주세요';
-    return null;
-  }
+  String? get _linkErrorMessage => WishlistItemFormValidation.linkErrorMessage(
+        validationAttempted: _validationAttempted,
+        link: _linkController.text,
+      );
 
-  bool get _formIsValid {
-    if (_titleEmpty || _categoryEmpty) return false;
-    if (_linkInvalid) return false;
-    if (_priceInvalid || _priceIsZero) return false;
-    return true;
-  }
+  String? get _priceErrorMessage => WishlistItemFormValidation.priceErrorMessage(
+        validationAttempted: _validationAttempted,
+        priceText: _priceController.text,
+      );
+
+  bool get _formIsValid => WishlistItemFormValidation.isFormValid(
+        link: _linkController.text,
+        title: _nameController.text,
+        priceText: _priceController.text,
+        category: _selectedCategory,
+        isAdd: _isAdd,
+        linkReadOnly: widget.linkReadOnly,
+        editLinkReadOnly: _editLinkReadOnly,
+      );
 
   bool get _canSubmit =>
       _formIsValid && !widget.isSubmitting && !widget.isImporting;
@@ -316,28 +304,20 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
     final WishlistPlaceholder updated;
     if (_isAdd) {
-      final parsedPrice =
-          int.parse(_priceController.text.replaceAll(',', '').trim());
-      updated = WishlistPlaceholder(
-        id: 'w-${DateTime.now().millisecondsSinceEpoch}',
-        title: _nameController.text.trim(),
-        price: parsedPrice,
+      updated = WishlistItemFormValidation.buildAddDraft(
+        title: _nameController.text,
+        priceText: _priceController.text,
         category: _selectedCategory!,
-        link: _linkController.text.trim(),
+        link: _linkController.text,
         imageUrl: widget.formPrefill?.imageUrl,
       );
     } else {
-      final item = widget.item!;
-      final parsedPrice =
-          int.parse(_priceController.text.replaceAll(',', '').trim());
-      updated = WishlistPlaceholder(
-        id: item.id,
-        title: _nameController.text.trim(),
-        price: parsedPrice,
+      updated = WishlistItemFormValidation.buildEditDraft(
+        existing: widget.item!,
+        title: _nameController.text,
+        priceText: _priceController.text,
         category: _selectedCategory!,
-        link: _linkController.text.trim(),
-        imageUrl: item.imageUrl,
-        inputSource: item.inputSource,
+        link: _linkController.text,
       );
     }
     final ok = await widget.onSubmit(updated);
