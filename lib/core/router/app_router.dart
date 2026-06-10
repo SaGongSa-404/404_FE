@@ -24,7 +24,7 @@ import 'package:fe_app/features/profile/views/my_posts_screen.dart';
 import 'package:fe_app/features/profile/views/terms_policy_screen.dart';
 import 'package:fe_app/features/splash/views/splash_screen.dart';
 import 'package:fe_app/features/tutorial/views/wishlist_tutorial_route_screen.dart';
-import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
+import 'package:fe_app/features/wishlist/viewmodels/consider_viewmodel.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/wishlist/views/components/form/wishlist_product_fetch_failed_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_consider_result_screen.dart';
@@ -128,10 +128,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'result',
                 builder: (context, state) {
                   final itemId = state.pathParameters['itemId']!;
-                  final response = state.extra as DecisionCreateResponse;
+                  final extra = state.extra;
+                  if (extra is! ConsiderResultRouteArgs) {
+                    return WishlistConsiderScreen(itemId: itemId);
+                  }
                   return WishlistConsiderResultScreen(
                     itemId: itemId,
-                    response: response,
+                    response: extra.response,
+                    caseType: extra.caseType,
                   );
                 },
               ),
@@ -295,9 +299,9 @@ class _RouterNotifier extends ChangeNotifier {
     final isAuthPage = location == '/login' || location == '/signup';
     final isDevUser = EnvConfig.devUserId != null;
 
-    // 로컬 dev user(X-User-Id): 소셜 로그인 없이 온보딩 약관부터 진행
+    // 로컬 dev user(X-User-Id): 스플래시 직후에만 온보딩 약관으로 보냄 (로그인 화면 복귀 허용)
     if (isDevUser) {
-      if (location == '/' || isAuthPage) {
+      if (location == '/') {
         return _postSplashDestination(authState);
       }
       return null;

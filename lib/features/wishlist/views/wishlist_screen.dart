@@ -85,8 +85,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
       (prev, next) {
         if (next == null || next.isEmpty) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
           viewModel.clearSubmitError();
+          if (!context.mounted) return;
           showCapsuleToast(
             context,
             backgroundColor: const Color(0xFFD46868),
@@ -344,9 +344,20 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         ),
         if (editingItem != null)
           WishlistItemFormPanel.edit(
+            key: ValueKey('wishlist-edit-${editingItem.id}'),
             item: editingItem,
             onClose: viewModel.closeEditPanel,
-            onSubmit: viewModel.updateItem,
+            onSubmit: (item) async {
+              final ok = await viewModel.updateItem(item);
+              if (ok && context.mounted) {
+                showCapsuleToast(
+                  context,
+                  backgroundColor: const Color(0xFF5F8EAE),
+                  text: '수정되었습니다',
+                );
+              }
+              return ok;
+            },
             isSubmitting: state.isSubmitting,
             onDelete: () async {
               final ok = await viewModel.dropItem(editingItem.id);

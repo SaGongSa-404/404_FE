@@ -119,9 +119,9 @@ class DeliberationDetail {
 }
 
 String deliberationBudgetStatusLabel(int projectedUsageRate) {
-  if (projectedUsageRate < 50) return '여유 있음';
-  if (projectedUsageRate < 80) return '주의 필요';
-  return '예산 부족';
+  if (projectedUsageRate < 75) return '여유 있음';
+  if (projectedUsageRate < 100) return '주의 필요';
+  return '예산 초과';
 }
 
 String formatDeliberationPrice(int value) {

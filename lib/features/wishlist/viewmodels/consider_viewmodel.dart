@@ -202,7 +202,13 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
     try {
       final request = _buildDecisionRequest(decision, detail);
       final response = await _decisionService.createDecision(request);
-      final caseType = considerCaseTypeFromDecision(response);
+      final caseType = resolveConsiderCaseType(
+        result: decision == PurchaseDecision.purchase
+            ? PurchaseDecisionResult.go.apiValue
+            : PurchaseDecisionResult.stop.apiValue,
+        selfCheckYesCount: state.yesCount,
+        mascotState: response.mascot?.state,
+      );
 
       state = state.copyWith(
         isSubmitting: false,
@@ -216,7 +222,13 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
     } catch (e) {
       final conflictBody = _parseDecisionFromConflict(e);
       if (conflictBody != null) {
-        final caseType = considerCaseTypeFromDecision(conflictBody);
+        final caseType = resolveConsiderCaseType(
+          result: decision == PurchaseDecision.purchase
+              ? PurchaseDecisionResult.go.apiValue
+              : PurchaseDecisionResult.stop.apiValue,
+          selfCheckYesCount: state.yesCount,
+          mascotState: conflictBody.mascot?.state,
+        );
         state = state.copyWith(
           isSubmitting: false,
           decision: decision,
@@ -264,16 +276,52 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
   }
 }
 
-ConsiderCaseType considerCaseTypeFromDecision(DecisionCreateResponse response) {
-  final isGo =
-      response.result.toUpperCase() == PurchaseDecisionResult.go.apiValue;
-  final isRational = response.rationalityResult.toUpperCase() ==
-      RationalityResult.rational.apiValue;
+class ConsiderResultRouteArgs {
+  const ConsiderResultRouteArgs({
+    required this.response,
+    required this.caseType,
+  });
+
+  final DecisionCreateResponse response;
+  final ConsiderCaseType caseType;
+}
+
+ConsiderCaseType? caseTypeFromMascotState(String? state) {
+  if (state == null || state.isEmpty) return null;
+
+  final normalized = state.trim().toUpperCase().replaceAll('-', '_');
+  return switch (normalized) {
+    'RESULT_01_S' => ConsiderCaseType.caseA,
+    'RESULT_02_S' => ConsiderCaseType.caseB,
+    'RESULT_03_S' => ConsiderCaseType.caseC,
+    'RESULT_04_S' => ConsiderCaseType.caseD,
+    _ => null,
+  };
+}
+
+ConsiderCaseType resolveConsiderCaseType({
+  required String result,
+  required int selfCheckYesCount,
+  String? mascotState,
+}) {
+  final fromMascot = caseTypeFromMascotState(mascotState);
+  if (fromMascot != null) return fromMascot;
+
+  final isGo = result.trim().toUpperCase() == PurchaseDecisionResult.go.apiValue;
+  final isRational = selfCheckYesCount < 2;
 
   if (isGo) {
     return isRational ? ConsiderCaseType.caseA : ConsiderCaseType.caseB;
   }
   return isRational ? ConsiderCaseType.caseC : ConsiderCaseType.caseD;
+}
+
+ConsiderCaseType considerCaseTypeFromDecision(DecisionCreateResponse response) {
+  return resolveConsiderCaseType(
+    result: response.result,
+    selfCheckYesCount: response.selfCheckYesCount,
+    mascotState: response.mascot?.state,
+  );
 }
 
 final considerViewModelProvider = StateNotifierProvider.autoDispose
