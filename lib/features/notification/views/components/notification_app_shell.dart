@@ -2,20 +2,18 @@ import 'dart:async';
 
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
 import 'package:fe_app/features/notification/models/notification_route_intent.dart';
 import 'package:fe_app/features/notification/providers/fcm_navigation_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_deep_link_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_navigation_provider.dart';
-import 'package:fe_app/features/notification/providers/notification_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_sync_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class NotificationAppShell extends ConsumerStatefulWidget {
   const NotificationAppShell({super.key, required this.child});
@@ -105,17 +103,13 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
 
   Future<void> _handleBannerTap(NotificationModel banner) async {
     _dismissTimer?.cancel();
-    await ref.read(notificationLiveProvider.notifier).markAsRead(banner.id);
-    ref.read(notificationLiveProvider.notifier).consumeBanner(banner.id);
-    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+    await ref.read(notificationSyncProvider).markBannerAsRead(banner.id);
     if (!mounted) return;
     await _navigateFromNotification(banner);
   }
 
   Future<void> _openNotificationsPage() async {
-    await ref.read(notificationListProvider(false).notifier).refresh();
-    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
-    unawaited(ref.read(notificationLiveProvider.notifier).sync(queueNewBanners: false));
+    await ref.read(notificationSyncProvider).prepareNotificationsScreen();
     if (!mounted) return;
 
     final router = GoRouter.of(context);
@@ -132,7 +126,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
 
   Future<void> _navigateToRoute(String route) async {
     if (NotificationRouter.isExternalUrl(route)) {
-      await _launchExternalUrl(Uri.parse(route));
+      await NotificationRouter.launchExternalUrl(Uri.parse(route));
       return;
     }
     if (!NotificationRouter.shouldNavigate(route)) return;
@@ -142,15 +136,6 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     } catch (error, stackTrace) {
       debugPrint('notification navigation failed: $error\n$stackTrace');
       ref.read(pendingNotificationRouteProvider.notifier).state = route;
-    }
-  }
-
-  Future<void> _launchExternalUrl(Uri uri) async {
-    try {
-      if (!await canLaunchUrl(uri)) return;
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (error, stackTrace) {
-      debugPrint('notification external link failed: $error\n$stackTrace');
     }
   }
 
@@ -203,9 +188,16 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     ref.listen<bool>(fcmNavigationProvider, (previous, next) {
       if (next) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted) return;
-          await _handlePushOrDeepLinkOpen();
-          ref.read(fcmNavigationProvider.notifier).consume();
+          try {
+            if (mounted) {
+              await _handlePushOrDeepLinkOpen();
+            }
+          } finally {
+            // 예외/조기 반환 시에도 플래그가 true로 고정되지 않도록 항상 consume.
+            if (mounted) {
+              ref.read(fcmNavigationProvider.notifier).consume();
+            }
+          }
         });
       }
     });

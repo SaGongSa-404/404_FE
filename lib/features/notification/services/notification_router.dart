@@ -1,8 +1,20 @@
 import 'package:fe_app/features/notification/models/notification_model.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// API [targetPath]를 앱 GoRouter 경로로 변환합니다.
 abstract final class NotificationRouter {
   static const _playStorePackage = 'com.example.fe_app';
+
+  /// 외부 URL을 외부 앱으로 엽니다. 실패해도 예외를 전파하지 않습니다.
+  static Future<void> launchExternalUrl(Uri uri) async {
+    try {
+      if (!await canLaunchUrl(uri)) return;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (error, stackTrace) {
+      debugPrint('notification external link failed: $error\n$stackTrace');
+    }
+  }
 
   static bool isExternalUrl(String value) {
     final uri = Uri.tryParse(value.trim());

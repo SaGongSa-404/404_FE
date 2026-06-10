@@ -16,9 +16,9 @@ Future<void> deactivateStoredPushTokenWithReader(
 
   try {
     await read(pushTokenServiceProvider).deactivateToken(token: token);
-  } catch (error, stackTrace) {
-    debugPrint('[push-token] logout deactivate failed: $error\n$stackTrace');
-  } finally {
     await PushTokenStorage.clear();
+  } catch (error, stackTrace) {
+    // 실패 시 토큰을 지우지 않고 보존해 다음 비활성화 시도에서 재사용한다.
+    debugPrint('[push-token] logout deactivate failed: $error\n$stackTrace');
   }
 }

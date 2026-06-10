@@ -57,31 +57,43 @@ class FcmService {
 
   Future<void> start() async {
     if (_started || !FirebaseBootstrap.isInitialized) return;
+    // 동시 호출 재진입 방지를 위해 먼저 표시하고, 실패 시 롤백한다.
     _started = true;
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    await LocalNotificationPresenter.ensureInitialized(
-      onTap: _handleLocalNotificationTap,
-    );
+    try {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      await LocalNotificationPresenter.ensureInitialized(
+        onTap: _handleLocalNotificationTap,
+      );
 
-    final launchDetails = await LocalNotificationPresenter.launchDetails();
-    if (launchDetails?.didNotificationLaunchApp == true) {
-      _handleLocalNotificationTap(launchDetails?.notificationResponse?.payload);
-    }
+      final launchDetails = await LocalNotificationPresenter.launchDetails();
+      if (launchDetails?.didNotificationLaunchApp == true) {
+        _handleLocalNotificationTap(launchDetails?.notificationResponse?.payload);
+      }
 
-    await _messaging.setForegroundNotificationPresentationOptions(
-      alert: false,
-      badge: false,
-      sound: false,
-    );
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: false,
+        badge: false,
+        sound: false,
+      );
 
-    _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    _openedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(_handlePushOpen);
-    _tokenRefreshSub = _messaging.onTokenRefresh.listen(_registerToken);
+      _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      _openedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(_handlePushOpen);
+      _tokenRefreshSub = _messaging.onTokenRefresh.listen(_registerToken);
 
-    final initial = await _messaging.getInitialMessage();
-    if (initial != null) {
-      _handlePushOpen(initial);
+      final initial = await _messaging.getInitialMessage();
+      if (initial != null) {
+        _handlePushOpen(initial);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('[fcm] start failed: $error\n$stackTrace');
+      await _foregroundSub?.cancel();
+      await _openedAppSub?.cancel();
+      await _tokenRefreshSub?.cancel();
+      _foregroundSub = null;
+      _openedAppSub = null;
+      _tokenRefreshSub = null;
+      _started = false;
     }
   }
 
@@ -132,6 +144,7 @@ class FcmService {
 
     final auth = _ref.read(authProvider);
     if (!auth.hasValue || auth.value == null) return;
+    if (auth.value!.onboardingStatus != 'COMPLETED') return;
 
     try {
       final deviceId = await DeviceIdResolver.resolve();

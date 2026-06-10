@@ -12,16 +12,15 @@ class OnboardingBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: const Padding(
-          padding: EdgeInsets.all(4),
-          child: Icon(
-            Icons.arrow_back_ios_new,
-            size: OnboardingLayout.backIconSize,
-            color: AppColors.textPrimary,
-          ),
+      child: IconButton(
+        onPressed: onTap,
+        tooltip: '뒤로 가기',
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        iconSize: OnboardingLayout.backIconSize,
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          color: AppColors.textPrimary,
         ),
       ),
     );

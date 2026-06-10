@@ -1,5 +1,4 @@
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
-import 'package:fe_app/features/notification/providers/notification_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_sync_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,8 +8,7 @@ Future<void> openNotificationsPage(
   WidgetRef ref,
   BuildContext context,
 ) async {
-  await ref.read(notificationListProvider(false).notifier).refresh();
-  await ref.read(homeSummaryProvider.notifier).refresh();
+  await ref.read(notificationSyncProvider).refreshListAndHomeSummary();
   if (!context.mounted) return;
   context.push('/notifications');
 }

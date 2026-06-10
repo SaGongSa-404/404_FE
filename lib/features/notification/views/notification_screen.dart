@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/notification/models/notification_model.dart';
-import 'package:fe_app/features/notification/providers/notification_live_provider.dart';
 import 'package:fe_app/features/notification/providers/notification_provider.dart';
+import 'package:fe_app/features/notification/providers/notification_sync_provider.dart';
 import 'package:fe_app/features/notification/services/notification_router.dart';
 import 'package:fe_app/features/notification/services/notification_service.dart';
 import 'package:flutter/material.dart';
@@ -26,13 +23,13 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(ref.read(notificationListProvider(false).notifier).refresh());
-      unawaited(ref.read(notificationLiveProvider.notifier).sync(queueNewBanners: false));
+      ref.read(notificationSyncProvider).syncOnScreenEntered();
     });
   }
 
   Future<void> _onTapNotification(NotificationModel notification) async {
-    final result = await ref.read(notificationListProvider(false).notifier).markAsRead(notification.id);
+    final result =
+        await ref.read(notificationSyncProvider).markAsRead(notification.id);
 
     if (result == MarkAsReadResult.notFound) {
       if (!mounted) return;
@@ -41,11 +38,6 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       );
       return;
     }
-
-    await ref.read(notificationLiveProvider.notifier).markAsRead(
-      notification.id,
-      syncRemote: false,
-    );
 
     if (!mounted) return;
 
@@ -65,7 +57,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     try {
       await context.push(route);
       if (!mounted) return;
-      await ref.read(notificationListProvider(false).notifier).refresh();
+      await ref.read(notificationSyncProvider).refreshList();
     } catch (e) {
       debugPrint('알림 이동 실패: $e');
     }
@@ -97,10 +89,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         centerTitle: true,
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(notificationListProvider(false).notifier).refresh();
-          await ref.read(homeSummaryProvider.notifier).refresh();
-        },
+        onRefresh: () =>
+            ref.read(notificationSyncProvider).refreshListAndHomeSummary(),
         child: notificationsAsync.when(
           data: (notifications) {
             if (notifications.isEmpty) {

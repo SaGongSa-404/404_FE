@@ -1,4 +1,3 @@
-import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/firebase/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -6,12 +5,18 @@ import 'package:flutter/foundation.dart';
 /// Firebase Core 초기화. 설정이 없으면 no-op.
 abstract final class FirebaseBootstrap {
   static bool _initialized = false;
+  static Future<void>? _initializingFuture;
 
   static bool get isInitialized => _initialized;
 
-  static Future<void> initialize() async {
-    if (_initialized) return;
+  static Future<void> initialize() {
+    if (_initialized) return Future.value();
+    return _initializingFuture ??= _performInitialize().whenComplete(() {
+      _initializingFuture = null;
+    });
+  }
 
+  static Future<void> _performInitialize() async {
     final options = AppFirebaseOptions.currentPlatform;
     if (options == null) {
       if (kDebugMode) {

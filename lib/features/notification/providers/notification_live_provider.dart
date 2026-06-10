@@ -241,6 +241,11 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
       _seenIds.add(notificationId);
     }
 
+    final votePostId = NotificationRouter.extractPostId(candidate);
+    if (votePostId != null) {
+      _seenVotePostIds.add(votePostId);
+    }
+
     state = state.copyWith(
       bannerQueue: [...state.bannerQueue, candidate],
     );
