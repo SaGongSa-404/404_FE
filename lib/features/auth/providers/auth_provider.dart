@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/config/env_config.dart';
+import 'package:fe_app/core/network/session_expiration.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
@@ -15,6 +17,17 @@ import 'package:url_launcher/url_launcher.dart';
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   @override
   Future<UserModel?> build() async {
+    void handleSessionExpired() {
+      unawaited(sessionExpired());
+    }
+
+    SessionExpiration.onExpired = handleSessionExpired;
+    ref.onDispose(() {
+      if (SessionExpiration.onExpired == handleSessionExpired) {
+        SessionExpiration.onExpired = null;
+      }
+    });
+
     final storage = ref.read(secureStorageServiceProvider);
     final token = await storage.getAccessToken();
     if (token == null && !EnvConfig.isDevXUserIdAuth) return null;
@@ -24,6 +37,12 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       if (token != null) await storage.clearTokens();
       return null;
     }
+  }
+
+  Future<void> sessionExpired() async {
+    await ref.read(secureStorageServiceProvider).clearTokens();
+    ref.read(myProfileProvider.notifier).reset();
+    state = const AsyncData(null);
   }
 
   void resetToLoggedOut() {
@@ -167,6 +186,10 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     try {
       final user = await ref.read(authServiceProvider).getMe();
       state = AsyncData(user);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        await sessionExpired();
+      }
     } catch (_) {
       // 표시용 닉네임은 [updateDisplayName] 으로 이미 반영됨
     }

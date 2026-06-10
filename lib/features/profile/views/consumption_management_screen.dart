@@ -6,8 +6,10 @@ import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/profile_modal_text_field.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -80,7 +82,7 @@ class _ConsumptionManagementScreenState
         title: Text(
           '소비 관리',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.brown,
             fontSize: 18 * scale,
             fontWeight: FontWeight.bold,
           ),
@@ -454,110 +456,202 @@ class _ConsumptionManagementScreenState
   }
 
   void _showBudgetEditDialog(BuildContext context, int currentBudget) {
-    final controller = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final scale = responsiveScale(sheetContext);
-        final horizontalInset = 21 * scale;
-        var isSubmitting = false;
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-          padding: EdgeInsets.fromLTRB(
-            horizontalInset,
-            0,
-            horizontalInset,
-            max(
-                  MediaQuery.paddingOf(sheetContext).bottom,
-                  MediaQuery.of(sheetContext).viewInsets.bottom,
-                ) +
-                24 * scale,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(37 * scale),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 3,
+      builder: (sheetContext) => _BudgetEditModal(
+        currentBudget: currentBudget,
+        onSave: (newBudget) async {
+          final ok = await ref
+              .read(consumptionStatsProvider.notifier)
+              .updateBudget(newBudget);
+          if (ok) _didChangeBudget = true;
+          return ok;
+        },
+      ),
+    );
+  }
+}
+
+class _BudgetEditModal extends StatefulWidget {
+  const _BudgetEditModal({
+    required this.currentBudget,
+    required this.onSave,
+  });
+
+  final int currentBudget;
+  final Future<bool> Function(int newBudget) onSave;
+
+  @override
+  State<_BudgetEditModal> createState() => _BudgetEditModalState();
+}
+
+class _BudgetEditModalState extends State<_BudgetEditModal> {
+  static const _maxDigits = 8;
+
+  late final TextEditingController _controller;
+  String _digits = '';
+  bool _isSaving = false;
+  bool _maxDigitsExceeded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final digits = _controller.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits != _digits || _maxDigitsExceeded) {
+      setState(() {
+        _digits = digits;
+        if (digits.length < _maxDigits) {
+          _maxDigitsExceeded = false;
+        }
+      });
+    }
+  }
+
+  void _onExceededMaxDigits() {
+    if (!_maxDigitsExceeded) {
+      setState(() => _maxDigitsExceeded = true);
+    }
+  }
+
+  String? get _errorMessage {
+    if (_maxDigitsExceeded) return '8자 이내로 입력해주세요';
+    if (_digits.isEmpty) return null;
+    final amount = int.tryParse(_digits) ?? 0;
+    if (amount < 1) return '1원 이상 입력해주세요';
+    return null;
+  }
+
+  bool get _canSave {
+    if (_isSaving) return false;
+    if (_digits.isEmpty) return false;
+    final amount = int.tryParse(_digits) ?? 0;
+    return amount >= 1 && _digits.length <= _maxDigits;
+  }
+
+  String _formatAmount(int amount) {
+    return amount.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (m) => ',',
+        );
+  }
+
+  Future<void> _handleSave() async {
+    if (!_canSave) return;
+    final newBudget = int.parse(_digits);
+    setState(() => _isSaving = true);
+    final ok = await widget.onSave(newBudget);
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    if (ok) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = responsiveScale(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final systemBottomPadding = MediaQuery.paddingOf(context).bottom;
+    final hasError = _errorMessage != null;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.fromLTRB(
+        21 * scale,
+        0,
+        21 * scale,
+        max(systemBottomPadding, bottomInset) + 24 * scale,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(37 * scale),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 3,
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 31 * scale),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '현재 예산 ${_formatAmount(widget.currentBudget)}',
+              style: TextStyle(
+                fontSize: 20 * scale,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: 6 * scale),
+            Text(
+              '수정할 예산을 입력해주세요',
+              style: TextStyle(fontSize: 16 * scale, color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 25 * scale),
+            if (hasError)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8 * scale),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: AppColors.red_400,
+                      fontSize: 13 * scale,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ProfileModalTextField(
+              controller: _controller,
+              scale: scale,
+              hasError: hasError,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                _BudgetAmountFormatter(
+                  maxDigits: _maxDigits,
+                  onExceededMaxDigits: _onExceededMaxDigits,
                 ),
               ],
             ),
-            padding:
-                EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 31 * scale),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            SizedBox(height: 20 * scale),
+            Row(
               children: [
-                Text(
-                  '현재 예산 ${currentBudget.toString().replaceAllMapped(RegExp(r"\B(?=(\d{3})+(?!\d))"), (m) => ",")}',
-                  style: TextStyle(
-                    fontSize: 20 * scale,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 6 * scale),
-                Text(
-                  '수정할 예산을 입력해주세요',
-                  style: TextStyle(fontSize: 16 * scale, color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 16 * scale),
-                TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '입력하기',
-                    hintStyle: const TextStyle(color: Color(0xFFADADAD)),
-                    filled: true,
-                    fillColor: const Color(0xFFF2F2F2),
-                    contentPadding: EdgeInsets.symmetric(vertical: 14 * scale),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25 * scale),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25 * scale),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25 * scale),
-                      borderSide: BorderSide(
-                          color: AppColors.textPrimary, width: 1.5 * scale),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20 * scale),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(sheetContext).pop(),
-                        child: Container(
-                          height: 57 * scale,
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(57 * scale),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '취소',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 20 * scale,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 57 * scale,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(57 * scale),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20 * scale,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
@@ -617,16 +711,67 @@ class _ConsumptionManagementScreenState
                                 ),
                         ),
                       ),
+                      alignment: Alignment.center,
+                      child: _isSaving
+                          ? SizedBox(
+                              width: 24 * scale,
+                              height: 24 * scale,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              '수정완료',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 20 * scale,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
-            );
-          },
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetAmountFormatter extends TextInputFormatter {
+  _BudgetAmountFormatter({
+    required this.maxDigits,
+    this.onExceededMaxDigits,
+  });
+
+  final int maxDigits;
+  final VoidCallback? onExceededMaxDigits;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length > maxDigits) {
+      onExceededMaxDigits?.call();
+      digits = digits.substring(0, maxDigits);
+    }
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    final formatted = int.parse(digits).toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+$)'),
+          (m) => '${m[1]},',
         );
-      },
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

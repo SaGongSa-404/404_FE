@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/config/env_config.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/core/network/session_expiration.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -12,12 +13,12 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 class ApiClient {
   ApiClient({required SecureStorageService storage, Dio? dio})
-      : _dio = dio ?? _buildDio(storage);
+      : _dio = dio ?? _createDio(storage);
 
   final Dio _dio;
   Dio get dio => _dio;
 
-  static Dio _buildDio(SecureStorageService storage) {
+  static Dio _createDio(SecureStorageService storage) {
     final baseUrl = EnvConfig.apiBaseUrl;
     final dio = Dio(
       BaseOptions(
@@ -128,6 +129,7 @@ class AuthInterceptor extends Interceptor {
       handler.resolve(retryResponse);
     } catch (_) {
       await _storage.clearTokens();
+      SessionExpiration.notify();
       handler.next(err);
     } finally {
       _isRefreshing = false;
