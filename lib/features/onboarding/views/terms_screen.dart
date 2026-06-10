@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_back_button.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_spaced_scroll_view.dart';
 
 class TermsScreen extends ConsumerStatefulWidget {
   const TermsScreen({super.key});
@@ -100,48 +103,29 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
         if (!didPop) unawaited(_onBack());
       },
       child: Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: LayoutBuilder(
-          builder: (context, constraints) {
-            final scale = constraints.maxWidth / _designWidth;
-            final hPad = (constraints.maxWidth * (24 / _designWidth))
-                .clamp(20.0, 48.0);
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final scale = constraints.maxWidth / _designWidth;
+                  final hPad = (constraints.maxWidth * (24 / _designWidth))
+                      .clamp(20.0, 48.0);
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPad),
-                  child: SingleChildScrollView(
+                  return Center(
                     child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: hPad),
+                        child: OnboardingSpacedScrollView(
+                          viewportHeight: constraints.maxHeight,
                           children: [
-                            const Spacer(flex: 65),
-                            // 뒤로가기
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: GestureDetector(
-                                onTap: _onBack,
-                                behavior: HitTestBehavior.opaque,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new,
-                                    size: (18 * scale).clamp(14.0, 24.0),
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
+                            OnboardingLayout.topSpacer(),
+                            OnboardingBackButton(
+                              onTap: () => unawaited(_onBack()),
                             ),
                             SizedBox(height: (74 * scale).clamp(55.0, 92.0)),
-                            // 제목 영역
                             Padding(
                               padding: EdgeInsets.symmetric(
                                 horizontal: (8 * scale).clamp(6.0, 10.0),
@@ -153,21 +137,20 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                                     '이용약관 및 개인정보 처리방침',
                                     style: TextStyle(
                                       fontFamily: 'Pretendard',
-                                      fontSize:
-                                          (26 * scale).clamp(19.0, 33.0),
+                                      fontSize: (26 * scale).clamp(19.0, 33.0),
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.textPrimary,
                                       height: 1.36,
                                     ),
                                   ),
                                   SizedBox(
-                                      height: (12 * scale).clamp(9.0, 16.0)),
+                                    height: (12 * scale).clamp(9.0, 16.0),
+                                  ),
                                   Text(
                                     '위굴을 시작하기 전, 약관을 확인해 주세요',
                                     style: TextStyle(
                                       fontFamily: 'Pretendard',
-                                      fontSize:
-                                          (18 * scale).clamp(14.0, 23.0),
+                                      fontSize: (18 * scale).clamp(14.0, 23.0),
                                       fontWeight: FontWeight.w400,
                                       color: AppColors.textPrimary,
                                       height: 1.45,
@@ -177,10 +160,8 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                               ),
                             ),
                             SizedBox(height: (40 * scale).clamp(30.0, 52.0)),
-                            // 수집 항목 요약 카드
                             _SummaryCard(scale: scale, allAgreed: _canStart),
                             SizedBox(height: (37 * scale).clamp(28.0, 48.0)),
-                            // 동의 체크박스 목록
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -191,29 +172,32 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                                   scale: scale,
                                 ),
                                 SizedBox(
-                                    height: (12 * scale).clamp(9.0, 16.0)),
+                                  height: (12 * scale).clamp(9.0, 16.0),
+                                ),
                                 _ConsentCheckRow(
                                   checked: _agreeService,
                                   onTap: _toggleService,
                                   label: '서비스 이용약관 동의',
                                   scale: scale,
                                   isRequired: true,
-                                  onRequiredTap: () => context.push('/onboarding/service-terms'),
+                                  onRequiredTap: () =>
+                                      context.push('/onboarding/service-terms'),
                                 ),
                                 SizedBox(
-                                    height: (12 * scale).clamp(9.0, 16.0)),
+                                  height: (12 * scale).clamp(9.0, 16.0),
+                                ),
                                 _ConsentCheckRow(
                                   checked: _agreePrivacy,
                                   onTap: _togglePrivacy,
                                   label: '개인정보 처리방침 동의',
                                   scale: scale,
                                   isRequired: true,
-                                  onRequiredTap: () => context.push('/onboarding/privacy-policy'),
+                                  onRequiredTap: () =>
+                                      context.push('/onboarding/privacy-policy'),
                                 ),
                               ],
                             ),
                             SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
-                            // 안내 문구
                             Text.rich(
                               TextSpan(
                                 children: [
@@ -221,20 +205,17 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                                     text: '※ ',
                                     style: TextStyle(
                                       fontFamily: 'Pretendard',
-                                      fontSize:
-                                          (14 * scale).clamp(11.0, 18.0),
+                                      fontSize: (14 * scale).clamp(11.0, 18.0),
                                       fontWeight: FontWeight.w500,
                                       color: AppColors.textSecondary,
                                       height: 1.45,
                                     ),
                                   ),
                                   TextSpan(
-                                    text:
-                                        '동의를 거부하실 수 있으나, 거부 시 서비스 이용이 제한됩니다.',
+                                    text: '동의를 거부하실 수 있으나, 거부 시 서비스 이용이 제한됩니다.',
                                     style: TextStyle(
                                       fontFamily: 'Pretendard',
-                                      fontSize:
-                                          (14 * scale).clamp(11.0, 18.0),
+                                      fontSize: (14 * scale).clamp(11.0, 18.0),
                                       fontWeight: FontWeight.w400,
                                       color: AppColors.textSecondary,
                                       height: 1.45,
@@ -244,12 +225,10 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                               ),
                             ),
                             const Spacer(flex: 118),
-                            // 시작하기 버튼
                             OnboardingPrimaryButton(
                               label: '시작하기',
                               onPressed: _canStart
-                                  ? () =>
-                                      context.push('/onboarding/nickname')
+                                  ? () => context.push('/onboarding/nickname')
                                   : null,
                               fontSize: (18 * scale).clamp(14.0, 23.0),
                             ),
@@ -258,21 +237,18 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
                         ),
                       ),
                     ),
-                  ),
+                  );
+                },
+              ),
+            ),
+            if (_showNotificationDim)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: ColoredBox(color: _dimColor),
                 ),
               ),
-            );
-          },
-            ),
-          ),
-          if (_showNotificationDim)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: ColoredBox(color: _dimColor),
-              ),
-            ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -294,8 +270,7 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius:
-            BorderRadius.circular((22 * scale).clamp(16.0, 28.0)),
+        borderRadius: BorderRadius.circular((22 * scale).clamp(16.0, 28.0)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -341,7 +316,7 @@ class _SummaryCard extends StatelessWidget {
           SizedBox(height: (12 * scale).clamp(9.0, 16.0)),
           _InfoRow(
             label: '수집 항목',
-            value: '이메일, 프로필, 고유 식별자',
+            value: '이메일, 프로필 이름, 고유 식별자',
             fontSize: fontSize14,
           ),
           SizedBox(height: rowGap),
@@ -376,7 +351,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -388,14 +363,19 @@ class _InfoRow extends StatelessWidget {
             height: 1.45,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-            height: 1.45,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            softWrap: true,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: fontSize,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
           ),
         ),
       ],

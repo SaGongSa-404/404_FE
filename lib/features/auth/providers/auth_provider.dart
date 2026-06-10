@@ -10,7 +10,6 @@ import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/services/profile_service.dart';
 import 'package:fe_app/features/auth/utils/oauth_callback_uri.dart';
 import 'package:fe_app/features/auth/utils/oauth_launch.dart';
-import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
