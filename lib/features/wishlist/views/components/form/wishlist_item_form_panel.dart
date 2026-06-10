@@ -7,8 +7,8 @@ import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.da
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
 import 'package:fe_app/features/wishlist/views/components/modals/wishlist_bottom_sheet.dart';
+import 'package:fe_app/shared/enums/api_enums.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
-import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -78,7 +78,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   String? _selectedCategory;
-  bool _showFieldErrors = false;
+  bool _validationAttempted = false;
 
   static const double _sheetTopRadius = 22;
   static const Color _wishlistCardShadowColor = Color(0x22000000);
@@ -89,9 +89,17 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   static const double _beforeSaveButtonGap = 56;
   static const double _extraTopGap = 52;
   static const Color _fieldErrorBorder = Color(0xFF9C4444);
+  static const Color _disabledButtonBackground = Color(0xFFDAE9F1);
+  static const Color _disabledButtonForeground = Color(0xFF8F8F8F);
+  static const int _maxPriceDigits = 8;
   static const List<String> _categories = WishlistCategoryUi.formLabels;
 
+  late final FocusNode _priceFocusNode;
+
   bool get _isAdd => widget.mode == WishlistFormMode.add;
+
+  bool get _editLinkReadOnly =>
+      !_isAdd && widget.item?.inputSource == ItemInputSource.share;
 
   @override
   void initState() {
@@ -107,6 +115,8 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       vsync: this,
       duration: const Duration(milliseconds: 420),
     );
+    _priceFocusNode = FocusNode()..addListener(_onPriceFocusChanged);
+
     _shakeDx = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0, end: -7), weight: 1),
       TweenSequenceItem(tween: Tween(begin: -7, end: 7), weight: 1),
@@ -147,7 +157,14 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   @override
   void didUpdateWidget(covariant WishlistItemFormPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isAdd) return;
+    if (!_isAdd) {
+      final oldItem = oldWidget.item;
+      final newItem = widget.item;
+      if (oldItem == null || newItem == null) return;
+      if (oldItem.id == newItem.id) return;
+      _syncEditFieldsFromItem(newItem);
+      return;
+    }
     if (widget.isImporting && !oldWidget.isImporting) return;
 
     final prefill = widget.formPrefill;
@@ -157,6 +174,19 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     if (!finishingImport && identical(prefill, oldWidget.formPrefill)) return;
 
     _applyFormPrefill(prefill, rebuild: true);
+  }
+
+  void _onPriceFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _syncEditFieldsFromItem(WishlistPlaceholder item) {
+    _linkController.text = item.link;
+    _nameController.text = item.title;
+    _priceController.text = _formatPrice(item.price);
+    _selectedCategory =
+        _categories.contains(item.category) ? item.category : _categories.first;
+    _validationAttempted = false;
   }
 
   void _applyFormPrefill(WishlistAddFormPrefill? prefill, {bool rebuild = false}) {
@@ -169,7 +199,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       if (prefill.title.isNotEmpty) {
         _nameController.text = prefill.title;
       }
-      if (prefill.price > 0) {
+      if (prefill.price >= 0) {
         _priceController.text = _formatPrice(prefill.price);
       }
       _selectedCategory = WishlistCategoryUi.resolveFormChipSelection(
@@ -186,6 +216,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
   @override
   void dispose() {
+    _priceFocusNode.dispose();
     _shakeController.dispose();
     _controller.dispose();
     _linkController.dispose();
@@ -201,26 +232,60 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
   bool get _linkRequired => _isAdd && widget.linkReadOnly;
 
-  bool get _linkInvalid => _linkRequired && _linkEmpty;
+  bool get _linkEditable =>
+      _isAdd ? !widget.linkReadOnly : !_editLinkReadOnly;
+
+  bool get _linkHasValue => !_linkEmpty;
+
+  bool get _linkFormatInvalid {
+    if (!_linkHasValue) return false;
+    final trimmed = _linkController.text.trim().toLowerCase();
+    return !trimmed.startsWith('http://') && !trimmed.startsWith('https://');
+  }
+
+  int? _parsePriceDigits() {
+    final digits = _priceController.text.replaceAll(',', '').trim();
+    if (digits.isEmpty) return null;
+    return int.tryParse(digits);
+  }
+
+  bool get _linkInvalid =>
+      (_linkRequired && _linkEmpty) || (_linkEditable && _linkFormatInvalid);
   bool get _titleInvalid => _titleEmpty;
-  bool get _priceInvalid =>
-      _priceEmpty || int.tryParse(_priceController.text.replaceAll(',', '').trim()) == null;
+  bool get _priceInvalid => _priceEmpty || _parsePriceDigits() == null;
   bool get _categoryInvalid => _categoryEmpty;
 
-  bool get _linkShowsError => _showFieldErrors && _linkInvalid;
-  bool get _titleShowsError => _showFieldErrors && _titleInvalid;
-  bool get _priceShowsError => _showFieldErrors && _priceInvalid;
-  bool get _categoryShowsError => _showFieldErrors && _categoryInvalid;
+  bool get _linkShowsError => _validationAttempted && _linkInvalid;
+
+  String? get _linkErrorMessage {
+    if (!_validationAttempted || !_linkFormatInvalid) return null;
+    return 'http 또는 https로 시작하는 링크를 입력해주세요';
+  }
+  bool get _titleShowsError => _validationAttempted && _titleInvalid;
+  bool get _categoryShowsError => _validationAttempted && _categoryInvalid;
+
+  bool get _priceIsZero {
+    final parsed = _parsePriceDigits();
+    return parsed != null && parsed == 0;
+  }
+
+  bool get _priceShowsError =>
+      _validationAttempted && (_priceInvalid || _priceIsZero);
+
+  String? get _priceErrorMessage {
+    if (_validationAttempted && _priceIsZero) return '1원 이상 입력해주세요';
+    return null;
+  }
 
   bool get _formIsValid {
-    if (!_isAdd) return !_categoryEmpty;
-    final linkOk = !_linkRequired || !_linkEmpty;
-    return linkOk &&
-        !_titleEmpty &&
-        !_priceEmpty &&
-        int.tryParse(_priceController.text.replaceAll(',', '').trim()) != null &&
-        !_categoryEmpty;
+    if (_titleEmpty || _categoryEmpty) return false;
+    if (_linkInvalid) return false;
+    if (_priceInvalid || _priceIsZero) return false;
+    return true;
   }
+
+  bool get _canSubmit =>
+      _formIsValid && !widget.isSubmitting && !widget.isImporting;
 
   Future<void> _playDismiss() => _controller.reverse();
 
@@ -229,13 +294,25 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     if (mounted) widget.onClose();
   }
 
-  Future<void> _save() async {
+  Future<void> _onSavePressed() async {
     if (widget.isSubmitting || widget.isImporting) return;
+
+    setState(() => _validationAttempted = true);
     if (!_formIsValid) {
-      setState(() => _showFieldErrors = true);
       await _shakeController.forward(from: 0);
       return;
     }
+
+    if (_priceIsZero) {
+      await _shakeController.forward(from: 0);
+      return;
+    }
+
+    await _save();
+  }
+
+  Future<void> _save() async {
+    if (widget.isSubmitting || widget.isImporting) return;
 
     final WishlistPlaceholder updated;
     if (_isAdd) {
@@ -251,13 +328,16 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       );
     } else {
       final item = widget.item!;
+      final parsedPrice =
+          int.parse(_priceController.text.replaceAll(',', '').trim());
       updated = WishlistPlaceholder(
         id: item.id,
-        title: item.title,
-        price: item.price,
+        title: _nameController.text.trim(),
+        price: parsedPrice,
         category: _selectedCategory!,
-        link: item.link,
+        link: _linkController.text.trim(),
         imageUrl: item.imageUrl,
+        inputSource: item.inputSource,
       );
     }
     final ok = await widget.onSubmit(updated);
@@ -266,13 +346,6 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
 
     await _playDismiss();
     if (!mounted) return;
-    if (!_isAdd && context.mounted) {
-      showCapsuleToast(
-        context,
-        backgroundColor: const Color(0xFF5F8EAE),
-        text: '수정되었습니다',
-      );
-    }
     widget.onClose();
   }
 
@@ -358,71 +431,42 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (_isAdd) ...[
-                                  _buildField(
-                                    scale: scale,
-                                    label: '링크',
-                                    controller: _linkController,
-                                    hintText: WishlistItemFormHints.link,
-                                    showError: _linkShowsError,
-                                    showErrorBorder: _linkShowsError,
-                                    readOnly: widget.linkReadOnly,
-                                  ),
-                                  SizedBox(height: 24 * scale),
-                                  _buildField(
-                                    scale: scale,
-                                    label: '상품명',
-                                    controller: _nameController,
-                                    hintText: WishlistItemFormHints.productName,
-                                    showError: _titleShowsError,
-                                    showErrorBorder: _titleShowsError,
-                                  ),
-                                  SizedBox(height: 24 * scale),
-                                  _buildField(
-                                    scale: scale,
-                                    label: '가격',
-                                    controller: _priceController,
-                                    keyboardType: TextInputType.number,
-                                    suffix: '원',
-                                    hintText: WishlistItemFormHints.price,
-                                    showError: _priceShowsError,
-                                    showErrorBorder: _priceShowsError,
-                                  ),
-                                  SizedBox(height: 32 * scale),
-                                ] else ...[
-                                  _buildField(
-                                    scale: scale,
-                                    label: '링크',
-                                    controller: _linkController,
-                                    hintText: '',
-                                    showError: false,
-                                    showErrorBorder: false,
-                                    readOnly: true,
-                                  ),
-                                  SizedBox(height: 24 * scale),
-                                  _buildField(
-                                    scale: scale,
-                                    label: '상품명',
-                                    controller: _nameController,
-                                    hintText: '',
-                                    showError: false,
-                                    showErrorBorder: false,
-                                    readOnly: true,
-                                  ),
-                                  SizedBox(height: 24 * scale),
-                                  _buildField(
-                                    scale: scale,
-                                    label: '가격',
-                                    controller: _priceController,
-                                    keyboardType: TextInputType.number,
-                                    suffix: '원',
-                                    hintText: '',
-                                    showError: false,
-                                    showErrorBorder: false,
-                                    readOnly: true,
-                                  ),
-                                  SizedBox(height: 32 * scale),
-                                ],
+                                _buildField(
+                                  scale: scale,
+                                  label: '링크',
+                                  controller: _linkController,
+                                  hintText: _editLinkReadOnly || widget.linkReadOnly
+                                      ? ''
+                                      : WishlistItemFormHints.link,
+                                  showError: _linkShowsError,
+                                  showErrorBorder: _linkShowsError,
+                                  errorMessage: _linkErrorMessage,
+                                  readOnly:
+                                      _isAdd ? widget.linkReadOnly : _editLinkReadOnly,
+                                ),
+                                SizedBox(height: 24 * scale),
+                                _buildField(
+                                  scale: scale,
+                                  label: '상품명',
+                                  controller: _nameController,
+                                  hintText: WishlistItemFormHints.productName,
+                                  showError: _titleShowsError,
+                                  showErrorBorder: _titleShowsError,
+                                ),
+                                SizedBox(height: 24 * scale),
+                                _buildField(
+                                  scale: scale,
+                                  label: '가격',
+                                  controller: _priceController,
+                                  focusNode: _priceFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  suffix: '원',
+                                  hintText: WishlistItemFormHints.price,
+                                  showError: _priceShowsError,
+                                  showErrorBorder: _priceShowsError,
+                                  errorMessage: _priceErrorMessage,
+                                ),
+                                SizedBox(height: 32 * scale),
                                 _categoryLabelRow(scale),
                                 SizedBox(height: 12 * scale),
                                 _categoryGridThreePerRow(scale),
@@ -439,14 +483,53 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
               ),
             ),
           ),
+          _numericKeyboardDoneBar(scale),
         ],
       ),
       ),
     );
   }
 
+  Widget _numericKeyboardDoneBar(double scale) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    if (bottomInset == 0 || !_priceFocusNode.hasFocus) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: bottomInset,
+      child: Material(
+        elevation: 4,
+        color: const Color(0xFFF1F1F1),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 44 * scale,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => _priceFocusNode.unfocus(),
+                child: Text(
+                  '완료',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 16 * scale,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _header(BuildContext context, double scale) {
-    final title = _isAdd ? '위시 추가' : '카테고리 수정';
+    final title = _isAdd ? '위시 추가' : '위시 수정';
     final trailing = widget.onDelete != null
         ? TextButton(
             onPressed: widget.isSubmitting ? null : _delete,
@@ -530,12 +613,12 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
             height: 1.25,
           ),
         ),
-        _errorIconTrailing(visible: _categoryShowsError, scale: scale),
+        _errorIconOnly(visible: _categoryShowsError, scale: scale),
       ],
     );
   }
 
-  Widget _errorIconTrailing({required bool visible, required double scale}) {
+  Widget _errorIconOnly({required bool visible, required double scale}) {
     if (!visible) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.only(left: 6 * scale),
@@ -551,7 +634,65 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           height: _labelLineHeight(scale),
           width: 20 * scale,
           child: Center(
-            child: Icon(Icons.error_outline, size: 20 * scale, color: AppColors.red_400),
+            child: Icon(
+              Icons.error_outline,
+              size: 20 * scale,
+              color: AppColors.red_400,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fieldErrorFeedback({
+    required bool visible,
+    required double scale,
+    String? message,
+  }) {
+    if (!visible) return const SizedBox.shrink();
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.only(left: 6 * scale),
+        child: AnimatedBuilder(
+          animation: _shakeController,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(_shakeDx.value * scale, 0),
+              child: child,
+            );
+          },
+          child: Row(
+            children: [
+              SizedBox(
+                height: _labelLineHeight(scale),
+                width: 20 * scale,
+                child: Center(
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 20 * scale,
+                    color: AppColors.red_400,
+                  ),
+                ),
+              ),
+              if (message != null) ...[
+                SizedBox(width: 4 * scale),
+                Flexible(
+                  child: Text(
+                    message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 13 * scale,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.red_400,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -567,9 +708,14 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     }
     return WishlistModalPillButton(
       label: label,
-      background: AppColors.skyBlue_100,
-      pressedBackground: AppColors.skyBlue_200,
-      onPressed: (widget.isSubmitting || widget.isImporting) ? null : _save,
+      background:
+          _canSubmit ? AppColors.skyBlue_100 : _disabledButtonBackground,
+      pressedBackground:
+          _canSubmit ? AppColors.skyBlue_200 : _disabledButtonBackground,
+      foreground:
+          _canSubmit ? AppColors.textPrimary : _disabledButtonForeground,
+      onPressed:
+          widget.isSubmitting || widget.isImporting ? null : _onSavePressed,
       fixedHeight: 54 * scale,
       padding: EdgeInsets.zero,
     );
@@ -595,11 +741,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                       right: j == 2 ? 0 : _categoryChipGap * scale / 2,
                     ),
                     child: j < chunk.length
-                        ? _categoryChipFilterStyle(
-                            chunk[j],
-                            scale: scale,
-                            showErrorBorder: _categoryShowsError,
-                          )
+                        ? _categoryChipFilterStyle(chunk[j], scale: scale)
                         : const SizedBox.shrink(),
                   ),
                 ),
@@ -614,15 +756,10 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     );
   }
 
-  Widget _categoryChipFilterStyle(
-    String category, {
-    required double scale,
-    required bool showErrorBorder,
-  }) {
+  Widget _categoryChipFilterStyle(String category, {required double scale}) {
     final isSelected = _selectedCategory == category;
-    final borderColor = showErrorBorder && !isSelected
-        ? _fieldErrorBorder
-        : (isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0));
+    final borderColor =
+        isSelected ? AppColors.skyBlue_100 : const Color(0xFFD0D0D0);
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = category),
       child: Container(
@@ -664,10 +801,12 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
     required String label,
     required TextEditingController controller,
     required String hintText,
+    FocusNode? focusNode,
     TextInputType keyboardType = TextInputType.text,
     String? suffix,
     required bool showError,
     required bool showErrorBorder,
+    String? errorMessage,
     bool readOnly = false,
   }) {
     return Column(
@@ -688,7 +827,11 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
                 height: 1.25,
               ),
             ),
-            _errorIconTrailing(visible: showError, scale: scale),
+            _fieldErrorFeedback(
+              visible: showError,
+              scale: scale,
+              message: errorMessage,
+            ),
           ],
         ),
         SizedBox(height: 10 * scale),
@@ -712,12 +855,18 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
           ),
           child: TextField(
             controller: controller,
+            focusNode: focusNode,
             readOnly: readOnly,
             keyboardType: keyboardType,
+            textInputAction:
+                keyboardType == TextInputType.number ? TextInputAction.done : null,
+            onSubmitted: keyboardType == TextInputType.number
+                ? (_) => focusNode?.unfocus()
+                : null,
             inputFormatters: keyboardType == TextInputType.number
                 ? <TextInputFormatter>[
                     FilteringTextInputFormatter.digitsOnly,
-                    _PriceTextInputFormatter(),
+                    _PriceTextInputFormatter(maxDigits: _maxPriceDigits),
                   ]
                 : null,
             style: TextStyle(
@@ -777,9 +926,16 @@ String _formatPrice(int value) {
 }
 
 class _PriceTextInputFormatter extends TextInputFormatter {
+  _PriceTextInputFormatter({required this.maxDigits});
+
+  final int maxDigits;
+
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final digits = newValue.text.replaceAll(',', '');
+    var digits = newValue.text.replaceAll(',', '');
+    if (digits.length > maxDigits) {
+      digits = digits.substring(0, maxDigits);
+    }
     if (digits.isEmpty) {
       return const TextEditingValue(text: '');
     }

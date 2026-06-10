@@ -8,6 +8,7 @@ import 'package:fe_app/core/network/json_response.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_category_update_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_update_request.dart';
 import 'package:fe_app/shared/models/pagination.dart';
 
 part 'wishlist_service.g.dart';
@@ -43,6 +44,17 @@ class WishlistService {
   Future<WishlistItem> createItem(WishlistItemSaveRequest request) async {
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.wishlistItems,
+      data: request.toJson(),
+    );
+    return WishlistItem.fromJson(requireJsonMap(res.data));
+  }
+
+  Future<WishlistItem> updateItem({
+    required String itemId,
+    required WishlistItemUpdateRequest request,
+  }) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.wishlistItem(itemId),
       data: request.toJson(),
     );
     return WishlistItem.fromJson(requireJsonMap(res.data));

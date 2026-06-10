@@ -40,6 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String _currentVideoBaseName = 'nugul_home';
   bool _isPlayingSpecialOnce = false;
   bool _isInitializing = false;
+  bool _isSchedulingSpecialPlayback = false;
   bool _hasUserInteractedWithMascot = false;
   VoidCallback? _specialListener;
   Timer? _balloonDismissTimer;
@@ -89,21 +90,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _cleanupOldController() async {
-    if (_videoController != null) {
-      if (_specialListener != null) {
-        _videoController!.removeListener(_specialListener!);
-        _specialListener = null;
-      }
-      await _videoController!.dispose();
-      _videoController = null;
+    final controller = _videoController;
+    if (controller == null) return;
+
+    if (_specialListener != null) {
+      controller.removeListener(_specialListener!);
+      _specialListener = null;
     }
+
+    ref.read(homeSpecialEffectProvider.notifier).detachController(controller);
+    await controller.dispose();
+    _videoController = null;
+  }
+
+  Future<void> _restoreDefaultVideo(String defaultVideoBaseName) async {
+    _isPlayingSpecialOnce = false;
+    if (!mounted) return;
+    await _initializeVideo(defaultVideoBaseName, loop: true);
   }
 
   Future<void> _playPreloadedSpecialAndRestore({
-    required VideoPlayerController preloadedController,
     required String defaultVideoBaseName,
   }) async {
-    if (_isPlayingSpecialOnce) return;
+    if (_isPlayingSpecialOnce || _isInitializing) return;
+
+    final preloadedController = ref
+        .read(homeSpecialEffectProvider.notifier)
+        .takePreloadedController();
+    if (preloadedController == null) return;
+
+    if (!preloadedController.value.isInitialized ||
+        preloadedController.value.hasError) {
+      await preloadedController.dispose();
+      await _restoreDefaultVideo(defaultVideoBaseName);
+      return;
+    }
+
     _isPlayingSpecialOnce = true;
 
     final oldController = _videoController;
@@ -112,54 +134,117 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _specialListener = null;
     }
 
-    if (!mounted) return;
-
-    await preloadedController.setLooping(false);
-    await preloadedController.seekTo(Duration.zero);
-
-    setState(() {
-      _videoController = preloadedController;
-      _currentVideoPath = preloadedController.dataSource;
-    });
-
-    await preloadedController.play();
-
-    if (oldController != null) {
-      Future.delayed(const Duration(milliseconds: 200), () => oldController.dispose());
+    if (!mounted) {
+      _isPlayingSpecialOnce = false;
+      await preloadedController.dispose();
+      return;
     }
 
-    // 영상의 개수를 비교하여 한 번만 재생되도록 처리
-    bool alreadyReturned = false;
-    
-    void onTick() async {
-      if (alreadyReturned || !mounted || _videoController != preloadedController) {
+    try {
+      await preloadedController.setLooping(false);
+      await preloadedController.seekTo(Duration.zero);
+
+      setState(() {
+        _videoController = preloadedController;
+        _currentVideoPath = preloadedController.dataSource;
+      });
+
+      await preloadedController.play();
+
+      if (oldController != null && oldController != preloadedController) {
+        ref
+            .read(homeSpecialEffectProvider.notifier)
+            .detachController(oldController);
+        unawaited(oldController.dispose());
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Special video playback failed: $error\n$stackTrace');
+      await _cleanupOldController();
+      await _restoreDefaultVideo(defaultVideoBaseName);
+      return;
+    }
+
+    var alreadyFinished = false;
+
+    void onTick() {
+      if (alreadyFinished || !mounted || _videoController != preloadedController) {
         preloadedController.removeListener(onTick);
         return;
       }
-      
-      final value = preloadedController.value;
-      if (!value.isInitialized || value.duration <= Duration.zero) return;
 
-      // 정확한 종료 감지: position이 duration과 거의 같을 때
-      // (duration - 100ms 이내)
-      final remainingMs = value.duration.inMilliseconds - value.position.inMilliseconds;
-      
-      if (remainingMs <= 100 && !value.isPlaying) {
-        alreadyReturned = true;
+      final value = preloadedController.value;
+      if (!value.isInitialized) return;
+
+      if (value.hasError) {
+        alreadyFinished = true;
         preloadedController.removeListener(onTick);
         _specialListener = null;
-
-        ref.read(homeSpecialEffectProvider.notifier).resetAfterPlay();
-
-        if (!mounted) return;
-
-        await _initializeVideo(defaultVideoBaseName, loop: true);
-        _isPlayingSpecialOnce = false;
+        unawaited(_cleanupOldController().then((_) {
+          if (mounted) {
+            unawaited(_restoreDefaultVideo(defaultVideoBaseName));
+          }
+        }));
+        return;
       }
+
+      final duration = value.duration;
+      if (duration <= Duration.zero) return;
+
+      final remaining = duration - value.position;
+      final reachedEnd = remaining <= const Duration(milliseconds: 200);
+      if (!reachedEnd) return;
+
+      alreadyFinished = true;
+      preloadedController.removeListener(onTick);
+      _specialListener = null;
+      unawaited(_restoreDefaultVideo(defaultVideoBaseName));
     }
 
     _specialListener = onTick;
     preloadedController.addListener(onTick);
+  }
+
+  void _scheduleDefaultVideoIfNeeded(String defaultVideoBaseName) {
+    if (_isPlayingSpecialOnce ||
+        _isInitializing ||
+        _isSchedulingSpecialPlayback ||
+        ref.read(homeSpecialEffectProvider).hasPendingSpecial) {
+      return;
+    }
+
+    final needsDefaultVideo = _videoController == null ||
+        !_videoController!.value.isInitialized ||
+        _videoController!.value.hasError ||
+        _currentVideoBaseName != defaultVideoBaseName;
+
+    if (!needsDefaultVideo) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isPlayingSpecialOnce || _isInitializing) return;
+      unawaited(_initializeVideo(defaultVideoBaseName, loop: true));
+    });
+  }
+
+  void _scheduleSpecialPlaybackIfNeeded(String defaultVideoBaseName) {
+    if (_isPlayingSpecialOnce ||
+        _isSchedulingSpecialPlayback ||
+        _isInitializing) {
+      return;
+    }
+
+    final specialState = ref.read(homeSpecialEffectProvider);
+    if (!specialState.hasPendingSpecial) return;
+
+    _isSchedulingSpecialPlayback = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isSchedulingSpecialPlayback = false;
+      if (!mounted || _isPlayingSpecialOnce) return;
+      unawaited(
+        _playPreloadedSpecialAndRestore(
+          defaultVideoBaseName: defaultVideoBaseName,
+        ),
+      );
+    });
   }
 
   void _onNugulTap() {
@@ -272,10 +357,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.removeObserver(this);
     _balloonDismissTimer?.cancel();
     _pageController.dispose();
-    if (_videoController != null && _specialListener != null) {
-      _videoController!.removeListener(_specialListener!);
+    final controller = _videoController;
+    if (controller != null) {
+      if (_specialListener != null) {
+        controller.removeListener(_specialListener!);
+        _specialListener = null;
+      }
+      ref.read(homeSpecialEffectProvider.notifier).detachController(controller);
+      controller.dispose();
+      _videoController = null;
     }
-    _videoController?.dispose();
     super.dispose();
   }
 
@@ -296,9 +387,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isBudgetExhausted = currentRecord != null && remainingBudget <= 0;
     final defaultVideoBaseName = _getDefaultVideoBaseName(isBudgetExhausted);
 
-    final specialState = ref.watch(homeSpecialEffectProvider);
-    final preloadedController = specialState.preloadedController;
-    final hasSpecial = specialState.caseType != null && preloadedController != null;
+    ref.listen<HomeSpecialEffectState>(homeSpecialEffectProvider, (previous, next) {
+      if (next.hasPendingSpecial) {
+        _scheduleSpecialPlaybackIfNeeded(defaultVideoBaseName);
+      }
+    });
 
     if (authUser != null) {
       ref.watch(homeBubbleRuntimeProvider);
@@ -314,25 +407,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      if (hasSpecial && !_isPlayingSpecialOnce) {
-        _playPreloadedSpecialAndRestore(
-          preloadedController: preloadedController!,
-          defaultVideoBaseName: defaultVideoBaseName,
-        );
-        return;
-      }
-
-      if (!_isPlayingSpecialOnce &&
-          !_isInitializing &&
-          _currentVideoBaseName != defaultVideoBaseName) {
-        _initializeVideo(defaultVideoBaseName, loop: true);
-      } else if (_videoController == null && !_isInitializing) {
-        _initializeVideo(defaultVideoBaseName, loop: true);
-      }
-    });
+    _scheduleSpecialPlaybackIfNeeded(defaultVideoBaseName);
+    _scheduleDefaultVideoIfNeeded(defaultVideoBaseName);
 
     final videoController = _videoController;
 

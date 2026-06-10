@@ -10,6 +10,7 @@ import 'package:fe_app/features/wishlist/views/components/consider/consider_prod
 import 'package:fe_app/features/wishlist/views/components/consider/consider_result_card.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
+import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,10 +69,7 @@ class WishlistConsiderScreen extends ConsumerWidget {
           body: _buildBody(context, scale, state),
         ),
         if (state.isSubmitting)
-          ColoredBox(
-            color: const Color(0x99000000),
-            child: LoadingIndicator(message: '결정 저장 중...'),
-          ),
+          const Positioned.fill(child: NugulLoadingScreen()),
       ],
     );
   }
@@ -157,6 +155,7 @@ class WishlistConsiderScreen extends ConsumerWidget {
                 currentSpent: detail.budget.spentAmount,
                 addedAmount: addedAmount,
                 budgetPercent: state.budgetPercent,
+                projectedUsageRate: detail.budget.projectedUsageRate,
                 statusLabel: deliberationBudgetStatusLabel(
                   detail.budget.projectedUsageRate,
                 ),
@@ -213,65 +212,35 @@ class _BottomActionButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(considerViewModelProvider(itemId));
+    final canSubmit = state.isAllAnswered && !state.isSubmitting;
 
     return Row(
       children: [
         Expanded(
-          child: GestureDetector(
-            onTap: state.isSubmitting
-                ? null
-                : () => _submit(
-                      context,
-                      ref,
-                      PurchaseDecision.purchase,
-                    ),
-            child: Container(
-              height: 61 * scale,
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border.all(color: AppColors.skyBlue_100, width: 1),
-                borderRadius: BorderRadius.circular(100 * scale),
-              ),
-              child: Center(
-                child: Text(
-                  '살게요',
-                  style: TextStyle(
-                    fontSize: 20 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF333333),
-                  ),
-                ),
-              ),
-            ),
+          child: _ConsiderActionButton(
+            label: '살게요',
+            scale: scale,
+            enabled: canSubmit,
+            enabledBackground: AppColors.white,
+            enabledForeground: const Color(0xFF333333),
+            enabledBorder: Border.all(color: AppColors.skyBlue_100, width: 1),
+            fadeTextOnlyWhenDisabled: true,
+            onTap: canSubmit
+                ? () => _submit(context, ref, PurchaseDecision.purchase)
+                : null,
           ),
         ),
         SizedBox(width: 12 * scale),
         Expanded(
-          child: GestureDetector(
-            onTap: state.isSubmitting
-                ? null
-                : () => _submit(
-                      context,
-                      ref,
-                      PurchaseDecision.refrain,
-                    ),
-            child: Container(
-              height: 61 * scale,
-              decoration: BoxDecoration(
-                color: AppColors.skyBlue_100,
-                borderRadius: BorderRadius.circular(100 * scale),
-              ),
-              child: Center(
-                child: Text(
-                  '참을게요',
-                  style: TextStyle(
-                    fontSize: 20 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF333333),
-                  ),
-                ),
-              ),
-            ),
+          child: _ConsiderActionButton(
+            label: '참을게요',
+            scale: scale,
+            enabled: canSubmit,
+            enabledBackground: AppColors.skyBlue_100,
+            enabledForeground: const Color(0xFF333333),
+            onTap: canSubmit
+                ? () => _submit(context, ref, PurchaseDecision.refrain)
+                : null,
           ),
         ),
       ],
@@ -283,30 +252,75 @@ class _BottomActionButtons extends ConsumerWidget {
     WidgetRef ref,
     PurchaseDecision decision,
   ) async {
-    final state = ref.read(considerViewModelProvider(itemId));
-    if (!state.isAllAnswered) {
-      _showAnswerRequiredToast(context, state.totalQuestions);
-      return;
-    }
-
-    final response = await ref
-        .read(considerViewModelProvider(itemId).notifier)
-        .submitDecision(decision);
+    final notifier = ref.read(considerViewModelProvider(itemId).notifier);
+    final response = await notifier.submitDecision(decision);
     if (!context.mounted || response == null) return;
+
+    final caseType = ref.read(considerViewModelProvider(itemId)).caseType;
+    if (caseType == null) return;
 
     context.push(
       '/wishlist/consider/$itemId/result',
-      extra: response,
+      extra: ConsiderResultRouteArgs(
+        response: response,
+        caseType: caseType,
+      ),
     );
   }
+}
 
-  void _showAnswerRequiredToast(BuildContext context, int questionCount) {
-    showCapsuleToast(
-      context,
-      backgroundColor: AppColors.red_600,
-      text: questionCount > 0
-          ? '1~$questionCount번 질문에 모두 답변해 주세요.'
-          : '질문에 모두 답변해 주세요.',
+class _ConsiderActionButton extends StatelessWidget {
+  const _ConsiderActionButton({
+    required this.label,
+    required this.scale,
+    required this.enabled,
+    required this.enabledBackground,
+    required this.enabledForeground,
+    this.enabledBorder,
+    this.fadeTextOnlyWhenDisabled = false,
+    this.onTap,
+  });
+
+  static const Color _disabledBackground = Color(0xFFDAE9F1);
+  static const Color _disabledForeground = Color(0xFF8F8F8F);
+
+  final String label;
+  final double scale;
+  final bool enabled;
+  final Color enabledBackground;
+  final Color enabledForeground;
+  final BoxBorder? enabledBorder;
+  final bool fadeTextOnlyWhenDisabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = enabled || fadeTextOnlyWhenDisabled
+        ? enabledBackground
+        : _disabledBackground;
+    final foreground =
+        enabled ? enabledForeground : _disabledForeground;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 61 * scale,
+        decoration: BoxDecoration(
+          color: background,
+          border: enabledBorder,
+          borderRadius: BorderRadius.circular(100 * scale),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 20 * scale,
+              fontWeight: FontWeight.w500,
+              color: foreground,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

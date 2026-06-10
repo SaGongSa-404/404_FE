@@ -1,22 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/onboarding/views/components/onboarding_primary_button.dart';
-import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 
-class TermsScreen extends StatefulWidget {
+class TermsScreen extends ConsumerStatefulWidget {
   const TermsScreen({super.key});
 
   @override
-  State<TermsScreen> createState() => _TermsScreenState();
+  ConsumerState<TermsScreen> createState() => _TermsScreenState();
 }
 
-class _TermsScreenState extends State<TermsScreen> {
+class _TermsScreenState extends ConsumerState<TermsScreen> {
   static const _designWidth = 412.0;
   static const Color _dimColor = Color(0x59000000);
 
@@ -78,9 +79,19 @@ class _TermsScreenState extends State<TermsScreen> {
     });
   }
 
+  Future<void> _onBack() async {
+    await ref.read(authProvider.notifier).logout();
+    if (!mounted) return;
+    context.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppExitBackHandler(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_onBack());
+      },
       child: Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -110,7 +121,7 @@ class _TermsScreenState extends State<TermsScreen> {
                             Align(
                               alignment: Alignment.centerLeft,
                               child: GestureDetector(
-                                onTap: () => confirmAppExit(context),
+                                onTap: _onBack,
                                 behavior: HitTestBehavior.opaque,
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),

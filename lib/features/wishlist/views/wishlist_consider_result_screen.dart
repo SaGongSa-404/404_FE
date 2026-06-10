@@ -13,12 +13,12 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
     super.key,
     required this.itemId,
     required this.response,
+    required this.caseType,
   });
 
   final String itemId;
   final DecisionCreateResponse response;
-
-  ConsiderCaseType get caseType => considerCaseTypeFromDecision(response);
+  final ConsiderCaseType caseType;
 
   Widget _caseImage(double scale) {
     switch (caseType) {
@@ -202,7 +202,6 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                         final special = ref.read(homeSpecialEffectProvider.notifier);
                         // Home 화면에서 딜레이 없이 재생하기 위해 결과를 바탕으로 비디오를 미리 로드합니다.
                         await special.preloadCase(caseType);
-                        special.markCase(caseType);
                         await HomeBalloonService.markPendingDecisionCase(caseType);
                         ref.invalidate(considerViewModelProvider(itemId));
                         context.go('/home');
