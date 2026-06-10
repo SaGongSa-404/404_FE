@@ -86,9 +86,11 @@ abstract final class ApiEndpoints {
   static String socialPostCommentReports(String postId, String commentId) =>
       '$v1/social/posts/$postId/comments/$commentId/reports';
 
-  // ── Block ────────────────────────────────────────────────────────────────
+  // ── Block / Report ───────────────────────────────────────────────────────
   static String userBlock(String targetUserId) =>
       '$v1/users/$targetUserId/block';
+  static String userReport(String targetUserId) =>
+      '$v1/users/$targetUserId/reports';
 
   // ── Dev (개발/테스트 보조) ───────────────────────────────────────────────
   static const String devUsersTest = '$dev/users/test';

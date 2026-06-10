@@ -157,8 +157,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
   }) {
     if (item.isRead) return false;
 
-    final type = item.type?.toUpperCase();
-    if (type == NotificationType.socialVote.apiValue) {
+    final notificationType = NotificationType.fromApiValue(item.type);
+    if (notificationType?.isSocialVoteBannerType == true) {
       final postId = NotificationRouter.extractPostId(item);
       if (postId != null) {
         if (_seenVotePostIds.contains(postId)) return false;

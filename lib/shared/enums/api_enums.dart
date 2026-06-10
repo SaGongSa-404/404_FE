@@ -1,3 +1,20 @@
+enum ItemRetrievalStatus {
+  success('SUCCESS'),
+  partial('PARTIAL');
+
+  const ItemRetrievalStatus(this.apiValue);
+  final String apiValue;
+
+  static ItemRetrievalStatus? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in ItemRetrievalStatus.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
+}
+
 enum ItemInputSource {
   share('SHARE'),
   directInput('DIRECT_INPUT');
@@ -63,6 +80,15 @@ enum PurchaseDecisionResult {
 
   const PurchaseDecisionResult(this.apiValue);
   final String apiValue;
+
+  static PurchaseDecisionResult? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in PurchaseDecisionResult.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
 }
 
 enum RationalityResult {
@@ -79,6 +105,32 @@ enum PostVoteType {
 
   const PostVoteType(this.apiValue);
   final String apiValue;
+
+  static PostVoteType? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in PostVoteType.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
+}
+
+enum PushPlatform {
+  ios('IOS'),
+  android('ANDROID');
+
+  const PushPlatform(this.apiValue);
+  final String apiValue;
+
+  static PushPlatform? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in PushPlatform.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
 }
 
 enum ReflectionRegretLevel {
@@ -89,25 +141,112 @@ enum ReflectionRegretLevel {
 
   const ReflectionRegretLevel(this.apiValue);
   final String apiValue;
+
+  static ReflectionRegretLevel? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in ReflectionRegretLevel.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
 }
 
 enum NotificationType {
   regretCheckReady('REGRET_CHECK_READY'),
+  regretCheckFollowUp('REGRET_CHECK_FOLLOW_UP'),
   wishlistReminder('WISHLIST_REMINDER'),
   budgetWarning('BUDGET_WARNING'),
-  socialVote('SOCIAL_VOTE');
+  budgetReset('BUDGET_RESET'),
+  socialVote('SOCIAL_VOTE'),
+  socialFirstVote('SOCIAL_FIRST_VOTE'),
+  socialVoteSummary('SOCIAL_VOTE_SUMMARY'),
+  socialDecisionNudge('SOCIAL_DECISION_NUDGE'),
+  socialComment('SOCIAL_COMMENT'),
+  appUpdate('APP_UPDATE'),
+  maintenanceNotice('MAINTENANCE_NOTICE');
 
   const NotificationType(this.apiValue);
   final String apiValue;
+
+  static NotificationType? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in NotificationType.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
+
+  bool get isSocialVoteBannerType =>
+      this == NotificationType.socialVote ||
+      this == NotificationType.socialFirstVote ||
+      this == NotificationType.socialVoteSummary;
+}
+
+enum HomeBubbleApiType {
+  budgetNegative('BUDGET_NEGATIVE'),
+  budgetZero('BUDGET_ZERO'),
+  decisionReaction('DECISION_REACTION'),
+  welcome('WELCOME'),
+  pendingWishlist('PENDING_WISHLIST'),
+  voteWaiting('VOTE_WAITING'),
+  defaultType('DEFAULT');
+
+  const HomeBubbleApiType(this.apiValue);
+  final String apiValue;
+
+  static HomeBubbleApiType? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in HomeBubbleApiType.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
 }
 
 enum TermsType {
-  service('SERVICE'),
-  privacy('PRIVACY'),
-  marketing('MARKETING');
+  termsOfService('TERMS_OF_SERVICE'),
+  privacyPolicy('PRIVACY_POLICY'),
+  marketing('MARKETING'),
+  ageConfirmation('AGE_CONFIRMATION');
 
   const TermsType(this.apiValue);
   final String apiValue;
+
+  static TermsType? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in TermsType.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
+}
+
+enum UserStatus {
+  active('ACTIVE'),
+  suspended('SUSPENDED'),
+  banned('BANNED'),
+  withdrawn('WITHDRAWN');
+
+  const UserStatus(this.apiValue);
+  final String apiValue;
+
+  static UserStatus? fromApiValue(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final item in UserStatus.values) {
+      if (item.apiValue == normalized) return item;
+    }
+    return null;
+  }
+
+  bool get isRestricted =>
+      this == UserStatus.suspended ||
+      this == UserStatus.banned ||
+      this == UserStatus.withdrawn;
 }
 
 enum SelfCheckQuestionCode {

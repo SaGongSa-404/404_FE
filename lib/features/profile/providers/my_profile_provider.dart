@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/core/network/network_error.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
@@ -49,10 +50,8 @@ class MyProfileNotifier extends StateNotifier<MyProfileState> {
   bool _hasFetched = false;
 
   String _errorMessage(Object error) {
-    if (error is DioException &&
-        (error.type == DioExceptionType.connectionError ||
-            error.type == DioExceptionType.connectionTimeout)) {
-      return '서버에 연결할 수 없습니다. API 주소와 백엔드 실행 여부를 확인해 주세요.';
+    if (isNetworkError(error)) {
+      return kNetworkErrorMessage;
     }
     final api = apiExceptionFrom(error);
     if (api != null && api.message != '요청을 처리하지 못했습니다.') {

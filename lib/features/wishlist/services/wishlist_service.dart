@@ -22,6 +22,8 @@ class WishlistService {
   final Dio _dio;
 
   static const int defaultListLimit = 50;
+  static const int minListLimit = 1;
+  static const int maxListLimit = 100;
 
   Future<CursorPage<WishlistItem>> listItems({
     String? category,
@@ -29,16 +31,21 @@ class WishlistService {
     String? cursor,
     CancelToken? cancelToken,
   }) async {
+    final boundedLimit = limit.clamp(minListLimit, maxListLimit);
     final res = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.wishlistItems,
       queryParameters: {
-        if (category != null) 'category': category,
-        'limit': limit,
-        if (cursor != null) 'cursor': cursor,
+        if (category != null && category.isNotEmpty) 'category': category,
+        'limit': boundedLimit,
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
       },
       cancelToken: cancelToken,
     );
-    return CursorPage.fromJson(requireJsonMap(res.data), 'items', WishlistItem.fromJson);
+    return CursorPage.fromJson(
+      requireJsonMap(res.data),
+      'items',
+      WishlistItem.fromSummaryJson,
+    );
   }
 
   Future<WishlistItem> createItem(WishlistItemSaveRequest request) async {

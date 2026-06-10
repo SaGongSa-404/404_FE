@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fe_app/core/network/api_exception.dart';
+import 'package:fe_app/features/feed/models/create_comment_request.dart';
 import 'package:fe_app/features/feed/models/create_post_request.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/models/vote_type.dart';
 import 'package:fe_app/features/feed/services/feed_service.dart';
+import 'package:fe_app/features/feed/utils/feed_api_errors.dart';
 import 'package:fe_app/features/feed/viewmodels/feed_state.dart';
 
 class FeedViewModel extends StateNotifier<FeedState> {
@@ -17,6 +19,8 @@ class FeedViewModel extends StateNotifier<FeedState> {
 
   /// 투표 요청이 진행 중인 게시글 ID. 연타로 인한 중복 요청(토글 오동작)을 막습니다.
   final Set<String> _votingPostIds = {};
+
+  String _listErrorMessage(Object error) => feedListErrorMessage(error);
 
   String _errorMessage(Object error) =>
       apiExceptionFrom(error)?.message ?? '요청을 처리하지 못했습니다.';
@@ -39,7 +43,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: _errorMessage(e),
+        errorMessage: _listErrorMessage(e),
       );
     }
   }
@@ -63,7 +67,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: _errorMessage(e),
+        errorMessage: _listErrorMessage(e),
       );
     }
   }
@@ -83,7 +87,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
     } catch (e) {
       state = state.copyWith(
         isLoadingMore: false,
-        errorMessage: _errorMessage(e),
+        errorMessage: _listErrorMessage(e),
       );
     }
   }
@@ -105,7 +109,10 @@ class FeedViewModel extends StateNotifier<FeedState> {
             .toList(),
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(
+        errorMessage: apiExceptionFrom(e)?.message ??
+            '요청을 처리하지 못했습니다.',
+      );
     } finally {
       _votingPostIds.remove(postId);
     }
@@ -118,10 +125,18 @@ class FeedViewModel extends StateNotifier<FeedState> {
   Future<FeedPost?> addPost(CreatePostRequest request) async {
     try {
       final created = await _service.createPost(request);
-      state = state.copyWith(posts: [created, ...state.posts]);
+      final existingIndex =
+          state.posts.indexWhere((post) => post.id == created.id);
+      final posts = existingIndex >= 0
+          ? [
+              for (var i = 0; i < state.posts.length; i++)
+                if (i == existingIndex) created else state.posts[i],
+            ]
+          : [created, ...state.posts];
+      state = state.copyWith(posts: posts, errorMessage: null);
       return created;
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(errorMessage: feedCreatePostErrorMessage(e));
       return null;
     }
   }
@@ -136,7 +151,10 @@ class FeedViewModel extends StateNotifier<FeedState> {
       );
       return updated;
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(
+        errorMessage: apiExceptionFrom(e)?.message ??
+            '요청을 처리하지 못했습니다.',
+      );
       return null;
     }
   }
@@ -153,7 +171,10 @@ class FeedViewModel extends StateNotifier<FeedState> {
       );
       return true;
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(
+        errorMessage: apiExceptionFrom(e)?.message ??
+            '요청을 처리하지 못했습니다.',
+      );
       return false;
     }
   }
@@ -252,6 +273,13 @@ class FeedViewModel extends StateNotifier<FeedState> {
   Future<void> addComment(String postId, String content) async {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
+    if (trimmed.length > CreateCommentRequest.maxBodyLength) {
+      state = state.copyWith(
+        errorMessage:
+            '댓글은 ${CreateCommentRequest.maxBodyLength}자까지 작성할 수 있어요.',
+      );
+      return;
+    }
     try {
       final created = await _service.createComment(postId, trimmed);
       final existing = state.commentsMap[postId] ?? const CommentsPage();
@@ -265,7 +293,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
       });
       _applyCommentMeta(postId, commentCount: updated.total);
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(errorMessage: feedCommentErrorMessage(e));
     }
   }
 
@@ -298,7 +326,7 @@ class FeedViewModel extends StateNotifier<FeedState> {
       await _service.reportPost(postId, category: category, reason: reason);
       return true;
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(errorMessage: feedReportErrorMessage(e));
       return false;
     }
   }
@@ -314,7 +342,25 @@ class FeedViewModel extends StateNotifier<FeedState> {
           category: category, reason: reason);
       return true;
     } catch (e) {
-      state = state.copyWith(errorMessage: _errorMessage(e));
+      state = state.copyWith(errorMessage: feedReportErrorMessage(e));
+      return false;
+    }
+  }
+
+  Future<bool> reportUser({
+    required String targetUserId,
+    required String category,
+    String? reason,
+  }) async {
+    try {
+      await _service.reportUser(
+        targetUserId,
+        category: category,
+        reason: reason,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: feedReportErrorMessage(e));
       return false;
     }
   }

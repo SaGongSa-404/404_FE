@@ -1,5 +1,6 @@
 import 'package:fe_app/features/home/domain/home_bubble_type.dart';
 import 'package:fe_app/features/home/models/home_summary.dart';
+import 'package:fe_app/shared/enums/api_enums.dart';
 
 extension HomeSummaryResponseX on HomeSummaryResponse {
   String get defaultVideoBaseName {
@@ -11,22 +12,24 @@ extension HomeSummaryResponseX on HomeSummaryResponse {
 }
 
 extension HomeBubbleSummaryX on HomeBubbleSummary {
+  HomeBubbleApiType? get apiBubbleType => HomeBubbleApiType.fromApiValue(type);
+
   HomeBubbleType toHomeBubbleType() {
-    switch (type) {
-      case 'WELCOME':
+    switch (apiBubbleType) {
+      case HomeBubbleApiType.welcome:
         return HomeBubbleType.onboarding;
-      case 'BUDGET_NEGATIVE':
+      case HomeBubbleApiType.budgetNegative:
         return HomeBubbleType.budgetNegative;
-      case 'BUDGET_ZERO':
+      case HomeBubbleApiType.budgetZero:
         return HomeBubbleType.budgetZero;
-      case 'PENDING_WISHLIST':
+      case HomeBubbleApiType.pendingWishlist:
         return HomeBubbleType.emptyWish;
-      case 'VOTE_WAITING':
+      case HomeBubbleApiType.voteWaiting:
         return HomeBubbleType.socialReaction;
-      case 'DECISION_REACTION':
+      case HomeBubbleApiType.decisionReaction:
         return HomeBubbleType.rationalGo;
-      case 'DEFAULT':
-      default:
+      case HomeBubbleApiType.defaultType:
+      case null:
         return HomeBubbleType.defaultHome;
     }
   }

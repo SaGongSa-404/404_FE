@@ -47,11 +47,22 @@ class WishlistItemSaveRequest with _$WishlistItemSaveRequest {
     final hasLink = trimmedLink != null && trimmedLink.isNotEmpty;
     final uri = hasLink ? Uri.tryParse(trimmedLink) : null;
 
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      throw ArgumentError('Title must not be empty', 'title');
+    }
+    if (trimmedTitle.length > 200) {
+      throw ArgumentError('Title must be at most 200 characters', 'title');
+    }
+    if (listedPrice != null && listedPrice < 0) {
+      throw ArgumentError('listedPrice must be >= 0', 'listedPrice');
+    }
+
     return WishlistItemSaveRequest(
       inputSource: inputSource.apiValue,
       originalUrl: hasLink ? trimmedLink : null,
       normalizedUrl: hasLink ? trimmedLink : null,
-      title: title.trim(),
+      title: trimmedTitle,
       imageUrl: imageUrl,
       listedPrice: listedPrice,
       currencyCode: listedPrice != null ? 'KRW' : null,

@@ -1,3 +1,4 @@
+import 'package:fe_app/features/auth/models/user.dart';
 import 'package:flutter/foundation.dart';
 
 /// OAuth 콜백 딥링크 URI 판별·토큰 파싱.
@@ -28,6 +29,42 @@ Map<String, String> readOAuthCallbackParams(Uri uri) {
     }
   }
   return uri.queryParameters;
+}
+
+UserModel? userModelFromOAuthCallbackParams(Map<String, String> params) {
+  final userId = params['user_id']?.trim();
+  final provider = params['provider']?.trim();
+  final providerUserId = params['provider_user_id']?.trim();
+  final name = params['name']?.trim();
+  if (userId == null ||
+      userId.isEmpty ||
+      provider == null ||
+      provider.isEmpty ||
+      providerUserId == null ||
+      providerUserId.isEmpty ||
+      name == null ||
+      name.isEmpty) {
+    return null;
+  }
+
+  final email = params['email']?.trim();
+  final profileImageUrl = params['profile_image_url']?.trim();
+
+  return UserModel(
+    authenticated: true,
+    userId: userId,
+    provider: provider,
+    providerUserId: providerUserId,
+    name: name,
+    email: email != null && email.isNotEmpty ? email : null,
+    profileImageUrl:
+        profileImageUrl != null && profileImageUrl.isNotEmpty
+            ? profileImageUrl
+            : null,
+    principalName: name,
+    authorities: const [],
+    onboardingStatus: null,
+  );
 }
 
 /// 디버그 로그용 — 토큰·민감 쿼리는 포함하지 않습니다.
