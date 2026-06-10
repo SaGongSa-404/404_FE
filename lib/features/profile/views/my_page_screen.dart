@@ -1,16 +1,18 @@
+import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
-import 'package:fe_app/features/profile/providers/profile_provider.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/providers/notification_settings_provider.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MyPageScreen extends ConsumerStatefulWidget {
   const MyPageScreen({super.key});
@@ -269,9 +271,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
           ),
           const Spacer(),
           GestureDetector(
-            onTap: isInteractive
-                ? () => ref.read(notificationSettingsProvider.notifier).toggle()
-                : null,
+            onTap: isInteractive ? () => _onAlarmToggleTap() : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 44 * scale,
@@ -299,6 +299,76 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _onAlarmToggleTap() async {
+    final settings = ref.read(notificationSettingsProvider);
+    if (settings.isLoading || settings.isUpdating) return;
+
+    final notifier = ref.read(notificationSettingsProvider.notifier);
+
+    if (settings.notificationEnabled) {
+      final ok = await notifier.setEnabled(false);
+      if (!mounted) return;
+      if (ok) {
+        _showAlarmToast('알람이 꺼졌습니다');
+      }
+      return;
+    }
+
+    final status = await NotificationPermissionService.status;
+    if (!mounted) return;
+
+    if (status.isGranted) {
+      final ok = await notifier.setEnabled(true);
+      if (!mounted) return;
+      if (ok) {
+        _showAlarmToast('알람이 설정되었습니다');
+      }
+      return;
+    }
+
+    if (status.isPermanentlyDenied) {
+      await _showNotificationPermissionBottomSheet();
+      return;
+    }
+
+    final result = await NotificationPermissionService.requestPermission();
+    if (!mounted) return;
+
+    if (result.isGranted) {
+      final ok = await notifier.setEnabled(true);
+      if (!mounted) return;
+      if (ok) {
+        _showAlarmToast('알람이 설정되었습니다');
+      }
+      return;
+    }
+
+    if (result.isPermanentlyDenied) {
+      await _showNotificationPermissionBottomSheet();
+    }
+  }
+
+  void _showAlarmToast(String text) {
+    showCapsuleToast(
+      context,
+      backgroundColor: AppColors.skyBlue_400,
+      text: text,
+    );
+  }
+
+  Future<void> _showNotificationPermissionBottomSheet() async {
+    final goToSettings = await showConfirmBottomSheet(
+      context,
+      title: '알림 권한이 꺼져 있어요',
+      subtitle: '푸시 알림을 받으려면 기기 설정에서 알림을 허용해 주세요.',
+      actionLabel: '설정으로 이동',
+      destructive: false,
+    );
+    if (goToSettings == true) {
+      await NotificationPermissionService.openSettings();
+    }
   }
 }
 

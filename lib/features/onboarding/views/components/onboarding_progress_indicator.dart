@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
+import 'package:fe_app/features/onboarding/views/components/onboarding_layout.dart';
 
 class OnboardingProgressIndicator extends StatelessWidget {
   const OnboardingProgressIndicator({
@@ -21,7 +22,7 @@ class OnboardingProgressIndicator extends StatelessWidget {
   static const _inactiveWidth = 10.0;
   static const _dotHeight = 7.0;
   static const _dotGap = 9.0;
-  static const _slotSize = 24.0;
+  static const _slotSize = OnboardingLayout.backSlotSize;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,7 @@ class OnboardingProgressIndicator extends StatelessWidget {
                     onPressed: onBack,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    iconSize: 18,
+                    iconSize: OnboardingLayout.backIconSize,
                     icon: const Icon(
                       Icons.arrow_back_ios_new,
                       color: AppColors.textPrimary,
