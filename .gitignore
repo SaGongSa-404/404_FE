@@ -49,6 +49,10 @@ app.*.map.json
 .env.*
 !.env.example
 
+# Firebase 설정 (API 키 포함)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
 # IDE
 .vscode/
 

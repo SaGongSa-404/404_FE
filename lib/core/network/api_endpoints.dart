@@ -51,6 +51,9 @@ abstract final class ApiEndpoints {
   static String notificationRead(String notificationId) =>
       '$v1/notifications/$notificationId/read';
 
+  // ── Push Token (FCM) ─────────────────────────────────────────────────────
+  static const String pushTokens = '$v1/push-tokens';
+
   // ── Reflection ───────────────────────────────────────────────────────────
   static const String reflections = '$v1/reflections';
 

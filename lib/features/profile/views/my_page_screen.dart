@@ -2,6 +2,7 @@ import 'package:fe_app/core/services/notification_permission_service.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
+import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/providers/notification_settings_provider.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
@@ -82,7 +83,7 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
             MainTabHeader(
               backgroundColor: Colors.white,
               leading: MainTabHeader.tabTitle('마이페이지', scale),
-              onAlarmPressed: () => context.push('/notifications'),
+              onAlarmPressed: () => openNotificationsPage(ref, context),
             ),
             Expanded(
               child: Container(

@@ -11,6 +11,7 @@ import 'package:fe_app/features/auth/utils/auth_error_toast.dart';
 import 'package:fe_app/core/storage/secure_storage.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/services/auth_service.dart';
+import 'package:fe_app/features/notification/services/push_token_lifecycle.dart';
 import 'package:fe_app/features/profile/models/my_profile.dart';
 import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/services/profile_service.dart';
@@ -221,6 +222,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
 
   Future<void> logout() async {
     try {
+      await deactivateStoredPushToken(ref);
       await ref.read(authServiceProvider).logout();
     } finally {
       await ref.read(secureStorageServiceProvider).clearTokens();

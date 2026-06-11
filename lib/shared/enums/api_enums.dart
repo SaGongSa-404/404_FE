@@ -152,6 +152,7 @@ enum ReflectionRegretLevel {
   }
 }
 
+/// API_SPEC 2026-06-10 (NF-67) 기준 12종.
 enum NotificationType {
   regretCheckReady('REGRET_CHECK_READY'),
   regretCheckFollowUp('REGRET_CHECK_FOLLOW_UP'),
@@ -178,6 +179,23 @@ enum NotificationType {
     return null;
   }
 
+  static NotificationType? tryParse(String? value) => fromApiValue(value);
+
+  /// 기획 §2 인앱 알림: 앱 실행 중 실시간 반응(투표/댓글/리마인드)만
+  /// 폴링 기반 인앱 배너로 노출합니다.
+  bool get isInAppRealtime {
+    switch (this) {
+      case NotificationType.socialVote:
+      case NotificationType.socialFirstVote:
+      case NotificationType.socialComment:
+      case NotificationType.wishlistReminder:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// 투표 계열 알림 여부. 동일 게시글 인앱 배너 중복 방지 대상.
   bool get isSocialVoteBannerType =>
       this == NotificationType.socialVote ||
       this == NotificationType.socialFirstVote ||

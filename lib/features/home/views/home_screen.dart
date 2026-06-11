@@ -14,6 +14,7 @@ import 'package:fe_app/features/home/services/home_summary_service.dart';
 import 'package:fe_app/features/home/utils/home_summary_extensions.dart';
 import 'package:fe_app/features/home/views/components/home_info_carousel.dart';
 import 'package:fe_app/features/home/views/components/home_mascot_video.dart';
+import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:flutter/material.dart';
@@ -616,7 +617,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           ),
                           badgeCount: summary?.notifications.unreadCount,
-                          onAlarmPressed: () => context.push('/notifications'),
+                          onAlarmPressed: () => openNotificationsPage(ref, context),
                         ),
                         SizedBox(height: 20 * scale),
                         Expanded(
