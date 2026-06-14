@@ -4,8 +4,10 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/profile/models/monthly_stats.dart';
 import 'package:fe_app/features/profile/providers/consumption_stats_provider.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
 import 'package:fe_app/features/profile/views/monthly_spending_detail_screen.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/press_pill_button.dart';
 import 'package:fe_app/shared/widgets/profile_modal_text_field.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
@@ -152,7 +154,7 @@ class _ConsumptionManagementScreenState
               style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16 * scale),
-            if (statsState.monthlyRecordStats.isEmpty)
+            if (_pastMonthlyRecords(statsState).isEmpty)
               Text(
                 '소비 기록이 없습니다.',
                 style: TextStyle(
@@ -161,19 +163,32 @@ class _ConsumptionManagementScreenState
                 ),
               )
             else
-              ...statsState.monthlyRecordStats.map(
+              ..._pastMonthlyRecords(statsState).map(
                 (record) => _buildMonthlyRecordCard(
                   context,
                   record,
                   format,
                   scale,
-                  isCurrentMonth: record.yearMonth == statsState.currentMonth,
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+
+  List<MonthlyStats> _pastMonthlyRecords(ConsumptionStatsState statsState) {
+    final currentMonth = statsState.currentMonth;
+    return statsState.monthlyRecordStats
+        .where((record) => record.yearMonth != currentMonth)
+        .toList();
+  }
+
+  String _formatRationalChoiceRate(double? rate) {
+    if (rate == null) return '-';
+    final clamped = rate.clamp(0.0, 100.0);
+    if (clamped % 1 == 0) return '${clamped.toInt()}%';
+    return '${clamped.toStringAsFixed(1)}%';
   }
 
   Widget _buildCurrentBudgetCard(
@@ -259,44 +274,75 @@ class _ConsumptionManagementScreenState
               ),
             ],
           ),
-          if (current.restrainedAmount > 0) ...[
-            SizedBox(height: 16 * scale),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '절제한 금액',
-                  style:
-                      TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
-                ),
-                Text(
-                  '${format(current.restrainedAmount)}원',
-                  style:
-                      TextStyle(fontSize: 12 * scale, color: AppColors.textSecondary),
-                ),
-              ],
+          if (current.categorySpendAmounts.isNotEmpty) ...[
+            SizedBox(height: 20 * scale),
+            ...current.categorySpendAmounts.map(
+              (categorySpend) => _buildCategorySpendRow(
+                label: WishlistCategoryUi.toUiLabel(categorySpend.category),
+                amount: categorySpend.amount,
+                totalSpent: current.spentAmount,
+                format: format,
+                scale: scale,
+              ),
             ),
           ],
-          if (current.isExceeded) ...[
-            SizedBox(height: 16 * scale),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8 * scale),
-              width: double.infinity,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySpendRow({
+    required String label,
+    required int amount,
+    required int totalSpent,
+    required String Function(int) format,
+    required double scale,
+  }) {
+    final factor =
+        totalSpent > 0 ? (amount / totalSpent).clamp(0.0, 1.0) : 0.0;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10 * scale),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 48 * scale,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13 * scale,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 6 * scale,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFEBEB),
-                borderRadius: BorderRadius.circular(10 * scale),
+                color: const Color(0xFFF2F2F2),
+                borderRadius: BorderRadius.circular(3 * scale),
               ),
-              child: Text(
-                '⚠️ 예산을 초과했어요!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.red_400,
-                  fontSize: 12 * scale,
-                  fontWeight: FontWeight.bold,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: factor,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.grey_300,
+                    borderRadius: BorderRadius.circular(3 * scale),
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
+          SizedBox(width: 10 * scale),
+          Text(
+            '${format(amount)}원',
+            style: TextStyle(
+              fontSize: 13 * scale,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -306,9 +352,8 @@ class _ConsumptionManagementScreenState
     BuildContext context,
     MonthlyStats record,
     String Function(int) format,
-    double scale, {
-    bool isCurrentMonth = false,
-  }) {
+    double scale,
+  ) {
     return Container(
       margin: EdgeInsets.only(bottom: 16 * scale),
       decoration: BoxDecoration(
@@ -344,33 +389,12 @@ class _ConsumptionManagementScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          record.displayMonth,
-                          style: TextStyle(
-                              fontSize: 15 * scale, fontWeight: FontWeight.bold),
-                        ),
-                        if (isCurrentMonth) ...[
-                          SizedBox(width: 8 * scale),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8 * scale, vertical: 2 * scale),
-                            decoration: BoxDecoration(
-                              color: AppColors.skyBlue_100,
-                              borderRadius: BorderRadius.circular(8 * scale),
-                            ),
-                            child: Text(
-                              '이번 달',
-                              style: TextStyle(
-                                fontSize: 10 * scale,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.skyBlue_300,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      record.displayMonth,
+                      style: TextStyle(
+                        fontSize: 15 * scale,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(
@@ -436,14 +460,18 @@ class _ConsumptionManagementScreenState
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '예산 사용률 : ${record.usageRate}%',
-                      style:
-                          TextStyle(fontSize: 13 * scale, color: AppColors.textSecondary),
+                      '합리적 선택률 : ${_formatRationalChoiceRate(record.rationalChoiceRate)}',
+                      style: TextStyle(
+                        fontSize: 13 * scale,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     Text(
-                      '참은 선택 : ${record.restrainedCount}회',
-                      style:
-                          TextStyle(fontSize: 13 * scale, color: AppColors.textSecondary),
+                      '비합리적 선택 : ${record.irrationalChoiceCount}회',
+                      style: TextStyle(
+                        fontSize: 13 * scale,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -637,56 +665,48 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
             Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: PressPillButton.greyDefault,
+                    pressedColor: PressPillButton.greyPressed,
                     onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '취소',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20 * scale,
-                          color: AppColors.textPrimary,
-                        ),
+                    child: Text(
+                      '취소',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20 * scale,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                 ),
                 SizedBox(width: 6 * scale),
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: _canSave
+                        ? PressPillButton.blueDefault
+                        : PressPillButton.blueDefault.withValues(alpha: 0.6),
+                    pressedColor: PressPillButton.bluePressed,
                     onTap: _canSave ? _handleSave : null,
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: _canSave
-                            ? AppColors.skyBlue_100
-                            : AppColors.skyBlue_100.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: _isSaving
-                          ? SizedBox(
-                              width: 24 * scale,
-                              height: 24 * scale,
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              '수정완료',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 20 * scale,
-                                color: AppColors.textPrimary,
-                              ),
+                    child: _isSaving
+                        ? SizedBox(
+                            width: 24 * scale,
+                            height: 24 * scale,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
                             ),
-                    ),
+                          )
+                        : Text(
+                            '수정완료',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20 * scale,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                   ),
                 ),
               ],

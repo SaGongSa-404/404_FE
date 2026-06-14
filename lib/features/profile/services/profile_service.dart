@@ -126,6 +126,13 @@ class ProfileService {
     return StatsMonthsResponse.fromJson(parseProfileJsonMap(res.data));
   }
 
+  static const Set<String> _wishHistoryStatuses = {
+    'SAVED',
+    'GO',
+    'STOP',
+    'DROPPED',
+  };
+
   /// GET /api/v1/users/me/wishes/history — 위시/결정 히스토리 (page).
   Future<WishHistoryResponse> getWishHistory({
     String? yearMonth,
@@ -133,13 +140,23 @@ class ProfileService {
     int page = 0,
     int size = defaultPageSize,
   }) async {
+    final resolvedPage = page < 0 ? 0 : page;
+    final resolvedSize = size.clamp(1, 100);
+    final normalizedStatus = status?.trim().toUpperCase();
+    if (normalizedStatus != null &&
+        normalizedStatus.isNotEmpty &&
+        !_wishHistoryStatuses.contains(normalizedStatus)) {
+      throw ArgumentError('status must be one of $_wishHistoryStatuses');
+    }
+
     final res = await _dio.get<dynamic>(
       ApiEndpoints.usersMeWishesHistory,
       queryParameters: {
-        'page': page,
-        'size': size,
-        if (yearMonth != null) 'yearMonth': yearMonth,
-        if (status != null) 'status': status,
+        'page': resolvedPage,
+        'size': resolvedSize,
+        if (yearMonth != null && yearMonth.isNotEmpty) 'yearMonth': yearMonth,
+        if (normalizedStatus != null && normalizedStatus.isNotEmpty)
+          'status': normalizedStatus,
       },
     );
     return WishHistoryResponse.fromJson(parseProfileJsonMap(res.data));

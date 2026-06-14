@@ -7,6 +7,7 @@ import 'package:fe_app/features/profile/providers/my_profile_provider.dart';
 import 'package:fe_app/features/profile/utils/provider_label.dart';
 import 'package:fe_app/features/onboarding/validators/nickname_validator.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
+import 'package:fe_app/shared/widgets/press_pill_button.dart';
 import 'package:fe_app/shared/widgets/profile_modal_text_field.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
@@ -444,54 +445,46 @@ class _NicknameEditModalState extends State<_NicknameEditModal> {
             Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: PressPillButton.greyDefault,
+                    pressedColor: PressPillButton.greyPressed,
                     onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '취소',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20 * scale,
-                          color: AppColors.textPrimary,
-                        ),
+                    child: Text(
+                      '취소',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20 * scale,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                 ),
                 SizedBox(width: 6 * scale),
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: _canSave
+                        ? PressPillButton.blueDefault
+                        : PressPillButton.blueDefault.withValues(alpha: 0.5),
+                    pressedColor: PressPillButton.bluePressed,
                     onTap: _canSave ? _handleSave : null,
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: _canSave
-                            ? AppColors.skyBlue_100
-                            : AppColors.skyBlue_100.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: _isSaving
-                          ? SizedBox(
-                              width: 22 * scale,
-                              height: 22 * scale,
-                              child: const CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              '수정완료',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 20 * scale,
-                                color: AppColors.textPrimary,
-                              ),
+                    child: _isSaving
+                        ? SizedBox(
+                            width: 22 * scale,
+                            height: 22 * scale,
+                            child: const CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            '수정완료',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20 * scale,
+                              color: AppColors.textPrimary,
                             ),
-                    ),
+                          ),
                   ),
                 ),
               ],

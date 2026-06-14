@@ -8,6 +8,7 @@ import 'package:fe_app/features/profile/providers/consumption_stats_provider.dar
 import 'package:fe_app/features/profile/providers/monthly_consumption_provider.dart';
 import 'package:fe_app/features/profile/utils/month_display.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
+import 'package:fe_app/shared/widgets/press_pill_button.dart';
 import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:fe_app/shared/widgets/nugul_loading_screen.dart';
 import 'package:flutter/material.dart';
@@ -480,7 +481,13 @@ class _MonthlySpendingDetailScreenState
                     ],
                   ),
                   SizedBox(height: 10 * scale),
-                  GestureDetector(
+                  PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: isSubmitting
+                        ? PressPillButton.blueDefault.withValues(alpha: 0.6)
+                        : PressPillButton.blueDefault,
+                    pressedColor: PressPillButton.bluePressed,
                     onTap: isSubmitting
                         ? null
                         : () async {
@@ -503,23 +510,12 @@ class _MonthlySpendingDetailScreenState
                               }
                             }
                           },
-                    child: Container(
-                      width: double.infinity,
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: isSubmitting
-                            ? AppColors.skyBlue_100.withValues(alpha: 0.6)
-                            : AppColors.skyBlue_100,
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '저장하기',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20 * scale,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    child: Text(
+                      '저장하기',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20 * scale,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
