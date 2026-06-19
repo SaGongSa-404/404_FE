@@ -12,7 +12,6 @@ Iterable<String> _assetPathsForBaseName(String baseName) {
   return [webmPath, mp4Path];
 }
 
-/// `assets/videos/nugul_home.mp4` → `nugul_home`
 String? videoBaseNameFromDataSource(String dataSource) {
   if (dataSource.isEmpty) return null;
   final fileName = dataSource.split('/').last;
