@@ -42,7 +42,8 @@ class WishlistTutorialScreen extends ConsumerStatefulWidget {
       _WishlistTutorialScreenState();
 }
 
-class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen> {
+class _WishlistTutorialScreenState
+    extends ConsumerState<WishlistTutorialScreen> {
   static const _designWidth = 412.0;
   static const _buttonAppearDelay = Duration(milliseconds: 800);
 
@@ -54,7 +55,10 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(widget.videoAsset)
+    _controller = VideoPlayerController.asset(
+      widget.videoAsset,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    )
       ..setLooping(false)
       ..setVolume(0)
       ..addListener(_onVideoChanged);
@@ -116,10 +120,8 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
           builder: (context, constraints) {
             final horizontalPadding =
                 (constraints.maxWidth * (24 / _designWidth)).clamp(20.0, 48.0);
-            final innerWidth =
-                constraints.maxWidth - (horizontalPadding * 2);
-            final videoWidth =
-                (innerWidth * 0.87).clamp(260.0, 360.0);
+            final innerWidth = constraints.maxWidth - (horizontalPadding * 2);
+            final videoWidth = (innerWidth * 0.87).clamp(260.0, 360.0);
 
             return Center(
               child: ConstrainedBox(
@@ -155,8 +157,7 @@ class _WishlistTutorialScreenState extends ConsumerState<WishlistTutorialScreen>
                             ),
                             const Spacer(flex: 60),
                             AnimatedOpacity(
-                              opacity:
-                                  _stage == _Stage.withButton ? 1.0 : 0.0,
+                              opacity: _stage == _Stage.withButton ? 1.0 : 0.0,
                               duration: const Duration(milliseconds: 400),
                               child: IgnorePointer(
                                 ignoring: _stage != _Stage.withButton,

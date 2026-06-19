@@ -22,7 +22,10 @@ class _NugulVideoState extends State<NugulVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(widget.assetPath)
+    _controller = VideoPlayerController.asset(
+      widget.assetPath,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    )
       ..setLooping(true)
       ..setVolume(0);
     _controller.initialize().then((_) {
