@@ -40,7 +40,8 @@ class NotificationLiveState {
 }
 
 final notificationLiveProvider =
-    StateNotifierProvider<NotificationLiveNotifier, NotificationLiveState>((ref) {
+    StateNotifierProvider<NotificationLiveNotifier, NotificationLiveState>(
+        (ref) {
   return NotificationLiveNotifier(
     ref.read(notificationServiceProvider),
     ref,
@@ -104,7 +105,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
       final fetched = await _service.fetchNotifications(unreadOnly: false);
       final cutoff = DateTime.now().subtract(const Duration(days: _expireDays));
       final fresh = fetched
-          .where((item) => item.createdAt == null || item.createdAt!.isAfter(cutoff))
+          .where((item) =>
+              item.createdAt == null || item.createdAt!.isAfter(cutoff))
           .toList(growable: false)
         ..sort((a, b) {
           final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -113,7 +115,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
         });
 
       final newIds = fresh.map((e) => e.id).toList(growable: false);
-      final shouldQueue = queueNewBanners && _initialized && _notificationsEnabled;
+      final shouldQueue =
+          queueNewBanners && _initialized && _notificationsEnabled;
       final batchVotePostIds = <String>{};
       final newlyArrived = shouldQueue
           ? fresh
@@ -201,9 +204,32 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     state = state.copyWith(items: updatedItems, bannerQueue: updatedQueue);
   }
 
+  void syncItemsFrom(List<NotificationModel> source) {
+    final sourceById = {
+      for (final item in source) item.id: item,
+    };
+    _seenIds.addAll(sourceById.keys);
+
+    NotificationModel mergeReadState(NotificationModel item) {
+      final sourceItem = sourceById[item.id];
+      if (sourceItem == null) {
+        return item;
+      }
+      return sourceItem;
+    }
+
+    final updatedQueue = [
+      for (final item in state.bannerQueue) mergeReadState(item),
+    ];
+
+    state = state.copyWith(items: source, bannerQueue: updatedQueue);
+  }
+
   void consumeBanner(String id) {
     state = state.copyWith(
-      bannerQueue: state.bannerQueue.where((item) => item.id != id).toList(growable: false),
+      bannerQueue: state.bannerQueue
+          .where((item) => item.id != id)
+          .toList(growable: false),
     );
   }
 
@@ -230,7 +256,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
 
     final candidate = matched ??
         NotificationModel(
-          id: notificationId ?? DateTime.now().microsecondsSinceEpoch.toString(),
+          id: notificationId ??
+              DateTime.now().microsecondsSinceEpoch.toString(),
           title: payload.title ?? '',
           body: payload.body,
           time: '방금 전',
