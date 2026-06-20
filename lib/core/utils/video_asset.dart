@@ -28,7 +28,10 @@ Future<VideoPlayerController> createVideoAssetController(
   bool loop = false,
 }) async {
   for (final path in _assetPathsForBaseName(baseName)) {
-    final controller = VideoPlayerController.asset(path);
+    final controller = VideoPlayerController.asset(
+      path,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     try {
       await controller.setVolume(0);
       await controller.initialize();
