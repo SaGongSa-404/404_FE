@@ -189,6 +189,9 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
           usageRate: usageRate,
           boughtCount: existing.boughtCount,
           restrainedCount: existing.restrainedCount,
+          categorySpendAmounts: existing.categorySpendAmounts,
+          rationalChoiceRate: existing.rationalChoiceRate,
+          irrationalChoiceCount: existing.irrationalChoiceCount,
         ),
       },
     );

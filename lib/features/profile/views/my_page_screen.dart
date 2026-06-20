@@ -199,42 +199,11 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: const BoxDecoration(
-        boxShadow: MyPageScreen._cardShadow,
-        borderRadius: BorderRadius.all(Radius.circular(30)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(30 * scale),
-          highlightColor: Colors.black.withAlpha(25),
-          splashColor: Colors.black.withAlpha(15),
-          child: Ink(
-            height: 60 * scale,
-            padding: EdgeInsets.symmetric(horizontal: 24 * scale),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30 * scale),
-            ),
-            child: Row(
-              children: [
-                SvgPicture.asset(iconPath, width: 20 * scale, height: 20 * scale),
-                SizedBox(width: 12 * scale),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return _MyPageMenuCard(
+      scale: scale,
+      iconPath: iconPath,
+      label: label,
+      onTap: onTap,
     );
   }
 
@@ -366,6 +335,74 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     if (goToSettings == true) {
       await NotificationPermissionService.openSettings();
     }
+  }
+}
+
+class _MyPageMenuCard extends StatefulWidget {
+  const _MyPageMenuCard({
+    required this.scale,
+    required this.iconPath,
+    required this.label,
+    required this.onTap,
+  });
+
+  final double scale;
+  final String iconPath;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_MyPageMenuCard> createState() => _MyPageMenuCardState();
+}
+
+class _MyPageMenuCardState extends State<_MyPageMenuCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = widget.scale;
+
+    return Container(
+      decoration: const BoxDecoration(
+        boxShadow: MyPageScreen._cardShadow,
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+      ),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          height: 60 * scale,
+          padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+          decoration: BoxDecoration(
+            color: _pressed ? AppColors.grey_100 : Colors.white,
+            borderRadius: BorderRadius.circular(30 * scale),
+          ),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                widget.iconPath,
+                width: 20 * scale,
+                height: 20 * scale,
+              ),
+              SizedBox(width: 12 * scale),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

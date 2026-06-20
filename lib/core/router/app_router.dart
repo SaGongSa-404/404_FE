@@ -159,40 +159,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      ShellRoute(
-        builder: (context, state, child) => MyPageTabShell(child: child),
+      GoRoute(
+        path: '/my',
+        pageBuilder: (context, state) => _bottomTabPage(
+          state,
+          const MyPageTabShell(child: MyPageScreen()),
+          exitOnBack: true,
+        ),
         routes: [
           GoRoute(
-            path: '/my',
-            pageBuilder: (context, state) => _bottomTabPage(
+            path: 'edit',
+            pageBuilder: (context, state) => _noTransitionPage(
               state,
-              const MyPageScreen(),
-              exitOnBack: true,
+              const MyPageTabShell(child: EditProfileScreen()),
             ),
-            routes: [
-              GoRoute(
-                path: 'edit',
-                pageBuilder: (context, state) =>
-                    _noTransitionPage(state, const EditProfileScreen()),
-              ),
-              GoRoute(
-                path: 'consumption',
-                pageBuilder: (context, state) => _noTransitionPage(
-                  state,
-                  const ConsumptionManagementScreen(),
-                ),
-              ),
-              GoRoute(
-                path: 'posts',
-                pageBuilder: (context, state) =>
-                    _noTransitionPage(state, const MyPostsScreen()),
-              ),
-              GoRoute(
-                path: 'terms',
-                pageBuilder: (context, state) =>
-                    _noTransitionPage(state, const TermsPolicyScreen()),
-              ),
-            ],
+          ),
+          GoRoute(
+            path: 'consumption',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              const MyPageTabShell(child: ConsumptionManagementScreen()),
+            ),
+          ),
+          GoRoute(
+            path: 'posts',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              const MyPageTabShell(child: MyPostsScreen()),
+            ),
+          ),
+          GoRoute(
+            path: 'terms',
+            pageBuilder: (context, state) => _noTransitionPage(
+              state,
+              const MyPageTabShell(child: TermsPolicyScreen()),
+            ),
           ),
         ],
       ),
