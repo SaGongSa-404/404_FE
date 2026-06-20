@@ -51,7 +51,9 @@ class NotificationListNotifier
     final result = await _service.markAsRead(id, cancelToken: _cancelToken);
 
     if (result == MarkAsReadResult.notFound) {
-      final updated = current.where((notification) => notification.id != id).toList(growable: false);
+      final updated = current
+          .where((notification) => notification.id != id)
+          .toList(growable: false);
       state = AsyncData(updated);
       _invalidateHomeSummary();
       return result;
@@ -60,7 +62,9 @@ class NotificationListNotifier
     if (result != MarkAsReadResult.success) return result;
 
     final updated = _unreadOnly
-        ? current.where((notification) => notification.id != id).toList(growable: false)
+        ? current
+            .where((notification) => notification.id != id)
+            .toList(growable: false)
         : [
             for (final notification in current)
               if (notification.id == id)
@@ -85,7 +89,9 @@ class NotificationListNotifier
 }
 
 final notificationListProvider = StateNotifierProvider.family<
-    NotificationListNotifier, AsyncValue<List<NotificationModel>>, bool>((ref, unreadOnly) {
+    NotificationListNotifier,
+    AsyncValue<List<NotificationModel>>,
+    bool>((ref, unreadOnly) {
   return NotificationListNotifier(
     ref,
     ref.watch(notificationServiceProvider),
@@ -94,13 +100,23 @@ final notificationListProvider = StateNotifierProvider.family<
 });
 
 final unreadNotificationCountProvider = Provider<int>((ref) {
+  final summaryUnreadCount = ref.watch(
+    homeSummaryProvider.select(
+      (state) => state.valueOrNull?.notifications.unreadCount,
+    ),
+  );
+  if (summaryUnreadCount != null) {
+    return summaryUnreadCount;
+  }
+
   final liveItems = ref.watch(notificationLiveProvider).items;
   if (liveItems.isNotEmpty) {
     return liveItems.where((notification) => !notification.isRead).length;
   }
 
   return ref.watch(notificationListProvider(false)).when(
-        data: (items) => items.where((notification) => !notification.isRead).length,
+        data: (items) =>
+            items.where((notification) => !notification.isRead).length,
         loading: () => 0,
         error: (_, __) => 0,
       );
@@ -109,7 +125,8 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
 List<NotificationModel> _sortAndFilterExpired(List<NotificationModel> items) {
   final cutoff = DateTime.now().subtract(const Duration(days: 30));
   final filtered = items
-      .where((item) => item.createdAt == null || item.createdAt!.isAfter(cutoff))
+      .where(
+          (item) => item.createdAt == null || item.createdAt!.isAfter(cutoff))
       .toList(growable: false)
     ..sort((a, b) {
       final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
