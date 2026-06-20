@@ -210,16 +210,9 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     };
     _seenIds.addAll(sourceById.keys);
 
-    NotificationModel mergeReadState(NotificationModel item) {
-      final sourceItem = sourceById[item.id];
-      if (sourceItem == null) {
-        return item;
-      }
-      return sourceItem;
-    }
-
     final updatedQueue = [
-      for (final item in state.bannerQueue) mergeReadState(item),
+      for (final item in state.bannerQueue)
+        if (sourceById[item.id] != null) sourceById[item.id]!,
     ];
 
     state = state.copyWith(items: source, bannerQueue: updatedQueue);
