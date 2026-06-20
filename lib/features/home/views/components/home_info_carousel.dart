@@ -5,6 +5,7 @@ import 'package:fe_app/features/home/providers/home_summary_provider.dart';
 import 'package:fe_app/features/home/views/components/budget_card.dart';
 import 'package:fe_app/features/home/views/components/home_carousel_card.dart';
 import 'package:fe_app/features/home/views/components/selection_rate_card.dart';
+import 'package:fe_app/shared/widgets/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -155,13 +156,7 @@ class _HomeInfoCarouselState extends ConsumerState<HomeInfoCarousel> {
   }
 
   Widget _cardLoading(double scale) {
-    return Center(
-      child: SizedBox(
-        width: 28 * scale,
-        height: 28 * scale,
-        child: const CircularProgressIndicator(strokeWidth: 2),
-      ),
-    );
+    return const LoadingIndicator(compact: true);
   }
 
   Widget _cardError(double scale, String message) {

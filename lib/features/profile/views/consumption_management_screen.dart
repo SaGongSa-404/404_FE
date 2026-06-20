@@ -133,6 +133,8 @@ class _ConsumptionManagementScreenState
       );
     }
 
+    final pastRecords = _pastMonthlyRecords(statsState);
+
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(consumptionStatsProvider.notifier).refresh(),
@@ -144,17 +146,17 @@ class _ConsumptionManagementScreenState
           children: [
             Text(
               '이번 달 예산',
-              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold, color: Color(0xFF555555)),
             ),
-            SizedBox(height: 16 * scale),
+            SizedBox(height: 14 * scale),
             _buildCurrentBudgetCard(context, current, format, scale),
-            SizedBox(height: 40 * scale),
+            SizedBox(height: 32 * scale),
             Text(
               '월별 소비기록',
-              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold, color: Color(0xFF555555)),
             ),
-            SizedBox(height: 16 * scale),
-            if (_pastMonthlyRecords(statsState).isEmpty)
+            SizedBox(height: 14 * scale),
+            if (pastRecords.isEmpty)
               Text(
                 '소비 기록이 없습니다.',
                 style: TextStyle(
@@ -163,7 +165,7 @@ class _ConsumptionManagementScreenState
                 ),
               )
             else
-              ..._pastMonthlyRecords(statsState).map(
+              ...pastRecords.map(
                 (record) => _buildMonthlyRecordCard(
                   context,
                   record,
@@ -191,102 +193,161 @@ class _ConsumptionManagementScreenState
     return '${clamped.toStringAsFixed(1)}%';
   }
 
+  Widget _buildProgressBar({
+    required double factor,
+    required double height,
+    required Color backgroundColor,
+    required Color fillColor,
+    double? width,
+  }) {
+    final clampedFactor = factor.clamp(0.0, 1.0);
+
+    return SizedBox(
+      width: width,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          final radius = BorderRadius.circular(height / 2);
+          final fillWidth = maxWidth.isFinite && clampedFactor > 0
+              ? min(maxWidth, max(maxWidth * clampedFactor, height))
+              : 0.0;
+
+          return Container(
+            height: height,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: radius,
+            ),
+            alignment: Alignment.centerLeft,
+            child: fillWidth <= 0
+                ? null
+                : Container(
+                    width: fillWidth,
+                    height: height,
+                    decoration: BoxDecoration(
+                      color: fillColor,
+                      borderRadius: radius,
+                    ),
+                  ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildCurrentBudgetCard(
     BuildContext context,
     MonthlyStats current,
     String Function(int) format,
     double scale,
   ) {
+    final categorySpendAmounts = current.categorySpendAmounts
+        .where((categorySpend) => categorySpend.amount > 0)
+        .toList();
+
     return Container(
-      padding: EdgeInsets.all(24 * scale),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30 * scale),
+        borderRadius: BorderRadius.circular(22 * scale),
         boxShadow: _cardShadow,
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${format(current.budgetAmount)}원',
-                style: TextStyle(fontSize: 24 * scale, fontWeight: FontWeight.bold),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(22 * scale),
+        child: InkWell(
+          onTap: () async {
+            final changed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) =>
+                    MonthlySpendingDetailScreen(yearMonth: current.yearMonth),
               ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () =>
-                      _showBudgetEditDialog(context, current.budgetAmount),
-                  borderRadius: BorderRadius.circular(20 * scale),
-                  highlightColor: Colors.black.withAlpha(25),
-                  splashColor: Colors.black.withAlpha(15),
-                  child: Ink(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 12 * scale, vertical: 6 * scale),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
-                      borderRadius: BorderRadius.circular(20 * scale),
+            );
+            if (changed == true && mounted) {
+              setState(() => _hasDataChanged = true);
+            }
+          },
+          borderRadius: BorderRadius.circular(22 * scale),
+          highlightColor: Colors.black.withAlpha(25),
+          splashColor: Colors.black.withAlpha(15),
+          child: Ink(
+            padding: EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22 * scale),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${format(current.budgetAmount)}원',
+                      style: TextStyle(fontSize: 27 * scale, fontWeight: FontWeight.w600, color : Color(0xFF333333)),
                     ),
-                    child: Text(
-                      '예산 수정',
-                      style: TextStyle(
-                          fontSize: 12 * scale, color: AppColors.textSecondary),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () =>
+                            _showBudgetEditDialog(context, current.budgetAmount),
+                        borderRadius: BorderRadius.circular(20 * scale),
+                        highlightColor: Colors.black.withAlpha(25),
+                        splashColor: Colors.black.withAlpha(15),
+                        child: Ink(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 13 * scale, vertical: 5 * scale),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFF999999)),
+                            borderRadius: BorderRadius.circular(20 * scale),
+                          ),
+                          child: Text(
+                            '예산 수정',
+                            style: TextStyle(
+                                fontSize: 15 * scale, color: Color(0xFF333333), fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20 * scale),
+                _buildProgressBar(
+                  factor: current.progressFactor,
+                  height: 18 * scale,
+                  backgroundColor: const Color(0xFFF2F2F2),
+                  fillColor:
+                      current.isExceeded ? AppColors.red_200 : AppColors.skyBlue_200,
+                ),
+                SizedBox(height: 12 * scale),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${format(current.spentAmount)}원',
+                      style: TextStyle(fontSize: 16 * scale, color: AppColors.textPrimary, fontWeight: FontWeight.w400),
+                    ),
+                    Text(
+                      '${format(current.budgetAmount)}원',
+                      style: TextStyle(fontSize: 16 * scale, color: AppColors.textPrimary, fontWeight: FontWeight.w400),
+                    ),
+                  ],
+                ),
+                if (categorySpendAmounts.isNotEmpty) ...[
+                  SizedBox(height: 20 * scale),
+                  ...categorySpendAmounts.map(
+                    (categorySpend) => _buildCategorySpendRow(
+                      label: WishlistCategoryUi.toUiLabel(categorySpend.category),
+                      amount: categorySpend.amount,
+                      totalSpent: current.spentAmount,
+                      format: format,
+                      scale: scale,
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 20 * scale),
-          Container(
-            height: 16 * scale,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F2F2),
-              borderRadius: BorderRadius.circular(8 * scale),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: current.progressFactor,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: current.isExceeded
-                      ? AppColors.red_200
-                      : AppColors.skyBlue_200,
-                  borderRadius: BorderRadius.circular(8 * scale),
-                ),
-              ),
+                ],
+              ],
             ),
           ),
-          SizedBox(height: 12 * scale),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${format(current.spentAmount)}원',
-                style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
-              ),
-              Text(
-                '${format(current.budgetAmount)}원',
-                style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          if (current.categorySpendAmounts.isNotEmpty) ...[
-            SizedBox(height: 20 * scale),
-            ...current.categorySpendAmounts.map(
-              (categorySpend) => _buildCategorySpendRow(
-                label: WishlistCategoryUi.toUiLabel(categorySpend.category),
-                amount: categorySpend.amount,
-                totalSpent: current.spentAmount,
-                format: format,
-                scale: scale,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -310,37 +371,30 @@ class _ConsumptionManagementScreenState
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13 * scale,
+                fontSize: 14 * scale,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 6 * scale,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.circular(3 * scale),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: factor,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.grey_300,
-                    borderRadius: BorderRadius.circular(3 * scale),
-                  ),
-                ),
+                color: const Color(0xFF555555),
               ),
             ),
           ),
           SizedBox(width: 10 * scale),
-          Text(
-            '${format(amount)}원',
-            style: TextStyle(
-              fontSize: 13 * scale,
-              color: AppColors.textSecondary,
+          _buildProgressBar(
+            factor: factor,
+            width: 176 * scale,
+            height: 8 * scale,
+            backgroundColor: const Color(0xFFF1F1F1),
+            fillColor: const Color(0xFFC0C0C0),
+          ),
+          SizedBox(width: 10 * scale),
+          Expanded(
+            child: Text(
+              '${format(amount)}원',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14 * scale,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF555555),
+              ),
             ),
           ),
         ],
@@ -355,10 +409,10 @@ class _ConsumptionManagementScreenState
     double scale,
   ) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16 * scale),
+      margin: EdgeInsets.only(bottom: 12 * scale),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30 * scale),
+        borderRadius: BorderRadius.circular(22 * scale),
         boxShadow: _cardShadow,
       ),
       child: Material(
@@ -375,14 +429,14 @@ class _ConsumptionManagementScreenState
               setState(() => _hasDataChanged = true);
             }
           },
-          borderRadius: BorderRadius.circular(30 * scale),
+          borderRadius: BorderRadius.circular(22 * scale),
           highlightColor: Colors.black.withAlpha(25),
           splashColor: Colors.black.withAlpha(15),
           child: Ink(
-            padding: EdgeInsets.all(24 * scale),
+            padding: EdgeInsets.symmetric(vertical: 22, horizontal: 24),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30 * scale),
+              borderRadius: BorderRadius.circular(22 * scale),
             ),
             child: Column(
               children: [
@@ -392,24 +446,25 @@ class _ConsumptionManagementScreenState
                     Text(
                       record.displayMonth,
                       style: TextStyle(
-                        fontSize: 15 * scale,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 17 * scale,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary
                       ),
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: 10 * scale, vertical: 4 * scale),
+                          horizontal: 8 * scale, vertical: 4 * scale),
                       decoration: BoxDecoration(
                         color: record.isExceeded
-                            ? AppColors.red_100
-                            : const Color(0xFFE8F3F9),
+                            ? Color(0xFFF9DEDE)
+                            : AppColors.skyBlue_000_clicked,
                         borderRadius: BorderRadius.circular(12 * scale),
                       ),
                       child: Text(
                         record.isExceeded ? '예산초과' : '예산 내',
                         style: TextStyle(
-                          fontSize: 11 * scale,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15 * scale,
+                          fontWeight: FontWeight.w500,
                           color: record.isExceeded
                               ? AppColors.red_400
                               : AppColors.skyBlue_300,
@@ -418,60 +473,80 @@ class _ConsumptionManagementScreenState
                     ),
                   ],
                 ),
-                SizedBox(height: 16 * scale),
+                SizedBox(height: 20 * scale),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '${format(record.spentAmount)}원',
                       style:
-                          TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 27 * scale, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
                     ),
-                    Text(
-                      '/${format(record.budgetAmount)}원',
-                      style: TextStyle(
-                          fontSize: 13 * scale, color: const Color(0xFFADADAD)),
+                    Transform.translate(
+                      offset: Offset(0, -2 * scale),
+                      child: Text(
+                        '/${format(record.budgetAmount)}원',
+                        style: TextStyle(
+                            fontSize: 15 * scale, fontWeight: FontWeight.w400, color: AppColors.textPrimary),
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12 * scale),
-                Container(
-                  height: 12 * scale,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(6 * scale),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: record.progressFactor,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: record.isExceeded
-                            ? AppColors.red_200
-                            : AppColors.skyBlue_200,
-                        borderRadius: BorderRadius.circular(6 * scale),
-                      ),
-                    ),
-                  ),
+                SizedBox(height: 10 * scale),
+                _buildProgressBar(
+                  factor: record.progressFactor,
+                  height: 18 * scale,
+                  backgroundColor: const Color(0xFFF2F2F2),
+                  fillColor: record.isExceeded
+                      ? AppColors.red_200
+                      : AppColors.skyBlue_200,
                 ),
-                SizedBox(height: 16 * scale),
+                SizedBox(height: 20 * scale),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '합리적 선택률 : ${_formatRationalChoiceRate(record.rationalChoiceRate)}',
-                      style: TextStyle(
-                        fontSize: 13 * scale,
-                        color: AppColors.textSecondary,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '합리적 선택률 : ',
+                          style: TextStyle(
+                            fontSize: 15 * scale,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          _formatRationalChoiceRate(record.rationalChoiceRate),
+                          style: TextStyle(
+                            fontSize: 20 * scale,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '비합리적 선택 : ${record.irrationalChoiceCount}회',
-                      style: TextStyle(
-                        fontSize: 13 * scale,
-                        color: AppColors.textSecondary,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '비합리적 선택 : ',
+                          style: TextStyle(
+                            fontSize: 15 * scale,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          '${record.irrationalChoiceCount}회',
+                          style: TextStyle(
+                            fontSize: 20 * scale,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
