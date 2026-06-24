@@ -64,8 +64,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
 
   Future<void> _onSubmit() async {
     if (_isSubmitting) return;
-    // 글 또는 위시리스트 중 하나라도 있으면 등록 가능
-    if (!_hasContent && _selectedItem == null) return;
+    if (_selectedItem == null) return;
 
     final body = _controller.text.trim();
     if (body.characters.length > _maxBodyLength) {
@@ -196,7 +195,7 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
             ),
           ),
           _BottomButtonSection(
-            canSubmit: _hasContent || _selectedItem != null,
+            canSubmit: _selectedItem != null,
             selectedItem: _selectedItem,
             formatPrice: _formatPrice,
             onPickFromWishlist: _onPickFromWishlist,
