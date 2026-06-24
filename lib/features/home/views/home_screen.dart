@@ -637,7 +637,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Container(
-                                            width: double.infinity,
                                             margin: EdgeInsets.symmetric(
                                               horizontal: 24 * scale,
                                             ),
@@ -661,7 +660,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
                                                 fontFamily: 'Pretendard',
-                                                fontSize: 20 * scale,
+                                                fontSize: 18 * scale,
                                                 height: 24 / 20,
                                                 fontWeight: FontWeight.w500,
                                                 color: const Color(0xFF555555),
