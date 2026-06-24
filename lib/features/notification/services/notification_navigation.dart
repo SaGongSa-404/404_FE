@@ -27,7 +27,8 @@ abstract final class NotificationNavigation {
 
   /// 알림 페이지에서 진입한 상세 화면의 뒤로가기 처리.
   static void popOrReturn(BuildContext context) {
-    final returnTo = GoRouterState.of(context).uri.queryParameters[returnToParam];
+    final returnTo =
+        GoRouterState.of(context).uri.queryParameters[returnToParam];
     if (returnTo != null && returnTo.isNotEmpty) {
       if (context.canPop()) {
         context.pop();
@@ -66,22 +67,18 @@ abstract final class NotificationNavigation {
     if (_isOpeningNotifications) return;
     _isOpeningNotifications = true;
 
-    unawaited(
-      ref.read(notificationListProvider(false).notifier).refresh(showLoading: false),
-    );
-    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
-    if (!context.mounted) {
-      _isOpeningNotifications = false;
-      return;
-    }
-
-    final router = GoRouter.of(context);
-    if (router.state.uri.path == notificationsPath) {
-      _isOpeningNotifications = false;
-      return;
-    }
-
     try {
+      unawaited(
+        ref
+            .read(notificationListProvider(false).notifier)
+            .refresh(showLoading: false),
+      );
+      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+      if (!context.mounted) return;
+
+      final router = GoRouter.of(context);
+      if (router.state.uri.path == notificationsPath) return;
+
       await context.push(notificationsPath);
     } finally {
       _isOpeningNotifications = false;

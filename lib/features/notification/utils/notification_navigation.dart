@@ -13,19 +13,13 @@ Future<void> openNotificationsPage(
   if (_isOpeningNotificationsPage) return;
   _isOpeningNotificationsPage = true;
 
-  await ref.read(notificationSyncProvider).refreshListAndHomeSummary();
-  if (!context.mounted) {
-    _isOpeningNotificationsPage = false;
-    return;
-  }
-
-  final router = GoRouter.of(context);
-  if (router.state.uri.path == '/notifications') {
-    _isOpeningNotificationsPage = false;
-    return;
-  }
-
   try {
+    await ref.read(notificationSyncProvider).refreshListAndHomeSummary();
+    if (!context.mounted) return;
+
+    final router = GoRouter.of(context);
+    if (router.state.uri.path == '/notifications') return;
+
     await context.push('/notifications');
   } finally {
     _isOpeningNotificationsPage = false;

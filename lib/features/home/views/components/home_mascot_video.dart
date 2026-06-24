@@ -19,6 +19,16 @@ class HomeMascotVideo extends StatelessWidget {
 
   static const double _zoomScale = 1.11;
   static const double _zoomDownwardOffset = 40;
+  static const Map<String, double> _horizontalCropWidthFactors = {
+    'nugul_home': 0.88,
+    'nugul_just_smile': 0.88,
+    'nugul_more_excited': 0.88,
+  };
+  static const Map<String, double> _downwardOffsets = {
+    'nugul_home': 60,
+    'nugul_just_smile': 60,
+    'nugul_more_excited': 60,
+  };
 
   final VideoPlayerController controller;
   final String? videoBaseName;
@@ -42,12 +52,50 @@ class HomeMascotVideo extends StatelessWidget {
     return 1.0;
   }
 
-  Widget _wrapZoom(BuildContext context, Widget child, double zoom) {
+  double _horizontalCropWidthFactorFor(String? baseName) {
+    if (baseName == null) return 1.0;
+    return _horizontalCropWidthFactors[baseName] ?? 1.0;
+  }
+
+  double _downwardOffsetFor(String? baseName) {
+    if (baseName == null) return _zoomDownwardOffset;
+    return _downwardOffsets[baseName] ?? _zoomDownwardOffset;
+  }
+
+  Widget _buildVideoFrame(
+    Size videoSize,
+    Widget player,
+    double horizontalCropWidthFactor,
+  ) {
+    final frame = SizedBox(
+      width: videoSize.width,
+      height: videoSize.height,
+      child: player,
+    );
+
+    if (horizontalCropWidthFactor == 1.0) return frame;
+
+    // 에셋 내부의 좌우 빈 여백만 잘라내고 기존 전체 확대값은 그대로 유지한다.
+    return ClipRect(
+      child: Align(
+        alignment: Alignment.center,
+        widthFactor: horizontalCropWidthFactor,
+        child: frame,
+      ),
+    );
+  }
+
+  Widget _wrapZoom(
+    BuildContext context,
+    Widget child,
+    double zoom,
+    double downwardOffset,
+  ) {
     if (zoom == 1.0) return child;
     final scale = responsiveScale(context);
     return ClipRect(
       child: Transform.translate(
-        offset: Offset(0, _zoomDownwardOffset * scale),
+        offset: Offset(0, downwardOffset * scale),
         child: Transform.scale(
           scale: zoom,
           alignment: Alignment.bottomCenter,
@@ -65,8 +113,16 @@ class HomeMascotVideo extends StatelessWidget {
     }
 
     final player = VideoPlayer(controller);
-    final zoom = _zoomScaleFor(_resolvedBaseName());
+    final baseName = _resolvedBaseName();
+    final zoom = _zoomScaleFor(baseName);
+    final horizontalCropWidthFactor = _horizontalCropWidthFactorFor(baseName);
+    final downwardOffset = _downwardOffsetFor(baseName);
     final useNativeFraming = zoom == 1.0 && !_isReferenceSize(videoSize);
+    final videoFrame = _buildVideoFrame(
+      videoSize,
+      player,
+      horizontalCropWidthFactor,
+    );
 
     Widget content;
 
@@ -77,11 +133,7 @@ class HomeMascotVideo extends StatelessWidget {
           fit: BoxFit.cover,
           alignment: Alignment.bottomCenter,
           clipBehavior: Clip.hardEdge,
-          child: SizedBox(
-            width: videoSize.width,
-            height: videoSize.height,
-            child: player,
-          ),
+          child: videoFrame,
         ),
       );
     } else if (useNativeFraming) {
@@ -98,11 +150,7 @@ class HomeMascotVideo extends StatelessWidget {
               fit: BoxFit.cover,
               alignment: Alignment.bottomCenter,
               clipBehavior: Clip.hardEdge,
-              child: SizedBox(
-                width: videoSize.width,
-                height: videoSize.height,
-                child: player,
-              ),
+              child: videoFrame,
             ),
           ),
         ),
@@ -114,15 +162,11 @@ class HomeMascotVideo extends StatelessWidget {
           fit: BoxFit.cover,
           alignment: Alignment.bottomCenter,
           clipBehavior: Clip.hardEdge,
-          child: SizedBox(
-            width: videoSize.width,
-            height: videoSize.height,
-            child: player,
-          ),
+          child: videoFrame,
         ),
       );
     }
 
-    return _wrapZoom(context, content, zoom);
+    return _wrapZoom(context, content, zoom, downwardOffset);
   }
 }

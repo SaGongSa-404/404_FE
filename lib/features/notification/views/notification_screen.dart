@@ -33,57 +33,43 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     if (_isOpeningNotification) return;
     _isOpeningNotification = true;
 
-    final result =
-        await ref.read(notificationSyncProvider).markAsRead(notification.id);
-
-    if (result == MarkAsReadResult.notFound) {
-      if (!mounted) {
-        _isOpeningNotification = false;
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('만료되었거나 삭제된 알림입니다.')),
-      );
-      _isOpeningNotification = false;
-      return;
-    }
-
-    if (!mounted) {
-      _isOpeningNotification = false;
-      return;
-    }
-
-    final route = NotificationRouter.resolveFromNotification(notification);
-    if (route == null) {
-      _isOpeningNotification = false;
-      return;
-    }
-
-    if (NotificationRouter.isExternalUrl(route)) {
-      final uri = Uri.parse(route);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-      _isOpeningNotification = false;
-      return;
-    }
-
-    if (!NotificationRouter.shouldNavigate(route)) {
-      _isOpeningNotification = false;
-      return;
-    }
-
     try {
-      await context.push(route);
-      if (!mounted) {
-        _isOpeningNotification = false;
+      final result =
+          await ref.read(notificationSyncProvider).markAsRead(notification.id);
+
+      if (result == MarkAsReadResult.notFound) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('만료되었거나 삭제된 알림입니다.')),
+        );
         return;
       }
-      await ref.read(notificationSyncProvider).refreshList();
-    } catch (e) {
-      debugPrint('알림 이동 실패: $e');
+
+      if (!mounted) return;
+
+      final route = NotificationRouter.resolveFromNotification(notification);
+      if (route == null) return;
+
+      if (NotificationRouter.isExternalUrl(route)) {
+        final uri = Uri.parse(route);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        return;
+      }
+
+      if (!NotificationRouter.shouldNavigate(route)) return;
+
+      try {
+        await context.push(route);
+        if (!mounted) return;
+        await ref.read(notificationSyncProvider).refreshList();
+      } catch (e) {
+        debugPrint('알림 이동 실패: $e');
+      }
+    } finally {
+      _isOpeningNotification = false;
     }
-    _isOpeningNotification = false;
   }
 
   @override
@@ -98,7 +84,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18 * scale),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: Colors.black, size: 18 * scale),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -124,7 +111,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                   Center(
                     child: Text(
                       '알림이 아직 없어요.',
-                      style: TextStyle(fontSize: 14 * scale, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 14 * scale, color: AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -136,7 +124,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 24 * scale, vertical: 12 * scale),
               children: [
                 if (unread.isNotEmpty) ...[
                   _buildSectionTitle('읽지 않은 알림', scale),
@@ -205,11 +194,14 @@ class _NotificationCapsule extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 12 * scale),
-        padding: EdgeInsets.symmetric(horizontal: 22 * scale, vertical: 16 * scale),
+        padding:
+            EdgeInsets.symmetric(horizontal: 22 * scale, vertical: 16 * scale),
         decoration: BoxDecoration(
           color: isUnread ? const Color(0xFFFFEEA0) : Colors.white,
           borderRadius: BorderRadius.circular(30 * scale),
-          border: isUnread ? null : Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          border: isUnread
+              ? null
+              : Border.all(color: const Color(0xFFE0E0E0), width: 1),
           boxShadow: [
             if (isUnread)
               BoxShadow(
@@ -236,14 +228,17 @@ class _NotificationCapsule extends StatelessWidget {
                       height: 1.3,
                     ),
                   ),
-                  if (notification.body != null && notification.body!.isNotEmpty) ...[
+                  if (notification.body != null &&
+                      notification.body!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       notification.body!,
                       style: TextStyle(
                         fontSize: 12 * scale,
                         fontWeight: FontWeight.w400,
-                        color: isUnread ? AppColors.textPrimary : const Color(0xFF8E8E8E),
+                        color: isUnread
+                            ? AppColors.textPrimary
+                            : const Color(0xFF8E8E8E),
                         height: 1.3,
                       ),
                     ),

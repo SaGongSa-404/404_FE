@@ -21,17 +21,20 @@ class PushTokenService {
     String? deviceId,
     CancelToken? cancelToken,
   }) async {
+    final platform = _currentPlatform;
+    if (platform == null) return;
+
     await _dio.post<void>(
       ApiEndpoints.pushTokens,
       data: {
         'token': token,
-        'platform': _currentPlatform.apiValue,
+        'platform': platform.apiValue,
         if (deviceId != null && deviceId.isNotEmpty) 'deviceId': deviceId,
       },
       cancelToken: cancelToken,
     );
     if (kDebugMode) {
-      debugPrint('[push-token] registered (${_currentPlatform.apiValue})');
+      debugPrint('[push-token] registered (${platform.apiValue})');
     }
   }
 
@@ -49,8 +52,10 @@ class PushTokenService {
     }
   }
 
-  static PushPlatform get _currentPlatform {
-    if (!kIsWeb && Platform.isIOS) return PushPlatform.ios;
-    return PushPlatform.android;
+  static PushPlatform? get _currentPlatform {
+    if (kIsWeb) return null;
+    if (Platform.isIOS) return PushPlatform.ios;
+    if (Platform.isAndroid) return PushPlatform.android;
+    return null;
   }
 }

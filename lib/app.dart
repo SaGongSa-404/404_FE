@@ -1,11 +1,12 @@
 import 'package:fe_app/core/router/app_router.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/auth/providers/deep_link_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/features/notification/providers/notification_settings_provider.dart';
 import 'package:fe_app/features/notification/providers/push_token_provider.dart';
 import 'package:fe_app/features/notification/views/components/notification_app_shell.dart';
+import 'package:fe_app/features/wishlist/views/components/wishlist_share_intent_app_shell.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final class App extends ConsumerWidget {
   const App({super.key});
@@ -27,8 +28,11 @@ final class App extends ConsumerWidget {
         fontFamily: 'Pretendard',
       ),
       builder: (context, child) {
-        return NotificationAppShell(
-          child: child ?? const SizedBox.shrink(),
+        return WishlistShareIntentAppShell(
+          router: appRouter,
+          child: NotificationAppShell(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       routerConfig: appRouter,

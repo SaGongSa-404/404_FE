@@ -274,16 +274,20 @@ final homeVideoPlaybackProvider =
     });
   }
 
-  ref.listen(homeSpecialEffectProvider, (_, __) => scheduleSyncWithCurrentState());
-  ref.listen(consumptionStatsProvider, (_, __) => scheduleSyncWithCurrentState());
+  ref.listen(
+      homeSpecialEffectProvider, (_, __) => scheduleSyncWithCurrentState());
+  ref.listen(
+      consumptionStatsProvider, (_, __) => scheduleSyncWithCurrentState());
 
   // 최초 진입 시 기본 영상 재생.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (disposed) return;
+    final special = ref.read(homeSpecialEffectProvider);
     controller.sync(
-      defaultVideoBaseName: 'nugul_home',
-      hasSpecial: false,
-      preloadedController: null,
+      defaultVideoBaseName: defaultVideoBaseName(),
+      hasSpecial:
+          special.caseType != null && special.preloadedController != null,
+      preloadedController: special.preloadedController,
     );
   });
 

@@ -1,5 +1,6 @@
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/shared/widgets/press_pill_button.dart';
 import 'package:flutter/material.dart';
 
 /// Figma-based confirm/cancel modal (412px design width).
@@ -23,7 +24,7 @@ Future<bool?> showConfirmBottomSheet(
   );
 }
 
-class _ConfirmModal extends StatefulWidget {
+class _ConfirmModal extends StatelessWidget {
   const _ConfirmModal({
     required this.title,
     this.subtitle,
@@ -35,13 +36,6 @@ class _ConfirmModal extends StatefulWidget {
   final String? subtitle;
   final String actionLabel;
   final bool destructive;
-
-  @override
-  State<_ConfirmModal> createState() => _ConfirmModalState();
-}
-
-class _ConfirmModalState extends State<_ConfirmModal> {
-  bool _actionPressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +70,7 @@ class _ConfirmModalState extends State<_ConfirmModal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.title,
+                    title,
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w600,
@@ -85,10 +79,10 @@ class _ConfirmModalState extends State<_ConfirmModal> {
                       height: 1.29,
                     ),
                   ),
-                  if (widget.subtitle != null) ...[
+                  if (subtitle != null) ...[
                     SizedBox(height: 12 * scale),
                     Text(
-                      widget.subtitle!,
+                      subtitle!,
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w500,
@@ -105,58 +99,44 @@ class _ConfirmModalState extends State<_ConfirmModal> {
             Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: PressPillButton.greyDefault,
+                    pressedColor: PressPillButton.greyPressed,
                     onTap: () => Navigator.of(context).pop(false),
-                    child: Container(
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '취소',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20 * scale,
-                          color: AppColors.textPrimary,
-                        ),
+                    child: Text(
+                      '취소',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20 * scale,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                 ),
                 SizedBox(width: 6 * scale),
                 Expanded(
-                  child: GestureDetector(
+                  child: PressPillButton(
+                    height: 57 * scale,
+                    borderRadius: 57 * scale,
+                    defaultColor: destructive
+                        ? AppColors.red_400
+                        : PressPillButton.blueDefault,
+                    pressedColor: destructive
+                        ? AppColors.red_500
+                        : PressPillButton.bluePressed,
                     onTap: () => Navigator.of(context).pop(true),
-                    onTapDown: (_) => setState(() => _actionPressed = true),
-                    onTapUp: (_) => setState(() => _actionPressed = false),
-                    onTapCancel: () => setState(() => _actionPressed = false),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      height: 57 * scale,
-                      decoration: BoxDecoration(
-                        color: widget.destructive
-                            ? (_actionPressed
-                                ? AppColors.red_500
-                                : AppColors.red_400)
-                            : (_actionPressed
-                                ? AppColors.skyBlue_200
-                                : AppColors.skyBlue_100),
-                        borderRadius: BorderRadius.circular(57 * scale),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        widget.actionLabel,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20 * scale,
-                          color: widget.destructive
-                              ? AppColors.white
-                              : AppColors.textPrimary,
-                        ),
+                    child: Text(
+                      actionLabel,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20 * scale,
+                        color: destructive
+                            ? AppColors.white
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ),

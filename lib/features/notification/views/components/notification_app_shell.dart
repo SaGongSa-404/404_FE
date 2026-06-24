@@ -21,7 +21,8 @@ class NotificationAppShell extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<NotificationAppShell> createState() => _NotificationAppShellState();
+  ConsumerState<NotificationAppShell> createState() =>
+      _NotificationAppShellState();
 }
 
 class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
@@ -135,7 +136,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
       );
     } catch (error, stackTrace) {
       debugPrint('open notifications failed: $error\n$stackTrace');
-      ref.read(pendingNotificationRouteProvider.notifier).state = '/notifications';
+      ref.read(pendingNotificationRouteProvider.notifier).state =
+          '/notifications';
       _isOpeningNotificationsPage = false;
     }
   }
@@ -211,9 +213,11 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     final liveState = ref.watch(notificationLiveProvider);
     final settings = ref.watch(notificationSettingsProvider);
     final deepLinkIntent = ref.watch(notificationDeepLinkProvider);
-    final currentBanner = liveState.bannerQueue.isNotEmpty ? liveState.bannerQueue.first : null;
+    final currentBanner =
+        liveState.bannerQueue.isNotEmpty ? liveState.bannerQueue.first : null;
 
-    ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider, (previous, next) {
+    ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider,
+        (previous, next) {
       if (next != null) {
         _handleDeepLink(next);
       }
@@ -249,9 +253,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
       _scheduleDismiss(currentBanner);
     }
 
-    final showBanner = settings.enabled &&
-        deepLinkIntent == null &&
-        currentBanner != null;
+    final showBanner =
+        settings.enabled && deepLinkIntent == null && currentBanner != null;
 
     return Stack(
       children: [
@@ -283,10 +286,10 @@ class _NotificationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasTitle = notification.title.trim().isNotEmpty;
-    final hasBody = notification.body != null && notification.body!.trim().isNotEmpty;
-    final primaryText = hasTitle
-        ? notification.title
-        : (hasBody ? notification.body! : '');
+    final hasBody =
+        notification.body != null && notification.body!.trim().isNotEmpty;
+    final primaryText =
+        hasTitle ? notification.title : (hasBody ? notification.body! : '');
     final secondaryText = hasTitle && hasBody ? notification.body : null;
 
     return Material(
@@ -329,8 +332,11 @@ class _NotificationBanner extends StatelessWidget {
                         primaryText,
                         style: TextStyle(
                           fontSize: hasTitle ? 14 : 12,
-                          fontWeight: hasTitle ? FontWeight.w700 : FontWeight.w400,
-                          color: hasTitle ? AppColors.textPrimary : AppColors.textSecondary,
+                          fontWeight:
+                              hasTitle ? FontWeight.w700 : FontWeight.w400,
+                          color: hasTitle
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
                           height: 1.4,
                         ),
                       ),

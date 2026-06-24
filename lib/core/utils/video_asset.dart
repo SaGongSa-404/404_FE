@@ -12,7 +12,6 @@ Iterable<String> _assetPathsForBaseName(String baseName) {
   return [webmPath, mp4Path];
 }
 
-/// `assets/videos/nugul_home.mp4` → `nugul_home`
 String? videoBaseNameFromDataSource(String dataSource) {
   if (dataSource.isEmpty) return null;
   final fileName = dataSource.split('/').last;
@@ -29,7 +28,10 @@ Future<VideoPlayerController> createVideoAssetController(
   bool loop = false,
 }) async {
   for (final path in _assetPathsForBaseName(baseName)) {
-    final controller = VideoPlayerController.asset(path);
+    final controller = VideoPlayerController.asset(
+      path,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     try {
       await controller.setVolume(0);
       await controller.initialize();

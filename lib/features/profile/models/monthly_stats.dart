@@ -20,6 +20,23 @@ class StatsMonthsResponse {
   }
 }
 
+class CategorySpendAmount {
+  const CategorySpendAmount({
+    required this.category,
+    required this.amount,
+  });
+
+  final String category;
+  final int amount;
+
+  factory CategorySpendAmount.fromJson(Map<String, dynamic> json) {
+    return CategorySpendAmount(
+      category: json['category'] as String? ?? '',
+      amount: MonthlyStats._asInt(json['amount']),
+    );
+  }
+}
+
 class MonthlyStats {
   const MonthlyStats({
     required this.yearMonth,
@@ -29,6 +46,9 @@ class MonthlyStats {
     required this.usageRate,
     required this.boughtCount,
     required this.restrainedCount,
+    this.categorySpendAmounts = const [],
+    this.rationalChoiceRate,
+    this.irrationalChoiceCount = 0,
   });
 
   final String yearMonth;
@@ -38,6 +58,9 @@ class MonthlyStats {
   final int usageRate;
   final int boughtCount;
   final int restrainedCount;
+  final List<CategorySpendAmount> categorySpendAmounts;
+  final double? rationalChoiceRate;
+  final int irrationalChoiceCount;
 
   String get displayMonth => yearMonthToDisplay(yearMonth);
 
@@ -49,14 +72,23 @@ class MonthlyStats {
   }
 
   factory MonthlyStats.fromJson(Map<String, dynamic> json) {
+    final categoriesRaw = json['categorySpendAmounts'];
     return MonthlyStats(
       yearMonth: json['yearMonth'] as String? ?? '',
       budgetAmount: _asInt(json['budgetAmount']),
       spentAmount: _asInt(json['spentAmount']),
       restrainedAmount: _asInt(json['restrainedAmount']),
-      usageRate: _asInt(json['usageRate']),
+      usageRate: _asDouble(json['usageRate']).round(),
       boughtCount: _asInt(json['boughtCount']),
       restrainedCount: _asInt(json['restrainedCount']),
+      categorySpendAmounts: categoriesRaw is List
+          ? categoriesRaw
+              .whereType<Map<String, dynamic>>()
+              .map(CategorySpendAmount.fromJson)
+              .toList()
+          : const [],
+      rationalChoiceRate: _asDoubleOrNull(json['rationalChoiceRate']),
+      irrationalChoiceCount: _asInt(json['irrationalChoiceCount']),
     );
   }
 
@@ -64,5 +96,19 @@ class MonthlyStats {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double? _asDoubleOrNull(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(value.toString());
+    return parsed;
   }
 }

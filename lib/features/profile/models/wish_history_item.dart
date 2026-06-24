@@ -35,6 +35,41 @@ class WishHistoryResponse {
   }
 }
 
+class WishHistoryReflection {
+  const WishHistoryReflection({
+    this.satisfactionScore,
+    required this.regretLevel,
+    this.stillUsing,
+    this.reflectionNote,
+    this.reflectedAt,
+  });
+
+  final int? satisfactionScore;
+  final String regretLevel;
+  final bool? stillUsing;
+  final String? reflectionNote;
+  final DateTime? reflectedAt;
+
+  factory WishHistoryReflection.fromJson(Map<String, dynamic> json) {
+    final reflectedAtRaw = json['reflectedAt'];
+    return WishHistoryReflection(
+      satisfactionScore: _asIntOrNull(json['satisfactionScore']),
+      regretLevel: json['regretLevel'] as String? ?? '',
+      stillUsing: json['stillUsing'] as bool?,
+      reflectionNote: json['reflectionNote'] as String?,
+      reflectedAt:
+          reflectedAtRaw is String ? DateTime.tryParse(reflectedAtRaw) : null,
+    );
+  }
+
+  static int? _asIntOrNull(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+}
+
 class WishHistoryItem {
   const WishHistoryItem({
     required this.itemId,
@@ -44,6 +79,7 @@ class WishHistoryItem {
     required this.category,
     required this.status,
     this.decisionId,
+    this.reflection,
   });
 
   final String itemId;
@@ -53,6 +89,7 @@ class WishHistoryItem {
   final String category;
   final String status;
   final String? decisionId;
+  final WishHistoryReflection? reflection;
 
   bool get isGo => status.toUpperCase() == 'GO';
 
@@ -66,6 +103,7 @@ class WishHistoryItem {
 
   factory WishHistoryItem.fromJson(Map<String, dynamic> json) {
     final decisionIdRaw = json['decisionId'] ?? json['lastDecisionId'];
+    final reflectionRaw = json['reflection'];
     return WishHistoryItem(
       itemId: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -76,12 +114,16 @@ class WishHistoryItem {
       decisionId: decisionIdRaw is String && decisionIdRaw.isNotEmpty
           ? decisionIdRaw
           : null,
+      reflection: reflectionRaw is Map<String, dynamic>
+          ? WishHistoryReflection.fromJson(reflectionRaw)
+          : null,
     );
   }
 
   WishHistoryItem copyWith({
     String? status,
     String? decisionId,
+    WishHistoryReflection? reflection,
   }) {
     return WishHistoryItem(
       itemId: itemId,
@@ -91,6 +133,7 @@ class WishHistoryItem {
       category: category,
       status: status ?? this.status,
       decisionId: decisionId ?? this.decisionId,
+      reflection: reflection ?? this.reflection,
     );
   }
 

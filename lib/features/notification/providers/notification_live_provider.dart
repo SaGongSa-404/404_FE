@@ -40,7 +40,8 @@ class NotificationLiveState {
 }
 
 final notificationLiveProvider =
-    StateNotifierProvider<NotificationLiveNotifier, NotificationLiveState>((ref) {
+    StateNotifierProvider<NotificationLiveNotifier, NotificationLiveState>(
+        (ref) {
   return NotificationLiveNotifier(
     ref.read(notificationServiceProvider),
     ref,
@@ -104,7 +105,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
       final fetched = await _service.fetchNotifications(unreadOnly: false);
       final cutoff = DateTime.now().subtract(const Duration(days: _expireDays));
       final fresh = fetched
-          .where((item) => item.createdAt == null || item.createdAt!.isAfter(cutoff))
+          .where((item) =>
+              item.createdAt == null || item.createdAt!.isAfter(cutoff))
           .toList(growable: false)
         ..sort((a, b) {
           final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -113,7 +115,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
         });
 
       final newIds = fresh.map((e) => e.id).toList(growable: false);
-      final shouldQueue = queueNewBanners && _initialized && _notificationsEnabled;
+      final shouldQueue =
+          queueNewBanners && _initialized && _notificationsEnabled;
       final batchVotePostIds = <String>{};
       final newlyArrived = shouldQueue
           ? fresh
@@ -163,11 +166,11 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
 
     // 폴링으로 감지한 알림은 기획 §2 인앱 알림(투표/댓글/리마인드)만 배너 노출.
     // FCM foreground 수신은 OS 푸시 대체이므로 타입 제한 없이 노출(기획 §1).
-    if (!fromPush && (type == null || !type.isInAppRealtime)) {
+    if (!fromPush && (type == null || !type.isInAppRealtimeBanner)) {
       return false;
     }
 
-    if (type?.isSocialVoteBannerType == true) {
+    if (type?.isSocialVoteBannerDedupType == true) {
       final postId = NotificationRouter.extractPostId(item);
       if (postId != null) {
         if (_seenVotePostIds.contains(postId)) return false;
@@ -201,9 +204,25 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     state = state.copyWith(items: updatedItems, bannerQueue: updatedQueue);
   }
 
+  void syncItemsFrom(List<NotificationModel> source) {
+    final sourceById = {
+      for (final item in source) item.id: item,
+    };
+    _seenIds.addAll(sourceById.keys);
+
+    final updatedQueue = [
+      for (final item in state.bannerQueue)
+        if (sourceById[item.id] != null) sourceById[item.id]!,
+    ];
+
+    state = state.copyWith(items: source, bannerQueue: updatedQueue);
+  }
+
   void consumeBanner(String id) {
     state = state.copyWith(
-      bannerQueue: state.bannerQueue.where((item) => item.id != id).toList(growable: false),
+      bannerQueue: state.bannerQueue
+          .where((item) => item.id != id)
+          .toList(growable: false),
     );
   }
 
@@ -230,7 +249,8 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
 
     final candidate = matched ??
         NotificationModel(
-          id: notificationId ?? DateTime.now().microsecondsSinceEpoch.toString(),
+          id: notificationId ??
+              DateTime.now().microsecondsSinceEpoch.toString(),
           title: payload.title ?? '',
           body: payload.body,
           time: '방금 전',
@@ -268,4 +288,23 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     _timer?.cancel();
     super.dispose();
   }
+}
+
+extension _NotificationBannerPolicy on NotificationType {
+  bool get isInAppRealtimeBanner {
+    switch (this) {
+      case NotificationType.socialVote:
+      case NotificationType.socialFirstVote:
+      case NotificationType.socialComment:
+      case NotificationType.wishlistReminder:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool get isSocialVoteBannerDedupType =>
+      this == NotificationType.socialVote ||
+      this == NotificationType.socialFirstVote ||
+      this == NotificationType.socialVoteSummary;
 }
