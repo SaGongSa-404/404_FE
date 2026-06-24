@@ -74,7 +74,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     if (_disposed) return;
     _timer?.cancel();
     _timer = Timer.periodic(_pollInterval, (_) => sync(queueNewBanners: true));
-    await sync(queueNewBanners: true);
+    await sync(queueNewBanners: false);
   }
 
   void pause() {

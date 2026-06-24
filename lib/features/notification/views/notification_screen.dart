@@ -18,6 +18,8 @@ class NotificationScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
+  bool _isOpeningNotification = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,39 +30,60 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   }
 
   Future<void> _onTapNotification(NotificationModel notification) async {
+    if (_isOpeningNotification) return;
+    _isOpeningNotification = true;
+
     final result =
         await ref.read(notificationSyncProvider).markAsRead(notification.id);
 
     if (result == MarkAsReadResult.notFound) {
-      if (!mounted) return;
+      if (!mounted) {
+        _isOpeningNotification = false;
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('만료되었거나 삭제된 알림입니다.')),
       );
+      _isOpeningNotification = false;
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      _isOpeningNotification = false;
+      return;
+    }
 
     final route = NotificationRouter.resolveFromNotification(notification);
-    if (route == null) return;
+    if (route == null) {
+      _isOpeningNotification = false;
+      return;
+    }
 
     if (NotificationRouter.isExternalUrl(route)) {
       final uri = Uri.parse(route);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
+      _isOpeningNotification = false;
       return;
     }
 
-    if (!NotificationRouter.shouldNavigate(route)) return;
+    if (!NotificationRouter.shouldNavigate(route)) {
+      _isOpeningNotification = false;
+      return;
+    }
 
     try {
       await context.push(route);
-      if (!mounted) return;
+      if (!mounted) {
+        _isOpeningNotification = false;
+        return;
+      }
       await ref.read(notificationSyncProvider).refreshList();
     } catch (e) {
       debugPrint('알림 이동 실패: $e');
     }
+    _isOpeningNotification = false;
   }
 
   @override

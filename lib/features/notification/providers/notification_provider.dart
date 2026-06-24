@@ -48,7 +48,7 @@ class NotificationListNotifier
     final current = state.valueOrNull;
     if (current == null) return MarkAsReadResult.failed;
 
-    final result = await _service.markAsRead(id, cancelToken: _cancelToken);
+    final result = await _service.markAsRead(id);
 
     if (result == MarkAsReadResult.notFound) {
       final updated = current.where((notification) => notification.id != id).toList(growable: false);

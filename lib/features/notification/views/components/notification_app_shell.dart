@@ -31,6 +31,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   Timer? _dismissTimer;
   String? _visibleBannerId;
   String? _handledDeepLinkKey;
+  String? _openingRoute;
+  bool _isOpeningNotificationsPage = false;
   bool _isForeground = true;
 
   bool _canPoll(AsyncValue authState) {
@@ -109,33 +111,65 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   }
 
   Future<void> _openNotificationsPage() async {
+    if (_isOpeningNotificationsPage) return;
+    _isOpeningNotificationsPage = true;
+
     await ref.read(notificationSyncProvider).prepareNotificationsScreen();
-    if (!mounted) return;
+    if (!mounted) {
+      _isOpeningNotificationsPage = false;
+      return;
+    }
 
     final router = GoRouter.of(context);
     final location = router.state.uri.path;
-    if (location == '/notifications') return;
+    if (location == '/notifications') {
+      _isOpeningNotificationsPage = false;
+      return;
+    }
 
     try {
-      context.push('/notifications');
+      unawaited(
+        context.push('/notifications').whenComplete(() {
+          _isOpeningNotificationsPage = false;
+        }),
+      );
     } catch (error, stackTrace) {
       debugPrint('open notifications failed: $error\n$stackTrace');
       ref.read(pendingNotificationRouteProvider.notifier).state = '/notifications';
+      _isOpeningNotificationsPage = false;
     }
   }
 
   Future<void> _navigateToRoute(String route) async {
+    if (_openingRoute == route) return;
+    _openingRoute = route;
+
     if (NotificationRouter.isExternalUrl(route)) {
-      await NotificationRouter.launchExternalUrl(Uri.parse(route));
+      try {
+        await NotificationRouter.launchExternalUrl(Uri.parse(route));
+      } finally {
+        _openingRoute = null;
+      }
       return;
     }
-    if (!NotificationRouter.shouldNavigate(route)) return;
+    if (!NotificationRouter.shouldNavigate(route)) {
+      _openingRoute = null;
+      return;
+    }
+
+    final current = GoRouter.of(context).state.uri.toString();
+    if (current == route) {
+      _openingRoute = null;
+      return;
+    }
 
     try {
-      context.push(route);
+      await context.push(route);
     } catch (error, stackTrace) {
       debugPrint('notification navigation failed: $error\n$stackTrace');
       ref.read(pendingNotificationRouteProvider.notifier).state = route;
+    } finally {
+      _openingRoute = null;
     }
   }
 
