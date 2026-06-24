@@ -75,7 +75,7 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     if (_disposed) return;
     _timer?.cancel();
     _timer = Timer.periodic(_pollInterval, (_) => sync(queueNewBanners: true));
-    await sync(queueNewBanners: true);
+    await sync(queueNewBanners: false);
   }
 
   void pause() {
@@ -166,11 +166,11 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
 
     // 폴링으로 감지한 알림은 기획 §2 인앱 알림(투표/댓글/리마인드)만 배너 노출.
     // FCM foreground 수신은 OS 푸시 대체이므로 타입 제한 없이 노출(기획 §1).
-    if (!fromPush && (type == null || !type.isInAppRealtime)) {
+    if (!fromPush && (type == null || !type.isInAppRealtimeBanner)) {
       return false;
     }
 
-    if (type?.isSocialVoteBannerType == true) {
+    if (type?.isSocialVoteBannerDedupType == true) {
       final postId = NotificationRouter.extractPostId(item);
       if (postId != null) {
         if (_seenVotePostIds.contains(postId)) return false;
@@ -288,4 +288,23 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     _timer?.cancel();
     super.dispose();
   }
+}
+
+extension _NotificationBannerPolicy on NotificationType {
+  bool get isInAppRealtimeBanner {
+    switch (this) {
+      case NotificationType.socialVote:
+      case NotificationType.socialFirstVote:
+      case NotificationType.socialComment:
+      case NotificationType.wishlistReminder:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool get isSocialVoteBannerDedupType =>
+      this == NotificationType.socialVote ||
+      this == NotificationType.socialFirstVote ||
+      this == NotificationType.socialVoteSummary;
 }

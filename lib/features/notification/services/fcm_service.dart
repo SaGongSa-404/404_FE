@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:fe_app/core/firebase/firebase_bootstrap.dart';
@@ -68,7 +69,8 @@ class FcmService {
 
       final launchDetails = await LocalNotificationPresenter.launchDetails();
       if (launchDetails?.didNotificationLaunchApp == true) {
-        _handleLocalNotificationTap(launchDetails?.notificationResponse?.payload);
+        _handleLocalNotificationTap(
+            launchDetails?.notificationResponse?.payload);
       }
 
       await _messaging.setForegroundNotificationPresentationOptions(
@@ -77,8 +79,10 @@ class FcmService {
         sound: false,
       );
 
-      _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-      _openedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(_handlePushOpen);
+      _foregroundSub =
+          FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      _openedAppSub =
+          FirebaseMessaging.onMessageOpenedApp.listen(_handlePushOpen);
       _tokenRefreshSub = _messaging.onTokenRefresh.listen(_registerToken);
 
       final initial = await _messaging.getInitialMessage();
@@ -114,11 +118,10 @@ class FcmService {
 
     try {
       await _pushTokenService.deactivateToken(token: token);
-    } catch (error, stackTrace) {
-      debugPrint('[fcm] deactivate failed: $error\n$stackTrace');
-    } finally {
       await _clearStoredToken();
       _cachedToken = null;
+    } catch (error, stackTrace) {
+      debugPrint('[fcm] deactivate failed: $error\n$stackTrace');
     }
   }
 
@@ -126,6 +129,9 @@ class FcmService {
     try {
       final token = await _messaging.getToken();
       if (token != null && token.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('[fcm] token=$token');
+        }
         _cachedToken = token;
         await _storeToken(token);
       }
@@ -159,7 +165,8 @@ class FcmService {
 
   void _handleForegroundMessage(RemoteMessage message) {
     final payload = FcmMessagePayload.fromRemoteMessage(message);
-    unawaited(_ref.read(notificationLiveProvider.notifier).enqueueFromPush(payload));
+    unawaited(
+        _ref.read(notificationLiveProvider.notifier).enqueueFromPush(payload));
   }
 
   void _handlePushOpen(RemoteMessage message) {
@@ -175,7 +182,8 @@ class FcmService {
     try {
       final decoded = jsonDecode(payload);
       if (decoded is Map) {
-        final map = decoded.map((key, value) => MapEntry(key.toString(), value));
+        final map =
+            decoded.map((key, value) => MapEntry(key.toString(), value));
         FcmMessagePayload.fromMap(map);
       }
     } catch (_) {}
@@ -205,6 +213,7 @@ class FcmService {
 abstract final class LocalNotificationPresenter {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  static final Random _random = Random();
   static bool _initialized = false;
 
   static Future<void> ensureInitialized({
@@ -307,7 +316,7 @@ abstract final class LocalNotificationPresenter {
     );
 
     await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      _random.nextInt(0x7fffffff),
       title,
       body,
       details,
@@ -330,18 +339,21 @@ abstract final class DeviceIdResolver {
     }
 
     try {
-      final plugin = DeviceInfoPlugin();
-      if (!kIsWeb && Platform.isAndroid) {
-        final info = await plugin.androidInfo;
-        _cached = info.id;
-      } else if (!kIsWeb && Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
+        final plugin = DeviceInfoPlugin();
         final info = await plugin.iosInfo;
         _cached = info.identifierForVendor;
       }
     } catch (_) {}
 
-    _cached ??= DateTime.now().microsecondsSinceEpoch.toString();
+    _cached ??= _createInstallationId();
     await prefs.setString('device_installation_id', _cached!);
     return _cached;
+  }
+
+  static String _createInstallationId() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
   }
 }

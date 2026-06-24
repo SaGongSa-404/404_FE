@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 abstract final class NotificationNavigation {
   static const notificationsPath = '/notifications';
   static const returnToParam = 'returnTo';
+  static bool _isOpeningNotifications = false;
 
   /// 알림 상세 이동 후 뒤로가기 시 알림 페이지로 복귀하도록 쿼리를 붙입니다.
   static String withReturnTo(String route) {
@@ -26,7 +27,8 @@ abstract final class NotificationNavigation {
 
   /// 알림 페이지에서 진입한 상세 화면의 뒤로가기 처리.
   static void popOrReturn(BuildContext context) {
-    final returnTo = GoRouterState.of(context).uri.queryParameters[returnToParam];
+    final returnTo =
+        GoRouterState.of(context).uri.queryParameters[returnToParam];
     if (returnTo != null && returnTo.isNotEmpty) {
       if (context.canPop()) {
         context.pop();
@@ -62,11 +64,24 @@ abstract final class NotificationNavigation {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    unawaited(
-      ref.read(notificationListProvider(false).notifier).refresh(showLoading: false),
-    );
-    unawaited(ref.read(homeSummaryProvider.notifier).refresh());
-    if (!context.mounted) return;
-    await context.push(notificationsPath);
+    if (_isOpeningNotifications) return;
+    _isOpeningNotifications = true;
+
+    try {
+      unawaited(
+        ref
+            .read(notificationListProvider(false).notifier)
+            .refresh(showLoading: false),
+      );
+      unawaited(ref.read(homeSummaryProvider.notifier).refresh());
+      if (!context.mounted) return;
+
+      final router = GoRouter.of(context);
+      if (router.state.uri.path == notificationsPath) return;
+
+      await context.push(notificationsPath);
+    } finally {
+      _isOpeningNotifications = false;
+    }
   }
 }

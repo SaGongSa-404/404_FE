@@ -21,7 +21,8 @@ class NotificationAppShell extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<NotificationAppShell> createState() => _NotificationAppShellState();
+  ConsumerState<NotificationAppShell> createState() =>
+      _NotificationAppShellState();
 }
 
 class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
@@ -31,6 +32,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   Timer? _dismissTimer;
   String? _visibleBannerId;
   String? _handledDeepLinkKey;
+  String? _openingRoute;
+  bool _isOpeningNotificationsPage = false;
   bool _isForeground = true;
 
   bool _canPoll(AsyncValue authState) {
@@ -109,33 +112,66 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   }
 
   Future<void> _openNotificationsPage() async {
+    if (_isOpeningNotificationsPage) return;
+    _isOpeningNotificationsPage = true;
+
     await ref.read(notificationSyncProvider).prepareNotificationsScreen();
-    if (!mounted) return;
+    if (!mounted) {
+      _isOpeningNotificationsPage = false;
+      return;
+    }
 
     final router = GoRouter.of(context);
     final location = router.state.uri.path;
-    if (location == '/notifications') return;
+    if (location == '/notifications') {
+      _isOpeningNotificationsPage = false;
+      return;
+    }
 
     try {
-      context.push('/notifications');
+      unawaited(
+        context.push('/notifications').whenComplete(() {
+          _isOpeningNotificationsPage = false;
+        }),
+      );
     } catch (error, stackTrace) {
       debugPrint('open notifications failed: $error\n$stackTrace');
-      ref.read(pendingNotificationRouteProvider.notifier).state = '/notifications';
+      ref.read(pendingNotificationRouteProvider.notifier).state =
+          '/notifications';
+      _isOpeningNotificationsPage = false;
     }
   }
 
   Future<void> _navigateToRoute(String route) async {
+    if (_openingRoute == route) return;
+    _openingRoute = route;
+
     if (NotificationRouter.isExternalUrl(route)) {
-      await NotificationRouter.launchExternalUrl(Uri.parse(route));
+      try {
+        await NotificationRouter.launchExternalUrl(Uri.parse(route));
+      } finally {
+        _openingRoute = null;
+      }
       return;
     }
-    if (!NotificationRouter.shouldNavigate(route)) return;
+    if (!NotificationRouter.shouldNavigate(route)) {
+      _openingRoute = null;
+      return;
+    }
+
+    final current = GoRouter.of(context).state.uri.toString();
+    if (current == route) {
+      _openingRoute = null;
+      return;
+    }
 
     try {
-      context.push(route);
+      await context.push(route);
     } catch (error, stackTrace) {
       debugPrint('notification navigation failed: $error\n$stackTrace');
       ref.read(pendingNotificationRouteProvider.notifier).state = route;
+    } finally {
+      _openingRoute = null;
     }
   }
 
@@ -177,9 +213,11 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     final liveState = ref.watch(notificationLiveProvider);
     final settings = ref.watch(notificationSettingsProvider);
     final deepLinkIntent = ref.watch(notificationDeepLinkProvider);
-    final currentBanner = liveState.bannerQueue.isNotEmpty ? liveState.bannerQueue.first : null;
+    final currentBanner =
+        liveState.bannerQueue.isNotEmpty ? liveState.bannerQueue.first : null;
 
-    ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider, (previous, next) {
+    ref.listen<NotificationRouteIntent?>(notificationDeepLinkProvider,
+        (previous, next) {
       if (next != null) {
         _handleDeepLink(next);
       }
@@ -215,9 +253,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
       _scheduleDismiss(currentBanner);
     }
 
-    final showBanner = settings.enabled &&
-        deepLinkIntent == null &&
-        currentBanner != null;
+    final showBanner =
+        settings.enabled && deepLinkIntent == null && currentBanner != null;
 
     return Stack(
       children: [
@@ -249,10 +286,10 @@ class _NotificationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasTitle = notification.title.trim().isNotEmpty;
-    final hasBody = notification.body != null && notification.body!.trim().isNotEmpty;
-    final primaryText = hasTitle
-        ? notification.title
-        : (hasBody ? notification.body! : '');
+    final hasBody =
+        notification.body != null && notification.body!.trim().isNotEmpty;
+    final primaryText =
+        hasTitle ? notification.title : (hasBody ? notification.body! : '');
     final secondaryText = hasTitle && hasBody ? notification.body : null;
 
     return Material(
@@ -295,8 +332,11 @@ class _NotificationBanner extends StatelessWidget {
                         primaryText,
                         style: TextStyle(
                           fontSize: hasTitle ? 14 : 12,
-                          fontWeight: hasTitle ? FontWeight.w700 : FontWeight.w400,
-                          color: hasTitle ? AppColors.textPrimary : AppColors.textSecondary,
+                          fontWeight:
+                              hasTitle ? FontWeight.w700 : FontWeight.w400,
+                          color: hasTitle
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
                           height: 1.4,
                         ),
                       ),

@@ -69,6 +69,7 @@ class NotificationSyncUseCase {
       }
       return result;
     }
+    if (result != MarkAsReadResult.success) return result;
     await _live.markAsRead(id, syncRemote: false);
     return result;
   }

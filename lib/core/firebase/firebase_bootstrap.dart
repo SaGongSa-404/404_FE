@@ -28,10 +28,16 @@ abstract final class FirebaseBootstrap {
       return;
     }
 
-    await Firebase.initializeApp(options: options);
-    _initialized = true;
-    if (kDebugMode) {
-      debugPrint('[firebase] initialized (project=${options.projectId})');
+    try {
+      await Firebase.initializeApp(options: options);
+      _initialized = true;
+      if (kDebugMode) {
+        debugPrint('[firebase] initialized (project=${options.projectId})');
+      }
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('[firebase] initialization failed: $error\n$stackTrace');
+      }
     }
   }
 }
