@@ -1,4 +1,4 @@
-package com.example.fe_app
+package com.saosa.wigul
 
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
