@@ -210,9 +210,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
-    final preloadedController = ref
-        .read(homeSpecialEffectProvider.notifier)
-        .takePreloadedController();
+    final preloadedController =
+        ref.read(homeSpecialEffectProvider.notifier).takePreloadedController();
     if (preloadedController == null) {
       _syncVideoPlayback(
         defaultVideoBaseName: defaultVideoBaseName,
@@ -459,7 +458,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _hasHandledBubbleRuntime = true;
     _isShowingBubble = true;
     try {
-      await _showBalloon(bubble.message, bubble.toHomeBubbleType());
+      final type = bubble.toHomeBubbleType();
+      final selection =
+          ref.read(homeBubbleSelectorProvider).selectForResultBubble(type);
+      if (selection == null) return;
+      await _showBalloon(selection.message, selection.type);
       await ref.read(homeSummaryProvider.notifier).acknowledgeHomeBubbleSeen();
     } catch (error, stackTrace) {
       debugPrint('home server bubble failed: $error\n$stackTrace');
@@ -551,9 +554,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           });
 
           final bubble = loadedSummary.bubble;
-          if (bubble != null &&
-              bubble.shouldShow &&
-              bubble.message.isNotEmpty) {
+          if (bubble != null && bubble.shouldShow) {
             unawaited(_presentServerBubble(bubble));
             return;
           }
@@ -562,7 +563,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
     );
 
-    ref.listen<HomeSpecialEffectState>(homeSpecialEffectProvider, (previous, next) {
+    ref.listen<HomeSpecialEffectState>(homeSpecialEffectProvider,
+        (previous, next) {
       if (!next.hasPendingSpecial) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -617,7 +619,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           ),
                           badgeCount: summary?.notifications.unreadCount,
-                          onAlarmPressed: () => openNotificationsPage(ref, context),
+                          onAlarmPressed: () =>
+                              openNotificationsPage(ref, context),
                         ),
                         SizedBox(height: 20 * scale),
                         Expanded(
@@ -628,7 +631,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 if (_visibleBalloonMessage != null) ...[
                                   Flexible(
                                     child: SingleChildScrollView(
-                                      physics: const NeverScrollableScrollPhysics(),
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -643,10 +647,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             ),
                                             decoration: BoxDecoration(
                                               color: Colors.white.withValues(
-                                                alpha: _balloonBackgroundOpacity,
+                                                alpha:
+                                                    _balloonBackgroundOpacity,
                                               ),
                                               borderRadius:
-                                                  BorderRadius.circular(40 * scale),
+                                                  BorderRadius.circular(
+                                                      40 * scale),
                                             ),
                                             child: Text(
                                               _visibleBalloonMessage!,
@@ -665,7 +671,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           CustomPaint(
                                             size: Size(20 * scale, 10 * scale),
                                             painter: TrianglePainter(
-                                              opacity: _balloonBackgroundOpacity,
+                                              opacity:
+                                                  _balloonBackgroundOpacity,
                                             ),
                                           ),
                                         ],
@@ -709,8 +716,7 @@ class TrianglePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: opacity);
+    final paint = Paint()..color = Colors.white.withValues(alpha: opacity);
     final path = Path();
     path.moveTo(0, 0);
     path.lineTo(size.width, 0);
