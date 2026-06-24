@@ -2,7 +2,7 @@ import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
 import 'package:fe_app/features/feed/providers/feed_provider.dart';
-import 'package:fe_app/features/feed/views/components/confirm_modal.dart';
+import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:fe_app/features/feed/views/components/feed_product_card.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:flutter/material.dart';
@@ -54,10 +54,10 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
 
   Future<void> _onClose() async {
     final shouldDiscard = await showConfirmBottomSheet(
-      context: context,
-      title: '게시글 작성을 그만두시겠나요?',
-      subtitle: '한 번 삭제된 게시글은 되돌릴 수 없어요',
-      actionLabel: '그만두기',
+      context,
+      title: '게시글 수정을 중단하시겠어요?',
+      subtitle: '수정 중인 내용은 저장되지 않아요',
+      actionLabel: '중단하기',
     );
     if (shouldDiscard == true && mounted) context.pop();
   }
