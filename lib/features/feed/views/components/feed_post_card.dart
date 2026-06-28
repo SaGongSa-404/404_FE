@@ -150,7 +150,7 @@ class _PostHeaderState extends State<_PostHeader> {
     return Row(
       children: [
         Text(
-          widget.post.authorNickname,
+          '익명의 너굴',
           style: TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
