@@ -81,8 +81,9 @@ class _ReportDialogState extends State<_ReportDialog> {
     final scale = mq.size.width / 412.0;
     final horizontalInset = mq.size.width * 21 / 412;
     final keyboard = mq.viewInsets.bottom;
-    final bottomInset = (keyboard > 0 ? keyboard : mq.padding.bottom) + 31 * scale;
-    final maxHeight = mq.size.height - mq.padding.top - keyboard - 40 * scale;
+    // Dialog는 viewInsets를 insetPadding에 자동으로 더하므로 keyboard를 중복 포함하지 않습니다.
+    final bottomInset = mq.padding.bottom + 31 * scale;
+    final maxHeight = mq.size.height - mq.padding.top - keyboard - 60 * scale;
 
     return Dialog(
       backgroundColor: Colors.transparent,
