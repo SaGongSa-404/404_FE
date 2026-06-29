@@ -74,7 +74,7 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
       if (!mounted) return;
       showCapsuleToast(
         context,
-        backgroundColor: AppColors.skyBlue_400,
+        backgroundColor: AppColors.red_600,
         text: '게시글은 $_maxBodyLength자까지 작성할 수 있어요',
       );
     });
