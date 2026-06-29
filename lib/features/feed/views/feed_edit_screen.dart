@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/features/feed/models/feed_post.dart';
 import 'package:fe_app/features/feed/models/update_post_request.dart';
@@ -32,6 +34,8 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
   late final TextEditingController _controller;
   bool _hasContent = false;
   bool _isSubmitting = false;
+  int _bodyLength = 0;
+  Timer? _limitToastTimer;
 
   @override
   void initState() {
@@ -40,14 +44,45 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
     final initial = post?.body ?? '';
     _controller = TextEditingController(text: initial);
     _hasContent = initial.trim().isNotEmpty;
-    _controller.addListener(() {
-      final hasContent = _controller.text.trim().isNotEmpty;
-      if (hasContent != _hasContent) setState(() => _hasContent = hasContent);
+    _bodyLength = initial.characters.length;
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final text = _controller.text;
+    final len = text.characters.length;
+
+    if (len > _maxBodyLength) {
+      final trimmed = text.characters.take(_maxBodyLength).toString();
+      _controller.value = TextEditingValue(
+        text: trimmed,
+        selection: TextSelection.collapsed(offset: trimmed.length),
+      );
+      _scheduleLimitToast();
+      return;
+    }
+
+    setState(() {
+      _hasContent = text.trim().isNotEmpty;
+      _bodyLength = len;
+    });
+  }
+
+  void _scheduleLimitToast() {
+    _limitToastTimer?.cancel();
+    _limitToastTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      showCapsuleToast(
+        context,
+        backgroundColor: AppColors.skyBlue_400,
+        text: '게시글은 $_maxBodyLength자까지 작성할 수 있어요',
+      );
     });
   }
 
   @override
   void dispose() {
+    _limitToastTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -69,15 +104,6 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
     if (!_hasContent && post?.product == null) return;
 
     final body = _controller.text.trim();
-    if (body.characters.length > _maxBodyLength) {
-      showCapsuleToast(
-        context,
-        backgroundColor: AppColors.skyBlue_400,
-        text: '게시글은 $_maxBodyLength자까지 작성할 수 있어요',
-      );
-      return;
-    }
-
     _isSubmitting = true;
     final updated = await ref.read(feedProvider.notifier).updatePost(
           widget.postId,
@@ -178,6 +204,23 @@ class _FeedEditScreenState extends ConsumerState<FeedEditScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
+                  if (_bodyLength > 0) ...[
+                    SizedBox(height: (6 * scale).clamp(4.0, 8.0)),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '$_bodyLength/$_maxBodyLength',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w400,
+                          fontSize: (13 * scale).clamp(11.0, 15.0),
+                          color: _bodyLength >= _maxBodyLength
+                              ? AppColors.red_600
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                   if (post.product != null) ...[
                     SizedBox(height: (16 * scale).clamp(12.0, 20.0)),
                     FeedProductCard(
