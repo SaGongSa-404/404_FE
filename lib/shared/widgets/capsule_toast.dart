@@ -31,10 +31,11 @@ void showCapsuleToast(
     builder: (ctx) {
       final scale = responsiveScale(ctx);
       final bottomPad = MediaQuery.paddingOf(ctx).bottom;
+      final keyboardHeight = MediaQuery.viewInsetsOf(ctx).bottom;
       return Positioned(
         left: 0,
         right: 0,
-        bottom: bottomPad + bottomOffset * scale,
+        bottom: bottomPad + bottomOffset * scale + keyboardHeight,
         child: Material(
           color: Colors.transparent,
           child: CapsuleToast(

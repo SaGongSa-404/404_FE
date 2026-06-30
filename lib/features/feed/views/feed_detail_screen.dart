@@ -264,7 +264,7 @@ class _DetailPostCard extends StatelessWidget {
               ),
               SizedBox(width: (5 * scale).clamp(4.0, 6.0)),
               Text(
-                post.authorNickname,
+                '익명의 너굴',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
