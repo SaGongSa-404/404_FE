@@ -188,8 +188,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       unawaited(specialController.pause());
       _scheduleSpecialDispose(specialController);
     }
-
-    unawaited(_tryPresentPendingConsiderBubble());
   }
 
   Future<void> _cleanupActiveController() async {
@@ -268,6 +266,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
 
       await preloadedController.play();
+      unawaited(_tryPresentPendingConsiderBubble());
     } catch (error, stackTrace) {
       debugPrint('Special video playback failed: $error\n$stackTrace');
       _isPlayingSpecialOnce = false;
@@ -487,7 +486,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         await localStore.peekPendingResultBubble() != null;
 
     if (hasPendingDecision) {
-      await _tryPresentPendingConsiderBubble();
+      final willPlaySpecial = _isPlayingSpecialOnce ||
+          ref.read(homeSpecialEffectProvider).hasPendingSpecial;
+      if (!willPlaySpecial) {
+        await _tryPresentPendingConsiderBubble();
+      }
       return;
     }
 
@@ -502,9 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _hasHandledBubbleRuntime ||
         _hasHandledServerBubble ||
         _isShowingBubble ||
-        _visibleBalloonMessage != null ||
-        _isPlayingSpecialOnce ||
-        ref.read(homeSpecialEffectProvider).hasPendingSpecial) {
+        _visibleBalloonMessage != null) {
       return;
     }
 
