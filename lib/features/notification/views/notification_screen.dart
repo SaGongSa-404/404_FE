@@ -19,6 +19,7 @@ class NotificationScreen extends ConsumerStatefulWidget {
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   bool _isOpeningNotification = false;
+  bool _isMarkingAllAsRead = false;
 
   @override
   void initState() {
@@ -69,6 +70,29 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       }
     } finally {
       _isOpeningNotification = false;
+    }
+  }
+
+  Future<void> _onTapMarkAllAsRead() async {
+    if (_isMarkingAllAsRead) return;
+
+    setState(() {
+      _isMarkingAllAsRead = true;
+    });
+
+    try {
+      await ref.read(notificationSyncProvider).markAllAsRead();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('알림 전체 읽음 처리에 실패했어요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMarkingAllAsRead = false;
+        });
+      }
     }
   }
 
@@ -128,6 +152,17 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                   horizontal: 24 * scale, vertical: 12 * scale),
               children: [
                 if (unread.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _MarkAllAsReadButton(
+                      scale: scale,
+                      isLoading: _isMarkingAllAsRead,
+                      onTap: _onTapMarkAllAsRead,
+                    ),
+                  ),
+                  SizedBox(height: 12 * scale),
+                ],
+                if (unread.isNotEmpty) ...[
                   _buildSectionTitle('읽지 않은 알림', scale),
                   ...unread.map((n) => _NotificationCapsule(
                         notification: n,
@@ -169,6 +204,45 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           fontSize: 16 * scale,
           fontWeight: FontWeight.w700,
           color: const Color(0xFF8E8E8E),
+        ),
+      ),
+    );
+  }
+}
+
+class _MarkAllAsReadButton extends StatelessWidget {
+  const _MarkAllAsReadButton({
+    required this.scale,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  final double scale;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isLoading
+        ? AppColors.textSecondary.withValues(alpha: 0.45)
+        : AppColors.textSecondary;
+
+    return InkWell(
+      onTap: isLoading ? null : onTap,
+      borderRadius: BorderRadius.circular(4 * scale),
+      child: Padding(
+        padding:
+            EdgeInsets.symmetric(horizontal: 4 * scale, vertical: 6 * scale),
+        child: Text(
+          '전체 읽음 표시',
+          style: TextStyle(
+            color: color,
+            fontSize: 13 * scale,
+            fontWeight: FontWeight.w500,
+            decoration: TextDecoration.underline,
+            decorationColor: color,
+            decorationThickness: 1,
+          ),
         ),
       ),
     );

@@ -204,6 +204,17 @@ class NotificationLiveNotifier extends StateNotifier<NotificationLiveState> {
     state = state.copyWith(items: updatedItems, bannerQueue: updatedQueue);
   }
 
+  void markAllAsRead() {
+    final now = DateTime.now();
+    state = state.copyWith(
+      items: [
+        for (final item in state.items)
+          if (item.isRead) item else item.copyWith(isRead: true, readAt: now),
+      ],
+      bannerQueue: const [],
+    );
+  }
+
   void syncItemsFrom(List<NotificationModel> source) {
     final sourceById = {
       for (final item in source) item.id: item,

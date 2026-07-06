@@ -39,14 +39,26 @@ class NotificationPermissionService {
     final status = await Permission.notification.status;
     if (status.isGranted || status.isPermanentlyDenied) return;
 
-    _requestedThisSession = true;
     if (kDebugMode) {
       debugPrint('[notification] requesting OS permission...');
     }
 
-    final result = await Permission.notification.request();
-    if (kDebugMode) {
-      debugPrint('[notification] request result=$result');
+    try {
+      // 1. OS 권한 요청 함수를 먼저 실행하여 대기(await)합니다.
+      final result = await Permission.notification.request();
+
+      if (kDebugMode) {
+        debugPrint('[notification] request result=$result');
+      }
+
+      // 2. 예외 없이 요청 프로세스가 성공적으로 완료된 후에만 세션 플래그를 true로 만듭니다.
+      _requestedThisSession = true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[notification] 권한 요청 중 시스템 에러 발생: $e');
+      }
+      // 예외 발생 시 플래그가 true로 변하지 않으므로, 유저가 다시 버튼을 눌러 재시도할 수 있습니다.
+      rethrow;
     }
   }
 
@@ -58,18 +70,27 @@ class NotificationPermissionService {
   static Future<bool> get isPermanentlyDenied async =>
       (await Permission.notification.status).isPermanentlyDenied;
 
-  /// OS 알림 권한 다이얼로그를 띄우고 결과를 반환합니다.
+  /// 유저가 명시적으로 알림 설정을 켤 때 OS 권한 다이얼로그를 띄우고 결과를 반환합니다.
   static Future<PermissionStatus> requestPermission() async {
     if (kDebugMode) {
       debugPrint('[notification] requesting OS permission (explicit)...');
     }
-    final result = await Permission.notification.request();
-    if (kDebugMode) {
-      debugPrint('[notification] request result=$result');
+
+    try {
+      final result = await Permission.notification.request();
+      if (kDebugMode) {
+        debugPrint('[notification] request result=$result');
+      }
+      _requestedThisSession = true;
+      return result;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[notification] explicit permission request failed: $e');
+      }
+      rethrow;
     }
-    return result;
   }
 
-  /// 기기 설정 앱의 알림 권한 화면으로 이동합니다.
+  /// 기기 설정 앱의 앱 알림 권한 화면으로 이동합니다.
   static Future<bool> openSettings() => openAppSettings();
 }

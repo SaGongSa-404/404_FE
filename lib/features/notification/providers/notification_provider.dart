@@ -77,6 +77,26 @@ class NotificationListNotifier
     return result;
   }
 
+  Future<MarkAllAsReadResult> markAllAsRead() async {
+    final current = state.valueOrNull;
+    final result = await _service.markAllAsRead();
+
+    if (current != null) {
+      final now = DateTime.now();
+      final updated = [
+        for (final notification in current)
+          if (notification.isRead)
+            notification
+          else
+            notification.copyWith(isRead: true, readAt: now),
+      ];
+      state = AsyncData(_unreadOnly ? const [] : updated);
+    }
+
+    _invalidateHomeSummary();
+    return result;
+  }
+
   void _invalidateHomeSummary() {
     unawaited(_ref.read(homeSummaryProvider.notifier).refresh());
   }
