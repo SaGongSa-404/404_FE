@@ -602,7 +602,10 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    final initialText = _formatAmount(widget.currentBudget);
+    _controller = TextEditingController(text: initialText)
+      ..selection = TextSelection.collapsed(offset: initialText.length);
+    _digits = widget.currentBudget.toString();
     _controller.addListener(_onChanged);
   }
 
@@ -695,7 +698,7 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '현재 예산 ${_formatAmount(widget.currentBudget)}',
+              '현재 예산 ${_formatAmount(widget.currentBudget)}원',
               style: TextStyle(
                 fontSize: 20 * scale,
                 fontWeight: FontWeight.w600,
@@ -729,6 +732,7 @@ class _BudgetEditModalState extends State<_BudgetEditModal> {
               hasError: hasError,
               autofocus: true,
               keyboardType: TextInputType.number,
+              suffixText: '원',
               inputFormatters: [
                 _BudgetAmountFormatter(
                   maxDigits: _maxDigits,

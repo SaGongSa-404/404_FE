@@ -20,6 +20,7 @@ class ProfileModalTextField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.textAlign = TextAlign.left,
+    this.suffixText,
   });
 
   final TextEditingController controller;
@@ -31,6 +32,7 @@ class ProfileModalTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final TextAlign textAlign;
+  final String? suffixText;
 
   @override
   Widget build(BuildContext context) {
@@ -53,32 +55,49 @@ class ProfileModalTextField extends StatelessWidget {
       ),
       alignment: Alignment.centerLeft,
       padding: EdgeInsets.symmetric(horizontal: 18 * scale),
-      child: TextField(
-        controller: controller,
-        autofocus: autofocus,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        maxLength: maxLength,
-        textAlign: textAlign,
-        style: TextStyle(
-          fontSize: 16 * scale,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          isDense: true,
-          isCollapsed: true,
-          counterText: '',
-          hintText: hintText,
-          hintStyle: TextStyle(
-            fontSize: 16 * scale,
-            fontWeight: FontWeight.w400,
-            color: AppColors.textSecondary,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              autofocus: autofocus,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
+              maxLength: maxLength,
+              textAlign: textAlign,
+              style: TextStyle(
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                isCollapsed: true,
+                counterText: '',
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary,
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+              ),
+            ),
           ),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-        ),
+          if (suffixText != null) ...[
+            SizedBox(width: 6 * scale),
+            Text(
+              suffixText!,
+              style: TextStyle(
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
