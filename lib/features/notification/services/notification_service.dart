@@ -15,6 +15,20 @@ enum MarkAsReadResult {
   failed,
 }
 
+class MarkAllAsReadResult {
+  const MarkAllAsReadResult({
+    required this.updatedCount,
+  });
+
+  final int updatedCount;
+
+  factory MarkAllAsReadResult.fromJson(Map<String, dynamic> json) {
+    return MarkAllAsReadResult(
+      updatedCount: (json['updatedCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class NotificationService {
   const NotificationService(this._dio);
 
@@ -58,5 +72,15 @@ class NotificationService {
       }
       rethrow;
     }
+  }
+
+  Future<MarkAllAsReadResult> markAllAsRead({
+    CancelToken? cancelToken,
+  }) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      ApiEndpoints.notificationsReadAll,
+      cancelToken: cancelToken,
+    );
+    return MarkAllAsReadResult.fromJson(res.data ?? const <String, dynamic>{});
   }
 }

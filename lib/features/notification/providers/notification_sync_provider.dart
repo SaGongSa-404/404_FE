@@ -74,6 +74,14 @@ class NotificationSyncUseCase {
     return result;
   }
 
+  /// 알림 전체 읽음 처리. 목록, 라이브 배너, 홈 배지를 함께 동기화합니다.
+  Future<MarkAllAsReadResult> markAllAsRead() async {
+    final result = await _list.markAllAsRead();
+    _live.markAllAsRead();
+    unawaited(_homeSummary.refresh());
+    return result;
+  }
+
   /// 인앱 배너 탭 처리: 읽음 처리 후 배너를 제거하고 홈 요약을 갱신합니다.
   Future<void> markBannerAsRead(String id) async {
     await _live.markAsRead(id);

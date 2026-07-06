@@ -115,7 +115,6 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     if (_isOpeningNotificationsPage) return;
     _isOpeningNotificationsPage = true;
 
-    await ref.read(notificationSyncProvider).prepareNotificationsScreen();
     if (!mounted) {
       _isOpeningNotificationsPage = false;
       return;
@@ -129,6 +128,8 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     }
 
     try {
+      unawaited(
+          ref.read(notificationSyncProvider).prepareNotificationsScreen());
       unawaited(
         context.push('/notifications').whenComplete(() {
           _isOpeningNotificationsPage = false;

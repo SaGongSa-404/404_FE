@@ -10,8 +10,10 @@ abstract final class ApiEndpoints {
   // ── Auth ─────────────────────────────────────────────────────────────────
   static const String me = '$auth/me';
   static const String tokenRefresh = '$auth/token/refresh';
+
   /// 앱 심사용 고정 계정 토큰 발급 (인증·요청 바디 없음)
   static const String reviewerToken = '$auth/reviewer-token';
+
   /// 명세 본문에 없음. 백엔드 제공 시 경로 확인 후 사용.
   static const String logout = '/api/logout';
 
@@ -48,6 +50,7 @@ abstract final class ApiEndpoints {
 
   // ── Notifications ────────────────────────────────────────────────────────
   static const String notifications = '$v1/notifications';
+  static const String notificationsReadAll = '$v1/notifications/read-all';
   static String notificationRead(String notificationId) =>
       '$v1/notifications/$notificationId/read';
 

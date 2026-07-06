@@ -22,6 +22,12 @@ import 'package:fe_app/features/notification/services/push_token_storage.dart';
 const _androidChannelId = 'wigul_default';
 const _androidChannelName = '위굴 알림';
 const _localNotificationTapPayload = 'open_notifications';
+const _androidKnownChannelIds = <String>{
+  _androidChannelId,
+  'social_activity',
+  'consumption_management',
+  'service_notice',
+};
 
 final fcmServiceProvider = Provider<FcmService>((ref) {
   final service = FcmService(
@@ -167,6 +173,7 @@ class FcmService {
     final payload = FcmMessagePayload.fromRemoteMessage(message);
     unawaited(
         _ref.read(notificationLiveProvider.notifier).enqueueFromPush(payload));
+    unawaited(LocalNotificationPresenter.showFromRemoteMessage(message));
   }
 
   void _handlePushOpen(RemoteMessage message) {
@@ -287,6 +294,7 @@ abstract final class LocalNotificationPresenter {
       title: title ?? '위굴',
       body: body ?? '',
       payload: jsonEncode(payload.toLocalNotificationPayload()),
+      channelId: _resolveAndroidChannelId(payload),
     );
   }
 
@@ -299,29 +307,87 @@ abstract final class LocalNotificationPresenter {
     required String title,
     required String body,
     String? payload,
+    String? channelId,
   }) async {
     await ensureInitialized();
+    if (!await _canShowNotification()) return;
 
-    const androidDetails = AndroidNotificationDetails(
-      _androidChannelId,
+    final androidChannelId = channelId ?? _androidChannelId;
+    final androidDetails = AndroidNotificationDetails(
+      androidChannelId,
       _androidChannelName,
       channelDescription: '위굴 서비스 알림',
       importance: Importance.high,
       priority: Priority.high,
     );
     const iosDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
-    await _plugin.show(
-      _random.nextInt(0x7fffffff),
-      title,
-      body,
-      details,
-      payload: payload ?? _localNotificationTapPayload,
-    );
+    try {
+      await _plugin.show(
+        _random.nextInt(0x7fffffff),
+        title,
+        body,
+        details,
+        payload: payload ?? _localNotificationTapPayload,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('[fcm] local notification show failed: $error\n$stackTrace');
+    }
+  }
+
+  static Future<bool> _canShowNotification() async {
+    if (kIsWeb) return false;
+
+    final permissionGranted = await NotificationPermissionService.isGranted;
+    if (!permissionGranted) {
+      debugPrint('[fcm] skip local notification: OS permission is not granted');
+      return false;
+    }
+
+    if (Platform.isAndroid) {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final enabled = await androidPlugin?.areNotificationsEnabled();
+      if (enabled == false) {
+        debugPrint(
+          '[fcm] skip local notification: Android notifications disabled',
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
+
+String _resolveAndroidChannelId(FcmMessagePayload payload) {
+  final explicit = payload.channelId?.trim();
+  if (explicit != null && _androidKnownChannelIds.contains(explicit)) {
+    return explicit;
+  }
+
+  switch (payload.type) {
+    case 'SOCIAL_VOTE':
+    case 'SOCIAL_FIRST_VOTE':
+    case 'SOCIAL_VOTE_SUMMARY':
+    case 'SOCIAL_DECISION_NUDGE':
+    case 'SOCIAL_COMMENT':
+      return 'social_activity';
+    case 'REGRET_CHECK_READY':
+    case 'REGRET_CHECK_FOLLOW_UP':
+    case 'WISHLIST_REMINDER':
+    case 'BUDGET_WARNING':
+    case 'BUDGET_RESET':
+      return 'consumption_management';
+    case 'APP_UPDATE':
+    case 'MAINTENANCE_NOTICE':
+      return 'service_notice';
+    default:
+      return _androidChannelId;
   }
 }
 

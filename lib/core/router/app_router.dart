@@ -34,6 +34,7 @@ import 'package:fe_app/features/wishlist/views/wishlist_reflect_screen.dart';
 import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 import 'package:fe_app/shared/widgets/my_page_tab_shell.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -78,6 +79,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: notifier.redirect,
+    observers: [
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ],
     routes: [
       GoRoute(
         path: '/',
@@ -228,8 +232,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/tutorial',
         builder: (context, state) {
-          final restoreModal =
-              state.uri.queryParameters['restoreModal'] == '1';
+          final restoreModal = state.uri.queryParameters['restoreModal'] == '1';
           return WishlistTutorialRouteScreen(
             restoreAddEntryModalOnExit: restoreModal,
           );
@@ -278,11 +281,11 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen<AsyncValue<UserModel?>>(
       authProvider,
-          (_, __) => notifyListeners(),
+      (_, __) => notifyListeners(),
     );
     _ref.listen<AsyncValue<void>>(
       _splashMinDurationProvider,
-          (_, __) => notifyListeners(),
+      (_, __) => notifyListeners(),
     );
   }
 

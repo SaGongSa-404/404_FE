@@ -11,6 +11,7 @@ class FcmMessagePayload {
     this.decisionId,
     this.reminderId,
     this.type,
+    this.channelId,
   });
 
   final String? notificationId;
@@ -21,6 +22,7 @@ class FcmMessagePayload {
   final String? decisionId;
   final String? reminderId;
   final String? type;
+  final String? channelId;
 
   factory FcmMessagePayload.fromRemoteMessage(RemoteMessage message) {
     final data = message.data;
@@ -38,7 +40,9 @@ class FcmMessagePayload {
       itemId: _pick(data, const ['itemId', 'item_id']),
       decisionId: _pick(data, const ['decisionId', 'decision_id']),
       reminderId: _pick(data, const ['reminderId', 'reminder_id']),
-      type: _pick(data, const ['notificationType', 'notification_type', 'type']),
+      type:
+          _pick(data, const ['notificationType', 'notification_type', 'type']),
+      channelId: _pick(data, const ['channelId', 'channel_id']),
     );
   }
 
@@ -55,7 +59,9 @@ class FcmMessagePayload {
       itemId: _pick(data, const ['itemId', 'item_id']),
       decisionId: _pick(data, const ['decisionId', 'decision_id']),
       reminderId: _pick(data, const ['reminderId', 'reminder_id']),
-      type: _pick(data, const ['notificationType', 'notification_type', 'type']),
+      type:
+          _pick(data, const ['notificationType', 'notification_type', 'type']),
+      channelId: _pick(data, const ['channelId', 'channel_id']),
     );
   }
 
@@ -66,6 +72,7 @@ class FcmMessagePayload {
       if (itemId != null) 'itemId': itemId!,
       if (decisionId != null) 'decisionId': decisionId!,
       if (reminderId != null) 'reminderId': reminderId!,
+      if (channelId != null) 'channelId': channelId!,
     };
   }
 
