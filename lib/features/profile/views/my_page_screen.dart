@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyPageScreen extends ConsumerStatefulWidget {
   const MyPageScreen({super.key});
@@ -181,6 +182,13 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                         scale,
                         notificationSettings: notificationSettings,
                       ),
+                      SizedBox(height: 12 * scale),
+                      _buildMenuItem(
+                        scale: scale,
+                        iconPath: 'assets/images/feedback_icon.svg',
+                        label: '피드백 및 문의하기',
+                        onTap: () => _openFeedbackForm(context),
+                      ),
                       SizedBox(height: 40 * scale),
                     ],
                   ),
@@ -334,6 +342,28 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     );
     if (goToSettings == true) {
       await NotificationPermissionService.openSettings();
+    }
+  }
+
+  Future<void> _openFeedbackForm(BuildContext context) async {
+    final uri = Uri.parse('https://forms.gle/B9gvKxcqH9bNJxX69');
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && context.mounted) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: '링크를 열 수 없습니다',
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        showCapsuleToast(
+          context,
+          backgroundColor: AppColors.red_600.withValues(alpha: 0.8),
+          text: '링크를 열 수 없습니다',
+        );
+      }
     }
   }
 }
