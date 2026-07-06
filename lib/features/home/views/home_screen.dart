@@ -44,6 +44,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   static const _balloonDuration = Duration(seconds: 3);
   static const _balloonBackgroundOpacity = 0.5;
+  static const _balloonTopInset = 40.0;
   static const _specialFinishLeadTime = Duration(milliseconds: 80);
   static const _specialDisposeDelay = Duration(seconds: 4);
 
@@ -187,6 +188,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       unawaited(specialController.pause());
       _scheduleSpecialDispose(specialController);
     }
+
+    unawaited(_tryPresentPendingConsiderBubble());
   }
 
   Future<void> _cleanupActiveController() async {
@@ -217,12 +220,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         defaultVideoBaseName: defaultVideoBaseName,
         hasSpecial: false,
       );
+      unawaited(_tryPresentPendingConsiderBubble());
       return;
     }
 
     if (!preloadedController.value.isInitialized ||
         preloadedController.value.hasError) {
       await preloadedController.dispose();
+      unawaited(_tryPresentPendingConsiderBubble());
       return;
     }
 
@@ -240,11 +245,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final defaultController = _videoController;
     if (defaultController == null || !defaultController.value.isInitialized) {
       await preloadedController.dispose();
+      unawaited(_tryPresentPendingConsiderBubble());
       return;
     }
 
     if (!mounted) {
       await preloadedController.dispose();
+      unawaited(_tryPresentPendingConsiderBubble());
       return;
     }
 
@@ -270,6 +277,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (mounted) setState(() {});
       unawaited(defaultController.setLooping(true));
       unawaited(defaultController.play());
+      unawaited(_tryPresentPendingConsiderBubble());
       return;
     }
 
@@ -471,12 +479,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  Future<void> _presentHomeBubbleAfterSummary(
+    HomeSummaryResponse loadedSummary,
+  ) async {
+    final localStore = await ref.read(homeBubbleLocalStoreProvider.future);
+    final hasPendingDecision =
+        await localStore.peekPendingResultBubble() != null;
+
+    if (hasPendingDecision) {
+      await _tryPresentPendingConsiderBubble();
+      return;
+    }
+
+    final bubble = loadedSummary.bubble;
+    if (bubble != null && bubble.shouldShow) {
+      await _presentServerBubble(bubble);
+    }
+  }
+
   Future<void> _tryPresentPendingConsiderBubble() async {
     if (!mounted ||
         _hasHandledBubbleRuntime ||
         _hasHandledServerBubble ||
         _isShowingBubble ||
-        _visibleBalloonMessage != null) {
+        _visibleBalloonMessage != null ||
+        _isPlayingSpecialOnce ||
+        ref.read(homeSpecialEffectProvider).hasPendingSpecial) {
       return;
     }
 
@@ -553,12 +581,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             );
           });
 
-          final bubble = loadedSummary.bubble;
-          if (bubble != null && bubble.shouldShow) {
-            unawaited(_presentServerBubble(bubble));
-            return;
-          }
-          unawaited(_tryPresentPendingConsiderBubble());
+          unawaited(_presentHomeBubbleAfterSummary(loadedSummary));
         });
       },
     );
@@ -578,9 +601,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
 
     final activeController = _videoController;
-    final mascotBaseName = _isPlayingSpecialOnce
-        ? videoBaseNameFromDataSource(activeController?.dataSource ?? '')
-        : _currentVideoBaseName;
 
     return Scaffold(
       body: Stack(
@@ -594,7 +614,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ? HomeMascotVideo(
                     key: const ValueKey('home_mascot'),
                     controller: activeController,
-                    videoBaseName: mascotBaseName,
                   )
                 : const ColoredBox(color: Color(0xFFD9E9F2)),
           ),
@@ -636,6 +655,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          SizedBox(height: _balloonTopInset * scale),
                                           Container(
                                             margin: EdgeInsets.symmetric(
                                               horizontal: 24 * scale,
