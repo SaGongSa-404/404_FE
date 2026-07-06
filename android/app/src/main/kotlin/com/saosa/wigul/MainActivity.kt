@@ -15,7 +15,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        pendingSharedText = extractSharedText(intent)
+        pendingSharedText = ShareIntentExtractor.extract(intent)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -54,7 +54,7 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
 
-        val sharedText = extractSharedText(intent) ?: return
+        val sharedText = ShareIntentExtractor.extract(intent) ?: return
         val eventSink = shareEventSink
         if (eventSink == null) {
             pendingSharedText = sharedText
@@ -64,16 +64,4 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun shouldDestroyEngineWithHost(): Boolean = true
-
-    private fun extractSharedText(intent: Intent?): String? {
-        if (intent?.action != Intent.ACTION_SEND) return null
-        val type = intent.type ?: return null
-        if (!type.startsWith("text/")) return null
-
-        val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.trim()
-        if (!text.isNullOrEmpty()) return text
-
-        val subject = intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)?.toString()?.trim()
-        return subject?.takeIf { it.isNotEmpty() }
-    }
 }
