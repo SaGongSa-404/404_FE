@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fe_app/core/network/api_exception.dart';
@@ -400,9 +398,12 @@ class FeedViewModel extends StateNotifier<FeedState> {
     if (changed) state = state.copyWith(commentsMap: newMap);
   }
 
-  Future<String?> uploadImage(File file) async {
+  Future<String?> uploadImage(
+    List<int> bytes, {
+    required String filename,
+  }) async {
     try {
-      return await _service.uploadImage(file);
+      return await _service.uploadImage(bytes, filename: filename);
     } catch (e) {
       state = state.copyWith(errorMessage: _errorMessage(e));
       return null;
