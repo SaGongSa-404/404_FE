@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -243,7 +242,7 @@ abstract final class LocalNotificationPresenter {
       },
     );
 
-    if (!kIsWeb && Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       // BE FCM 메시지의 channelId와 일치해야 채널별 알림 관리가 동작합니다.
       // (social_activity / consumption_management / service_notice)
       const channels = [
@@ -348,7 +347,7 @@ abstract final class LocalNotificationPresenter {
       return false;
     }
 
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final enabled = await androidPlugin?.areNotificationsEnabled();
@@ -405,7 +404,7 @@ abstract final class DeviceIdResolver {
     }
 
     try {
-      if (!kIsWeb && Platform.isIOS) {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         final plugin = DeviceInfoPlugin();
         final info = await plugin.iosInfo;
         _cached = info.identifierForVendor;

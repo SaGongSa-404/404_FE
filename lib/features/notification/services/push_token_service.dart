@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:dio/dio.dart';
 import 'package:fe_app/core/network/api_client.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
@@ -54,8 +52,10 @@ class PushTokenService {
 
   static PushPlatform? get _currentPlatform {
     if (kIsWeb) return null;
-    if (Platform.isIOS) return PushPlatform.ios;
-    if (Platform.isAndroid) return PushPlatform.android;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return PushPlatform.ios;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return PushPlatform.android;
+    }
     return null;
   }
 }
