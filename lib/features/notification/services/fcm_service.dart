@@ -62,6 +62,7 @@ class FcmService {
   String? get cachedToken => _cachedToken;
 
   Future<void> start() async {
+    if (kIsWeb) return; // 웹은 FCM/로컬 알림 미지원
     if (_started || !FirebaseBootstrap.isInitialized) return;
     // 동시 호출 재진입 방지를 위해 먼저 표시하고, 실패 시 롤백한다.
     _started = true;
@@ -107,6 +108,7 @@ class FcmService {
   }
 
   Future<void> syncForAuthenticatedUser() async {
+    if (kIsWeb) return; // 웹은 FCM 미지원
     if (!FirebaseBootstrap.isInitialized) return;
 
     final auth = _ref.read(authProvider);
