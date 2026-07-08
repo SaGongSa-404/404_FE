@@ -1,118 +1,182 @@
 # WiGul(위굴) 웹 지원 작업 문서
 
 Flutter 모바일 앱(위굴)을 웹으로 배포하기 위한 분기 처리 및 수정 사항 정리.
+`feat/web-support` 브랜치에서 진행.
 
-> 핵심 전제: **웹에서는 `dart:io`를 import할 수 없다.** 따라서 현재 상태로는
-> `flutter build web`이 **컴파일조차 안 된다.** 작업은 두 부류로 나뉜다.
+> 핵심 전제: **웹에서는 `dart:io`를 import할 수 없다.** 초기 상태에선
+> `flutter build web`이 컴파일조차 안 됐다. 작업은 두 부류로 나뉜다.
 > ① 컴파일이 되게 만드는 필수 수정, ② 기능이 실제 동작하게 만드는 분기.
 
----
+## 진행 현황
 
-## Phase 0. 준비
-
-1. `feat/web-support` 브랜치에서 작업.
-2. `flutter run -d chrome` 실행 → 실제 컴파일 에러 목록을 뽑아 기준점 확보.
-
----
-
-## Phase 1. 컴파일 통과시키기 (필수 — `dart:io` 제거)
-
-웹은 `dart:io`를 지원하지 않아, 아래 6개 파일이 컴파일을 막는다.
-`Platform`은 `flutter/foundation`의 `defaultTargetPlatform` + `kIsWeb`으로,
-`File` / `SocketException`은 조건부 처리로 바꾼다.
-
-| 파일 | 문제 | 조치 |
+| Phase | 내용 | 상태 |
 |---|---|---|
-| `lib/core/config/env_config.dart:1` | `Platform.isIOS/isMacOS/isAndroid`, `Platform.environment` | `defaultTargetPlatform`로 대체. `Platform.environment`(시뮬레이터 판별)는 웹에 없으니 `kIsWeb` 가드로 분리 |
-| `lib/core/network/network_error.dart:1` | `SocketException` | 조건부 import 스텁 or 타입명 문자열 체크로 우회 |
-| `lib/features/notification/services/fcm_service.dart:3` | `Platform.isAndroid/isIOS` | `defaultTargetPlatform`로 대체 |
-| `lib/features/notification/services/push_token_service.dart:1` | `Platform.isIOS/isAndroid` | `defaultTargetPlatform`로 대체 |
-| `lib/features/feed/services/feed_service.dart:1` | `File`, `MultipartFile.fromFile` | Phase 4에서 처리 |
-| `lib/features/feed/viewmodels/feed_viewmodel.dart:1` | `File` 파라미터 | Phase 4에서 처리 |
+| Phase 1 | `dart:io` 제거 (컴파일 통과) | ✅ 완료 — 웹 빌드 성공 |
+| Phase 2 | OAuth 로그인 웹 분기 | ✅ 완료 (백엔드/콘솔 등록은 외부 협조 필요) |
+| Phase 3 | 알림(FCM) 웹 분기 | ✅ 완료 (웹은 알림 OFF) |
+| Phase 4 | 피드 이미지 업로드 | ✅ 완료 — **대상 없음**(업로드 기능 미존재) |
+| Phase 5 | 기타(Analytics·CORS·baseURL 등) | ⬜ 남음 |
+| Phase 6 | 빌드 & 배포 | ⬜ 남음 |
 
-**권장 패턴:** `Platform.isX` → `!kIsWeb && defaultTargetPlatform == TargetPlatform.X`.
-이러면 `dart:io` import 자체를 지울 수 있다.
-
-이 Phase만 끝나면 **웹에서 화면은 뜬다** (로그인/알림/업로드 제외).
+> `flutter build web`은 현재 **성공**한다. 단, 웹에서 실제 구동 시
+> **Phase 5의 Firebase Analytics 이슈**가 화면 이동을 막을 수 있어 우선 처리 대상.
 
 ---
 
-## Phase 2. OAuth 로그인 웹 분기 (필수 — 안 하면 로그인 불가)
+## Phase 1. 컴파일 통과시키기 (`dart:io` 제거) — ✅ 완료
 
-**현재 흐름 (모바일 전용):** 외부 브라우저 → 커스텀 스킴 딥링크(`sagongsa404://auth/callback`)
-→ `app_links`가 캐치 → `handleCallback`.
+웹은 `dart:io`를 지원하지 않아 관련 파일이 컴파일을 막았다.
+`Platform`은 `flutter/foundation`의 `defaultTargetPlatform` + `kIsWeb`으로,
+`File`/`SocketException`은 조건부 import로 감싸 해결.
 
-3. **리다이렉트 URI 웹용 분리** — `lib/features/auth/utils/oauth_launch.dart:5`의
-   `kOAuthRedirectUri`를 웹에선 `https://<web-domain>/auth/callback` 같은 실제 URL로 분기.
-4. **콜백 수신 방식 교체** — `lib/features/auth/providers/deep_link_provider.dart`의
-   `app_links`는 웹에서 안 뜨므로, 웹에서는 앱 시작 시 현재 URL(`Uri.base`)의
-   쿼리/프래그먼트에서 토큰을 읽어 `handleCallback` 호출하는 경로 추가.
-5. **launch 방식** — `launchOAuthSignIn`(`lib/features/auth/providers/auth_provider.dart:60`)에서
-   웹은 같은 탭 리다이렉트가 자연스러움 (`url_launcher`의 `webOnlyWindowName: '_self'`).
-6. **백엔드 협의** — OAuth `redirect_uri` 화이트리스트에 웹 도메인 추가 필요.
-   카카오/구글 콘솔에도 웹 리다이렉트 등록.
-7. **토큰 저장** — `flutter_secure_storage`는 웹에서 컴파일·동작은 되지만 내부적으로
-   브라우저 스토리지라 "secure"하지 않음. 동작엔 문제없으니 일단 유지, 보안 요건 있으면 별도 검토.
+**신규 파일 — dart:io 조건부 래퍼**
+- `lib/core/platform/io_platform.dart` — 진입점. `export ... if (dart.library.io) ...`로 분기
+- `lib/core/platform/io_platform_io.dart` — 네이티브용: `platformEnv(key)`, `isSocketException(e)`
+- `lib/core/platform/io_platform_stub.dart` — 웹 스텁: 각각 `null`, `false`
 
----
+**수정 파일**
 
-## Phase 3. 알림 (FCM) 웹 분기
+| 파일 | 변경 |
+|---|---|
+| `lib/core/config/env_config.dart` | `Platform.isIOS/isMacOS/isAndroid` → `defaultTargetPlatform`, `Platform.environment` → `platformEnv()`. `dart:io` 제거 |
+| `lib/core/network/network_error.dart` | `SocketException` 체크 → `isSocketException()`. `dart:io` 제거 |
+| `lib/features/notification/services/fcm_service.dart` | `Platform.isAndroid/isIOS` → `defaultTargetPlatform`. `dart:io` 제거 |
+| `lib/features/notification/services/push_token_service.dart` | 동일. `dart:io` 제거 |
+| `lib/features/feed/services/feed_service.dart` | `uploadImage(File)` → `uploadImage(List<int> bytes, {required String filename})` + `MultipartFile.fromBytes`. `dart:io` 제거 |
+| `lib/features/feed/viewmodels/feed_viewmodel.dart` | `uploadImage` 시그니처를 바이트 기반으로 맞춤. `dart:io` 제거 |
 
-8. **필수(컴파일/크래시 방지)** — `firebase_messaging` 웹 초기화 시 서비스워커가 없으면 에러.
-   웹에서 FCM을 **끄는** 게 가장 간단: `lib/features/notification/providers/push_token_provider.dart`의
-   부트스트랩을 `if (!kIsWeb)`로 감싸고, `syncForAuthenticatedUser`도 웹 조기 반환.
-9. `fcm_service.dart`의 `LocalNotificationPresenter`는 이미 `_canShowNotification`이
-   `kIsWeb`에서 `false` 반환(`:343`)하도록 되어 있어 OK. `flutter_local_notifications` 자체는
-   웹 미지원이므로 `show`/`initialize` 경로가 웹에서 호출되지 않게만 유지.
-10. **(선택) 웹 푸시까지 지원하려면** — `web/firebase-messaging-sw.js` 서비스워커 추가
-    + VAPID 키 발급 + `getToken(vapidKey:)` 분기. 초기 배포엔 8·9만으로
-    "알림 없이 동작" 상태로 두는 걸 권장.
+**적용 패턴:** `Platform.isX` → `!kIsWeb && defaultTargetPlatform == TargetPlatform.X`.
+`defaultTargetPlatform`은 실기기에서 실제 OS를 반환하므로 모바일 동작은 기존과 동일
+(단 테스트의 `debugDefaultTargetPlatformOverride`로만 오버라이드 가능 — 프로덕션 무관).
+
+이후 `dart:io` import는 `io_platform_io.dart`(네이티브 전용, 웹은 컴파일 안 함)에만 남음.
 
 ---
 
-## Phase 4. 피드 이미지 업로드 웹 분기
+## Phase 2. OAuth 로그인 웹 분기 — ✅ 완료 (외부 협조 필요)
 
-`uploadImage(File)`은 정의돼 있으나 아직 UI에서 호출되진 않는 것으로 보임(latent).
-하지만 `dart:io`/`File` 타입 때문에 컴파일은 막으므로 처리 필요.
+**네이티브 흐름:** 외부 브라우저 → 커스텀 스킴 딥링크(`sagongsa404://auth/callback`)
+→ `app_links` 캐치 → `handleCallback`.
+**웹 흐름:** 같은 탭 리다이렉트 → 백엔드 OAuth → `https://<origin>/auth/callback#access_token=...`
+로 복귀 → 앱 로드 시 `Uri.base`에서 토큰 추출 → 저장 → 라우터가 홈/온보딩으로 이동
+(주소창의 토큰 fragment도 이 과정에서 사라짐).
 
-11. `image_picker` 의존성 추가 (웹 지원됨) → `XFile`로 통일.
-12. `lib/features/feed/services/feed_service.dart:93`의 `uploadImage(File file)` →
-    `uploadImage(XFile file)`로 시그니처 변경, 내부를
-    `MultipartFile.fromBytes(await file.readAsBytes(), filename: file.name)`로 교체
-    (경로 대신 바이트 사용 → 모바일·웹 공통 동작).
-13. `lib/features/feed/viewmodels/feed_viewmodel.dart:403` 시그니처도 `XFile`로 맞춤.
+**수정 파일**
+
+| 파일 | 변경 |
+|---|---|
+| `lib/features/auth/utils/oauth_launch.dart` | `kOAuthRedirectUri` 상수 → `oauthRedirectUri()` 함수. 웹은 `${Uri.base.origin}/auth/callback`, 네이티브는 커스텀 스킴 |
+| `lib/features/auth/providers/auth_provider.dart` | `launchOAuthSignIn`에서 `oauthRedirectUri()` 사용 + `launchUrl(webOnlyWindowName: '_self')` |
+| `lib/features/auth/utils/oauth_callback_uri.dart` | `isOAuthCallbackUri`가 웹의 `http(s)://.../auth/callback` + 토큰 보유 URL도 인식 |
+| `lib/features/auth/providers/deep_link_provider.dart` | 웹은 `app_links` 대신 앱 시작 시 `Uri.base`를 **동기적으로**(await 이전) 읽어 콜백 처리 |
+| `lib/main.dart` | 웹에서 `usePathUrlStrategy()` — OAuth fragment 토큰이 라우터와 충돌하지 않게 |
+| `pubspec.yaml` | `flutter_web_plugins`(SDK) 추가 |
+
+**⚠️ 코드만으로는 로그인 불가 — 외부 협조 필수**
+1. **백엔드 `redirect_uri` 화이트리스트** — 웹 콜백 URL(`http://localhost:<포트>/auth/callback`,
+   배포 도메인의 `/auth/callback`) 허용. 토큰을 fragment(권장) 또는 query로 실어 리다이렉트.
+2. **카카오/구글 콘솔** — 각 OAuth 앱 Redirect URI에 웹 콜백 URL 등록.
+3. **로컬 실행 포트 고정** — `flutter run -d chrome --web-port=<고정포트>` (redirect_uri 일치용).
+4. **토큰 저장** — `flutter_secure_storage`는 웹에서 동작하나 내부적으로 브라우저 스토리지라
+   "secure"하지 않음. 동작엔 문제없어 유지, 보안 요건 있으면 별도 검토.
 
 ---
 
-## Phase 5. 기타 웹 설정
+## Phase 3. 알림 (FCM) 웹 분기 — ✅ 완료 (웹은 알림 OFF)
 
-14. **API Base URL** — `env_config.dart`의 `10.0.2.2 → 127.0.0.1` 치환이 `!kIsWeb`
-    조건이라 웹에선 안 바뀜. 웹 실행 시 `.env`의 `API_BASE_URL`을 실제 접근 가능한
-    주소로(로컬이면 `localhost`) 두거나, 웹 분기 치환 추가.
-15. **CORS (백엔드 필수)** — 브라우저는 CORS를 강제하므로, 백엔드가 웹 오리진
-    (`http://localhost:xxxx`, 배포 도메인)을 `Access-Control-Allow-Origin`에 허용해야
-    API 호출이 감. 안 되면 로그인 이후 모든 요청이 막힘.
-16. **`web/index.html`, `web/manifest.json`** — 이미 존재. 앱 타이틀/파비콘/테마 정도만 다듬기.
-17. **라우팅** — `go_router` 사용 중이라 웹에서 URL 경로가 그대로 노출됨.
-    필요 시 해시 전략(`usePathUrlStrategy`) 여부 결정.
+웹은 초기 배포에서 **알림을 끄는** 방향. 런타임 크래시를 유발하는 3개 지점을 가드.
+
+**수정 파일**
+
+| 파일 | 변경 |
+|---|---|
+| `lib/core/services/notification_permission_service.dart` | `permission_handler` 호출 전부에 `kIsWeb` 가드 — `shouldPrompt`/`isGranted`/`isPermanentlyDenied`→`false`, `request`/`requestPermission`→no-op·`denied`, `status`→`denied`, `openSettings`→`false` |
+| `lib/features/notification/providers/push_token_provider.dart` | `pushTokenLifecycleProvider`를 웹에서 조기 반환(FCM 부트스트랩·토큰 등록 미실행) |
+| `lib/features/notification/services/fcm_service.dart` | `start()`·`syncForAuthenticatedUser()`에 방어적 `kIsWeb` 조기 반환 |
+
+**그대로 유지:** `LocalNotificationPresenter._canShowNotification()`이 웹에서 `false` 반환(로컬 알림 미표시).
+`deactivateStoredPushToken`은 웹에서 저장 토큰이 없어 자동 early-return.
+**앱 내 알림 목록**(API 조회 기반 `notification_screen`)은 웹에서도 정상 동작 — 끈 건 OS 푸시/로컬 알림뿐.
+
+**(선택) 웹 푸시까지 지원하려면** — `web/firebase-messaging-sw.js` 서비스워커 추가
++ VAPID 키 발급 + `getToken(vapidKey:)` 분기. 초기 배포엔 불필요.
 
 ---
 
-## Phase 6. 빌드 & 배포
+## Phase 4. 피드 이미지 업로드 — ✅ 완료 (대상 없음)
 
-18. `flutter build web --release`.
-19. `build/web/` 정적 파일을 호스팅(Firebase Hosting, Netlify, S3+CloudFront 등)에 배포.
-    `.env`는 애셋으로 번들되므로 웹에선 **민감값이 노출**됨 → 웹 빌드엔 공개돼도 되는 값만
-    두거나 `--dart-define`로 주입 검토.
+**결론: 앱에 사용자 이미지 업로드 기능이 없어 웹 분기할 대상이 없다.**
+
+- 피드 게시글 이미지는 사용자가 파일을 올리는 게 아니라 **위시 아이템의 상품 이미지 URL**
+  (`item?.imageUrl`)을 붙이는 방식. 표시는 전부 `Image.network`(웹 기본 지원).
+- `uploadImage`는 **죽은 코드** — 호출하는 UI 없음. Phase 1에서 이미 바이트 기반 시그니처로
+  바꿔 웹 컴파일도 통과. **그대로 유지**하기로 결정.
+- 향후 실제 업로드 기능이 필요하면 `image_picker`의 `XFile.readAsBytes()`를 현재 시그니처에
+  그대로 넘기면 됨(모바일·웹 공통). 그때 백엔드 업로드 엔드포인트 확인 필요.
+
+---
+
+## Phase 5. 기타 웹 설정 — ⬜ 남음
+
+### 5-1. Firebase Analytics / Core 웹 초기화 (우선 처리 — 웹 구동 차단 가능)
+
+`lib/core/router/app_router.dart`가 라우터 생성 시 항상
+`FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)`를 등록한다(`observers`).
+웹에서 Firebase가 초기화되지 않은 상태(=`web/index.html`에 Firebase JS SDK/설정 없음, 또는
+`FIREBASE_*` env 미설정)라면, 화면 이동 시 `FirebaseAnalytics.instance` 사용에서
+`No Firebase App '[DEFAULT]' has been created` 류 에러가 나 **네비게이션이 깨질 수 있다.**
+
+- 관련: `lib/main.dart`의 `FirebaseBootstrap.initialize()`는 웹에서 JS SDK가 없으면 실패하고
+  (try/catch로 무시되어) 미초기화 상태로 남는다. `AppFirebaseOptions.currentPlatform`은
+  `kIsWeb`이면 env 설정 시 옵션을 반환하도록 되어 있음.
+
+**처리 방향 (택1):**
+- (A) 웹에서 analytics observer를 조건부로 제외 — `observers`를 `kIsWeb`(또는 Firebase 미초기화)
+  일 때 빈 리스트로. 가장 간단, 웹 애널리틱스 포기.
+- (B) `web/index.html`에 Firebase JS SDK + config를 추가해 정식 초기화 — 웹 애널리틱스 유지.
+
+> 초기 배포엔 (A) 권장. FCM도 웹에선 끈 상태이므로 웹 Firebase 의존을 최소화하는 편이 단순.
+
+### 5-2. API Base URL
+
+`env_config.dart`의 `10.0.2.2 → 127.0.0.1` 치환이 `!kIsWeb` 조건이라 웹에선 미적용.
+웹 실행 시 `.env`의 `API_BASE_URL`을 브라우저에서 접근 가능한 주소(로컬이면 `localhost`)로
+두거나, 웹 분기 치환을 추가.
+
+### 5-3. CORS (백엔드 필수)
+
+브라우저는 CORS를 강제. 백엔드가 웹 오리진(`http://localhost:<포트>`, 배포 도메인)을
+`Access-Control-Allow-Origin`에 허용해야 API 호출이 감. 안 되면 로그인 이후 모든 요청이 막힘.
+- 허용 메서드: `GET/POST/PATCH/PUT/DELETE/OPTIONS`(preflight `OPTIONS` 응답 포함)
+- 허용 헤더: `Authorization`, `Content-Type`(멀티파트 포함)
+- 본 앱은 Bearer 토큰 방식(쿠키 아님) → `Access-Control-Allow-Credentials` 불필요(확인 요망)
+
+### 5-4. 라우팅 / index.html
+
+- URL 전략: **Phase 2에서 `usePathUrlStrategy()` 적용 완료.** 경로가 그대로 노출됨.
+  → 배포 호스트에서 SPA rewrite 필요(아래 Phase 6).
+- `web/index.html`, `web/manifest.json`은 이미 존재. 앱 타이틀/파비콘/테마 다듬기.
+
+---
+
+## Phase 6. 빌드 & 배포 — ⬜ 남음
+
+1. `flutter build web --release`.
+   - 참고: `flutter_secure_storage_web`가 `dart:html`을 써서 **wasm dry-run 경고**가 뜨지만
+     기본 JS 빌드(dart2js)는 정상. wasm 타겟이 필요할 때만 대안 검토.
+2. `build/web/` 정적 파일을 호스팅(Firebase Hosting, Netlify, S3+CloudFront 등)에 배포.
+   - **SPA rewrite 필수** — path URL 전략이라 `/auth/callback`, `/home` 등 직접 진입 시
+     `index.html`로 fallback 되도록 설정(로컬 `flutter run`은 자동 처리).
+   - **`.env` 노출 주의** — 애셋으로 번들되어 웹에선 값이 노출됨. 공개돼도 되는 값만 두거나
+     `--dart-define`로 주입 검토.
 
 ---
 
 ## 요약
 
-- **Phase 1 (dart:io 제거)**, **Phase 2 (OAuth)**, **Phase 4 (업로드 시그니처)** 는
-  컴파일·기본 동작을 위해 **반드시** 필요.
-- **Phase 3 (알림)** 은 "웹에선 끄기"로 최소화 가능, 웹푸시는 나중에.
-- **Phase 5의 CORS** 는 프론트가 아무리 맞춰도 **백엔드 협조가 없으면 못 씀** —
-  팀과 먼저 확인 필요.
-
-**추천 순서:** Phase 1(컴파일 통과) → `flutter run -d chrome`로 화면 확인 → Phase 2(로그인).
+- **Phase 1~4는 완료**되어 `flutter build web`이 성공한다.
+- 웹에서 **실제로 앱이 뜨는 것**을 막을 수 있는 코드성 이슈는 **Phase 5-1(Firebase Analytics)** 이
+  거의 유일 — 우선 처리 권장.
+- **Phase 2(OAuth)** 와 **Phase 5-3(CORS)** 는 프론트 코드만으로 끝나지 않음 —
+  백엔드 redirect_uri 화이트리스트·CORS 설정, OAuth 콘솔 등록이 반드시 선행돼야 함.
+- **웹은 알림 OFF, 이미지 업로드 없음** 상태로 배포됨(둘 다 의도된 범위).
