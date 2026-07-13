@@ -72,3 +72,6 @@ build/
 **/windows/flutter/generated_plugins.cmake
 **/linux/flutter/generated_plugin_registrant.*
 **/linux/flutter/generated_plugins.cmake
+
+# Firebase (로컬 배포 캐시 — .firebaserc/firebase.json은 추적함)
+.firebase/
