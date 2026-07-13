@@ -50,7 +50,9 @@ class WishlistConsiderScreen extends ConsumerWidget {
           prev?.submitErrorMessage != submitMessage) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
-          ref.read(considerViewModelProvider(itemId).notifier).clearSubmitError();
+          ref
+              .read(considerViewModelProvider(itemId).notifier)
+              .clearSubmitError();
           showCapsuleToast(
             context,
             backgroundColor: const Color(0xFFD46868),
@@ -140,7 +142,8 @@ class WishlistConsiderScreen extends ConsumerWidget {
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(24 * scale, 18 * scale, 24 * scale, 40 * scale),
+          padding: EdgeInsets.fromLTRB(
+              24 * scale, 18 * scale, 24 * scale, 40 * scale),
           child: Column(
             children: [
               ConsiderProductHeader(
@@ -162,9 +165,8 @@ class WishlistConsiderScreen extends ConsumerWidget {
               ),
               SizedBox(height: 12 * scale),
               ConsiderInsightCards(
-                opportunityCostValue:
-                    '${formatDeliberationPrice(detail.item.listedPrice)}원',
-                opportunityCostDescription: detail.opportunityCostMessage,
+                opportunityCostValue: state.opportunityCost,
+                opportunityCostDescription: state.opportunityCostDescription,
                 spendingHistoryValue:
                     '${formatDeliberationPrice(detail.similarCategorySpendAmount)}원',
                 spendingHistoryDescription: _similarCategorySpendDescription(
@@ -298,8 +300,7 @@ class _ConsiderActionButton extends StatelessWidget {
     final background = enabled || fadeTextOnlyWhenDisabled
         ? enabledBackground
         : _disabledBackground;
-    final foreground =
-        enabled ? enabledForeground : _disabledForeground;
+    final foreground = enabled ? enabledForeground : _disabledForeground;
 
     return GestureDetector(
       onTap: onTap,

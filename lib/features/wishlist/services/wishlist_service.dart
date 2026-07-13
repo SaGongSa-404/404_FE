@@ -9,6 +9,7 @@ import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_category_update_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_update_request.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/opportunity_cost_preview.dart';
 import 'package:fe_app/shared/models/pagination.dart';
 
 part 'wishlist_service.g.dart';
@@ -75,6 +76,20 @@ class WishlistService {
       ApiEndpoints.wishlistItemCategory(itemId),
       data: request.toJson(),
     );
+  }
+
+  Future<OpportunityCostPreview> fetchOpportunityCost({
+    required int price,
+    required String category,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      ApiEndpoints.wishlistOpportunityCost,
+      queryParameters: {
+        'price': price,
+        'category': category,
+      },
+    );
+    return OpportunityCostPreview.fromJson(requireJsonMap(res.data));
   }
 
   /// 저장 상품을 DROPPED 처리합니다 (204 No Content).

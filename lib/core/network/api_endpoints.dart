@@ -38,6 +38,7 @@ abstract final class ApiEndpoints {
   static String wishlistItem(String itemId) => '$v1/wishlist/items/$itemId';
   static String wishlistItemCategory(String itemId) =>
       '$v1/wishlist/items/$itemId/category';
+  static const String wishlistOpportunityCost = '$v1/wishlist/opportunity-cost';
 
   // ── Deliberation ─────────────────────────────────────────────────────────
   static String deliberationItem(String itemId) =>

@@ -3,8 +3,10 @@ import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/features/wishlist/models/decision/decision_create_request.dart';
 import 'package:fe_app/features/wishlist/models/decision/decision_create_response.dart';
 import 'package:fe_app/features/wishlist/models/deliberation/deliberation_detail.dart';
+import 'package:fe_app/features/wishlist/models/wishlist/opportunity_cost_preview.dart';
 import 'package:fe_app/features/wishlist/services/decision_service.dart';
 import 'package:fe_app/features/wishlist/services/deliberation_service.dart';
+import 'package:fe_app/features/wishlist/services/wishlist_service.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/shared/enums/api_enums.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,7 @@ class ConsiderState {
   final String? errorMessage;
   final String? submitErrorMessage;
   final DeliberationDetail? detail;
+  final OpportunityCostPreview? opportunityCostPreview;
   final DecisionCreateResponse? decisionResponse;
   final Map<int, bool?> answers;
   final PurchaseDecision decision;
@@ -39,6 +42,7 @@ class ConsiderState {
     this.errorMessage,
     this.submitErrorMessage,
     this.detail,
+    this.opportunityCostPreview,
     this.decisionResponse,
     this.answers = const {},
     this.decision = PurchaseDecision.notDecided,
@@ -63,9 +67,23 @@ class ConsiderState {
   }
 
   String get opportunityCost {
+    final title = opportunityCostPreview?.result.displayTitle;
+    if (title != null && title.isNotEmpty) return title;
+
     final price = detail?.item.listedPrice;
     if (price == null || price <= 0) return '-';
     return '${formatDeliberationPrice(price)}원';
+  }
+
+  String get opportunityCostDescription {
+    final message = opportunityCostPreview?.result.displayMessage;
+    if (message != null && message.isNotEmpty) return message;
+
+    final legacyMessage = detail?.opportunityCostMessage;
+    if (legacyMessage != null && legacyMessage.isNotEmpty) {
+      return legacyMessage;
+    }
+    return '';
   }
 
   ConsiderCaseType get computedCaseType {
@@ -85,6 +103,7 @@ class ConsiderState {
     String? errorMessage,
     String? submitErrorMessage,
     DeliberationDetail? detail,
+    OpportunityCostPreview? opportunityCostPreview,
     DecisionCreateResponse? decisionResponse,
     Map<int, bool?>? answers,
     PurchaseDecision? decision,
@@ -92,16 +111,21 @@ class ConsiderState {
     bool clearErrorMessage = false,
     bool clearSubmitErrorMessage = false,
     bool clearDetail = false,
+    bool clearOpportunityCostPreview = false,
     bool clearDecisionResponse = false,
   }) {
     return ConsiderState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       submitErrorMessage: clearSubmitErrorMessage
           ? null
           : (submitErrorMessage ?? this.submitErrorMessage),
       detail: clearDetail ? null : (detail ?? this.detail),
+      opportunityCostPreview: clearOpportunityCostPreview
+          ? null
+          : (opportunityCostPreview ?? this.opportunityCostPreview),
       decisionResponse: clearDecisionResponse
           ? null
           : (decisionResponse ?? this.decisionResponse),
@@ -113,7 +137,8 @@ class ConsiderState {
 }
 
 class ConsiderViewModel extends StateNotifier<ConsiderState> {
-  ConsiderViewModel(this._ref, this._itemId) : super(const ConsiderState(isLoading: true)) {
+  ConsiderViewModel(this._ref, this._itemId)
+      : super(const ConsiderState(isLoading: true)) {
     load();
   }
 
@@ -123,18 +148,22 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
   DeliberationService get _deliberationService =>
       _ref.read(deliberationServiceProvider);
 
+  WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
+
   DecisionService get _decisionService => _ref.read(decisionServiceProvider);
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearErrorMessage: true);
     try {
       final detail = await _deliberationService.fetchItemDeliberation(_itemId);
+      final opportunityCostPreview = await _fetchOpportunityCostPreview(detail);
       final answers = {
         for (var i = 0; i < detail.questions.length; i++) i: null as bool?,
       };
       state = ConsiderState(
         isLoading: false,
         detail: detail,
+        opportunityCostPreview: opportunityCostPreview,
         answers: answers,
       );
     } catch (e) {
@@ -143,6 +172,23 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
         isLoading: false,
         errorMessage: _resolveLoadErrorMessage(api),
       );
+    }
+  }
+
+  Future<OpportunityCostPreview?> _fetchOpportunityCostPreview(
+    DeliberationDetail detail,
+  ) async {
+    final price = detail.item.listedPrice;
+    final category = detail.item.category.trim();
+    if (price <= 0 || category.isEmpty) return null;
+
+    try {
+      return await _wishlistService.fetchOpportunityCost(
+        price: price,
+        category: category,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
@@ -191,7 +237,8 @@ class ConsiderViewModel extends StateNotifier<ConsiderState> {
     state = state.copyWith(answers: newAnswers, clearSubmitErrorMessage: true);
   }
 
-  Future<DecisionCreateResponse?> submitDecision(PurchaseDecision decision) async {
+  Future<DecisionCreateResponse?> submitDecision(
+      PurchaseDecision decision) async {
     if (state.isSubmitting || !state.isAllAnswered) return null;
 
     final detail = state.detail;
@@ -305,7 +352,8 @@ ConsiderCaseType resolveConsiderCaseType({
   final fromMascot = caseTypeFromMascotState(mascotState);
   if (fromMascot != null) return fromMascot;
 
-  final isGo = result.trim().toUpperCase() == PurchaseDecisionResult.go.apiValue;
+  final isGo =
+      result.trim().toUpperCase() == PurchaseDecisionResult.go.apiValue;
   final isRational = selfCheckYesCount < 2;
 
   if (isGo) {
