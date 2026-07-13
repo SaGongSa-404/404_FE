@@ -11,15 +11,15 @@ Flutter 모바일 앱(위굴)을 웹으로 배포하기 위한 분기 처리 및
 
 | Phase | 내용 | 상태 |
 |---|---|---|
-| Phase 1 | `dart:io` 제거 (컴파일 통과) | ✅ 완료 — 웹 빌드 성공 |
-| Phase 2 | OAuth 로그인 웹 분기 | ✅ 완료 (백엔드/콘솔 등록은 외부 협조 필요) |
+| Phase 1 | `dart:io` 제거 (컴파일 통과) | ✅ 완료 |
+| Phase 2 | OAuth 로그인 웹 분기 | ✅ 완료 (백엔드/콘솔 등록 필요) |
 | Phase 3 | 알림(FCM) 웹 분기 | ✅ 완료 (웹은 알림 OFF) |
 | Phase 4 | 피드 이미지 업로드 | ✅ 완료 — **대상 없음**(업로드 기능 미존재) |
-| Phase 5 | 기타(Analytics·CORS·baseURL 등) | ⬜ 남음 |
-| Phase 6 | 빌드 & 배포 | ⬜ 남음 |
+| Phase 5 | 기타(Analytics·CORS·baseURL 등) | ✅ 완료 |
+| Phase 6 | 빌드 & 배포 | ✅ 완료 — **배포 라이브** |
 
-> `flutter build web`은 현재 **성공**한다. 단, 웹에서 실제 구동 시
-> **Phase 5의 Firebase Analytics 이슈**가 화면 이동을 막을 수 있어 우선 처리 대상.
+> **배포 URL: https://wigul-d9245.web.app** (Firebase Hosting)
+> Phase 1~6 완료. 웹에서 화면·라우팅·로그인 플로우 동작 확인됨.
 
 ---
 
@@ -72,9 +72,8 @@ Flutter 모바일 앱(위굴)을 웹으로 배포하기 위한 분기 처리 및
 | `lib/main.dart` | 웹에서 `usePathUrlStrategy()` — OAuth fragment 토큰이 라우터와 충돌하지 않게 |
 | `pubspec.yaml` | `flutter_web_plugins`(SDK) 추가 |
 
-**⚠️ 코드만으로는 로그인 불가 — 외부 협조 필수**
-1. **백엔드 `redirect_uri` 화이트리스트** — 웹 콜백 URL(`http://localhost:<포트>/auth/callback`,
-   배포 도메인의 `/auth/callback`) 허용. 토큰을 fragment(권장) 또는 query로 실어 리다이렉트.
+**⚠️ 코드만으로는 로그인 불가 — 외부 협조 필수 (배포 도메인 기준은 하단 부록 참고)**
+1. **백엔드 `redirect_uri` 화이트리스트** — 웹 콜백 URL 허용, 토큰을 fragment(권장)/query로 리다이렉트.
 2. **카카오/구글 콘솔** — 각 OAuth 앱 Redirect URI에 웹 콜백 URL 등록.
 3. **로컬 실행 포트 고정** — `flutter run -d chrome --web-port=<고정포트>` (redirect_uri 일치용).
 4. **토큰 저장** — `flutter_secure_storage`는 웹에서 동작하나 내부적으로 브라우저 스토리지라
@@ -116,67 +115,122 @@ Flutter 모바일 앱(위굴)을 웹으로 배포하기 위한 분기 처리 및
 
 ---
 
-## Phase 5. 기타 웹 설정 — ⬜ 남음
+## Phase 5. 기타 웹 설정 — ✅ 완료
 
-### 5-1. Firebase Analytics / Core 웹 초기화 (우선 처리 — 웹 구동 차단 가능)
+### 5-1. Firebase Analytics 웹 가드 — ✅ 완료
 
 `lib/core/router/app_router.dart`가 라우터 생성 시 항상
-`FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)`를 등록한다(`observers`).
-웹에서 Firebase가 초기화되지 않은 상태(=`web/index.html`에 Firebase JS SDK/설정 없음, 또는
-`FIREBASE_*` env 미설정)라면, 화면 이동 시 `FirebaseAnalytics.instance` 사용에서
-`No Firebase App '[DEFAULT]' has been created` 류 에러가 나 **네비게이션이 깨질 수 있다.**
+`FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)`를 등록했는데, 웹에서 Firebase
+미초기화 시 화면 이동마다 `No Firebase App '[DEFAULT]'` 류 에러가 날 수 있었다.
 
-- 관련: `lib/main.dart`의 `FirebaseBootstrap.initialize()`는 웹에서 JS SDK가 없으면 실패하고
-  (try/catch로 무시되어) 미초기화 상태로 남는다. `AppFirebaseOptions.currentPlatform`은
-  `kIsWeb`이면 env 설정 시 옵션을 반환하도록 되어 있음.
+- **조치(택A):** observer를 `if (!kIsWeb && FirebaseBootstrap.isInitialized)`일 때만 등록.
+  웹/미초기화 상태에선 observer 자체를 넣지 않아 네비게이션 크래시 방지. 웹 애널리틱스는 포기.
+- 나중에 웹 애널리틱스가 필요하면 `web/index.html`에 Firebase JS SDK를 추가해 정식 초기화(택B).
 
-**처리 방향 (택1):**
-- (A) 웹에서 analytics observer를 조건부로 제외 — `observers`를 `kIsWeb`(또는 Firebase 미초기화)
-  일 때 빈 리스트로. 가장 간단, 웹 애널리틱스 포기.
-- (B) `web/index.html`에 Firebase JS SDK + config를 추가해 정식 초기화 — 웹 애널리틱스 유지.
+### 5-2. API Base URL 웹 분기 — ✅ 완료
 
-> 초기 배포엔 (A) 권장. FCM도 웹에선 끈 상태이므로 웹 Firebase 의존을 최소화하는 편이 단순.
+`env_config.dart`의 `apiBaseUrl` getter에 웹 분기 추가:
+웹에선 `10.0.2.2`(안드로이드 에뮬 주소)를 `localhost`로 치환 → 브라우저에서 접근 가능.
+(실제 배포 `.env`는 공개 HTTPS 백엔드 `https://34-66-55-165.sslip.io/`를 사용하므로 치환과 무관하게 동작.)
 
-### 5-2. API Base URL
+### 5-3. CORS (백엔드) — 백엔드 처리 (하단 부록 참고)
 
-`env_config.dart`의 `10.0.2.2 → 127.0.0.1` 치환이 `!kIsWeb` 조건이라 웹에선 미적용.
-웹 실행 시 `.env`의 `API_BASE_URL`을 브라우저에서 접근 가능한 주소(로컬이면 `localhost`)로
-두거나, 웹 분기 치환을 추가.
+프론트 코드 변경 없음. 백엔드가 웹 오리진을 허용해야 함 → **부록. 백엔드 요청 사항** 참고.
 
-### 5-3. CORS (백엔드 필수)
+### 5-4. 라우팅 / index.html·manifest — ✅ 완료
 
-브라우저는 CORS를 강제. 백엔드가 웹 오리진(`http://localhost:<포트>`, 배포 도메인)을
-`Access-Control-Allow-Origin`에 허용해야 API 호출이 감. 안 되면 로그인 이후 모든 요청이 막힘.
-- 허용 메서드: `GET/POST/PATCH/PUT/DELETE/OPTIONS`(preflight `OPTIONS` 응답 포함)
-- 허용 헤더: `Authorization`, `Content-Type`(멀티파트 포함)
-- 본 앱은 Bearer 토큰 방식(쿠키 아님) → `Access-Control-Allow-Credentials` 불필요(확인 요망)
-
-### 5-4. 라우팅 / index.html
-
-- URL 전략: **Phase 2에서 `usePathUrlStrategy()` 적용 완료.** 경로가 그대로 노출됨.
-  → 배포 호스트에서 SPA rewrite 필요(아래 Phase 6).
-- `web/index.html`, `web/manifest.json`은 이미 존재. 앱 타이틀/파비콘/테마 다듬기.
+- URL 전략: Phase 2에서 `usePathUrlStrategy()` 적용. → 배포 호스트에서 SPA rewrite 필요(Phase 6에서 설정).
+- `web/index.html` / `web/manifest.json`: 플레이스홀더(`fe_app`, "A new Flutter project") →
+  **위굴** 타이틀·설명, 테마/배경색 `#F1F1F1`로 갱신.
 
 ---
 
-## Phase 6. 빌드 & 배포 — ⬜ 남음
+## Phase 6. 빌드 & 배포 — ✅ 완료 (Firebase Hosting)
 
-1. `flutter build web --release`.
-   - 참고: `flutter_secure_storage_web`가 `dart:html`을 써서 **wasm dry-run 경고**가 뜨지만
-     기본 JS 빌드(dart2js)는 정상. wasm 타겟이 필요할 때만 대안 검토.
-2. `build/web/` 정적 파일을 호스팅(Firebase Hosting, Netlify, S3+CloudFront 등)에 배포.
-   - **SPA rewrite 필수** — path URL 전략이라 `/auth/callback`, `/home` 등 직접 진입 시
-     `index.html`로 fallback 되도록 설정(로컬 `flutter run`은 자동 처리).
-   - **`.env` 노출 주의** — 애셋으로 번들되어 웹에선 값이 노출됨. 공개돼도 되는 값만 두거나
-     `--dart-define`로 주입 검토.
+**배포 URL: https://wigul-d9245.web.app** (별칭: `https://wigul-d9245.firebaseapp.com`)
+
+### 배포 구성 (신규 파일)
+
+| 파일 | 내용 |
+|---|---|
+| `firebase.json` | `public: build/web`, SPA rewrite(`"**" → /index.html`), `ignore`에서 dotfile 규칙 제외(아래 함정 참고) |
+| `.firebaserc` | 기본 프로젝트 `wigul-d9245` 지정 |
+
+### 최초 배포 절차
+
+1. Firebase CLI 설치: `npm install -g firebase-tools`
+2. 로그인(브라우저 인증): `firebase login`
+3. 빌드: `flutter build web --release`
+4. 배포: `firebase deploy --only hosting`
+
+### 재배포 (코드 수정 후)
+
+```bash
+flutter build web --release
+firebase deploy --only hosting
+```
+
+### 에러 해결 과정
+#### error1 — `.env`가 배포 제외되어 백지 화면
+
+- **증상:** 배포 후 스플래시조차 안 뜨는 백지. 콘솔에 `env_config.dart:48`의
+  `StateError('BASE_URL or API_BASE_URL is required.')`.
+- **원인:** `firebase.json`의 기본 `ignore` 규칙 `"**/.*"`가 **점파일 전체를 배포 제외** →
+  `.env`(점파일)가 업로드 안 됨 → 배포 사이트에서 `/assets/.env` 요청이 SPA rewrite에 걸려
+  `index.html`을 반환 → `dotenv`가 HTML을 파싱해 env가 비어버림 → `apiBaseUrl`이 예외.
+- **해결:** `ignore`에서 `"**/.*"` 제거. (`.env`가 정적 파일로 배포되어 `/assets/.env` 200 응답)
+- **검증:** `curl https://wigul-d9245.web.app/assets/.env` → `API_BASE_URL=...` 확인.
+
+#### error2 — 서비스워커 캐시로 옛 빌드가 계속 뜸
+
+- Flutter 웹은 `flutter_service_worker.js`가 이전 빌드를 강하게 캐시. 재배포 후 `Ctrl+Shift+R`
+  로도 옛 화면이 뜰 수 있음.
+- **확인법:** 시크릿 창으로 열기(캐시/SW 없음). 일반 창은 DevTools → Application →
+  Clear site data(또는 Service Workers → Unregister) 후 새로고침.
+
+### `.env` 노출 주의
+
+`.env`는 정적 애셋이라 `https://wigul-d9245.web.app/assets/.env`로 **누구나 다운로드 가능**.
+- Firebase API 키는 클라이언트 공개용이라 노출돼도 안전.
+- 민감값이 생기면 `.env` 대신 `--dart-define` 주입 방식으로 옮기는 것을 검토.
 
 ---
 
 ## 요약
 
-- **Phase 1~4는 완료**되어 `flutter build web`이 성공한다.
-- 웹에서 **실제로 앱이 뜨는 것**을 막을 수 있는 코드성 이슈는 **Phase 5-1(Firebase Analytics)** 이
-  거의 유일 — 우선 처리 권장.
-- **Phase 2(OAuth)** 와 **Phase 5-3(CORS)** 는 프론트 코드만으로 끝나지 않음 —
-  백엔드 redirect_uri 화이트리스트·CORS 설정, OAuth 콘솔 등록이 반드시 선행돼야 함.
-- **웹은 알림 OFF, 이미지 업로드 없음** 상태로 배포됨(둘 다 의도된 범위).
+- **Phase 1~6 완료** — https://wigul-d9245.web.app 로 배포 라이브, 화면·라우팅·로그인 플로우 동작.
+- 웹 전용 분기의 핵심: `dart:io` 제거(io_platform 래퍼), OAuth 콜백을 `Uri.base`로 수신 +
+  path URL 전략, 알림/이미지 업로드는 웹에서 비활성(의도된 범위).
+- **배포 시 주의 2가지:** `firebase.json` `ignore`의 dotfile 규칙 제거(`.env` 배포),
+  재배포 후 서비스워커 캐시 삭제.
+- **외부 의존:** OAuth 로그인·API 호출은 백엔드 CORS 허용 + redirect_uri 화이트리스트 +
+  카카오/구글 콘솔 등록이 배포 도메인 기준으로 되어 있어야 함 → 아래 부록.
+
+---
+
+## 부록. 백엔드 / OAuth 콘솔 요청 사항
+
+배포 도메인 **`https://wigul-d9245.web.app`** 기준. 아래가 되어 있어야 웹 로그인·API가 동작한다.
+
+### 1. CORS 허용 (없으면 웹에서 API 호출 전부 실패)
+
+- **허용 오리진 (`Access-Control-Allow-Origin`)**
+  - 배포: `https://wigul-d9245.web.app` (필요 시 `https://wigul-d9245.firebaseapp.com`도)
+  - 로컬 개발: `http://localhost:<고정포트>`
+- **허용 메서드**: `GET, POST, PATCH, PUT, DELETE, OPTIONS` (preflight `OPTIONS` 정상 응답)
+- **허용 헤더**: `Authorization`, `Content-Type`(멀티파트 포함)
+- **인증 방식**: 쿠키 아닌 `Authorization: Bearer` → `Access-Control-Allow-Credentials` 불필요(확인).
+
+### 2. OAuth `redirect_uri` 화이트리스트 (없으면 웹 로그인 불가)
+
+- **추가할 redirect_uri**
+  - 배포: `https://wigul-d9245.web.app/auth/callback`
+  - 로컬: `http://localhost:<고정포트>/auth/callback`
+- **토큰 전달**: 콜백 URL로 리다이렉트 시 토큰을 fragment(`#access_token=...&refresh_token=...`)
+  또는 query로 전달. fragment 권장(서버 로그·리퍼러에 토큰 미노출). 프론트는 둘 다 파싱 가능.
+
+### 3. OAuth 콘솔 등록 (카카오 / 구글)
+
+- 카카오/구글 개발자 콘솔 → 각 앱 Redirect URI에 위 웹 콜백 URL 추가.
+
+> 참고: SPA rewrite(호스팅 설정)와 `.env` 값 관리는 프론트/배포 쪽 몫이라 위 요청에서 제외.
