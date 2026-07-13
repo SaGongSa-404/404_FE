@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/config/env_config.dart';
+import 'package:fe_app/core/config/initial_uri.dart';
 import 'package:fe_app/core/network/api_endpoints.dart';
 import 'package:fe_app/core/network/network_error.dart';
 import 'package:fe_app/core/network/session_expiration.dart';
@@ -34,6 +35,27 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     });
 
     final storage = ref.read(secureStorageServiceProvider);
+
+    // 웹: main에서 캡처한 초기 URL에 OAuth 콜백 토큰이 있으면 여기서 저장한다.
+    // deep_link 경로 대신 build()에서 단일 처리하여 startup 상태 덮어쓰기 레이스를 제거한다.
+    if (kIsWeb) {
+      final initialUri = ref.read(initialUriProvider);
+      if (isOAuthCallbackUri(initialUri)) {
+        final params = readOAuthCallbackParams(initialUri);
+        final accessToken = params['access_token'];
+        final refreshToken = params['refresh_token'];
+        if (accessToken != null &&
+            refreshToken != null &&
+            accessToken.isNotEmpty &&
+            refreshToken.isNotEmpty) {
+          await storage.saveTokens(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          );
+        }
+      }
+    }
+
     final token = await storage.getAccessToken();
     if (token == null && !EnvConfig.isDevXUserIdAuth) return null;
     try {
