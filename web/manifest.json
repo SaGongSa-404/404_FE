@@ -1,11 +1,11 @@
 {
-    "name": "fe_app",
-    "short_name": "fe_app",
+    "name": "위굴",
+    "short_name": "위굴",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F1F1F1",
+    "theme_color": "#F1F1F1",
+    "description": "충동구매는 잠시 멈추고, 더 현명한 소비를 시작해볼까요?",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

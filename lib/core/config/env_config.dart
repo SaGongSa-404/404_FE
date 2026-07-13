@@ -53,6 +53,10 @@ abstract final class EnvConfig {
             defaultTargetPlatform == TargetPlatform.macOS)) {
       value = value.replaceAll('10.0.2.2', '127.0.0.1');
     }
+    // 웹: 브라우저는 안드로이드 에뮬 주소(10.0.2.2)에 접근 불가 → localhost로 치환.
+    if (kIsWeb) {
+      value = value.replaceAll('10.0.2.2', 'localhost');
+    }
     // iOS·Android 실기기: localhost → API_LAN_HOST
     final lanHost = apiLanHost;
     if (lanHost != null && _useLanHostOnDevice) {
