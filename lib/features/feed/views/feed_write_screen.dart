@@ -113,7 +113,11 @@ class _FeedWriteScreenState extends ConsumerState<FeedWriteScreen> {
         );
     if (!mounted) return;
     if (created != null) {
-      context.pop(true);
+      if (widget.initialItem != null) {
+        context.go('/feed');
+      } else {
+        context.pop(true);
+      }
     } else {
       // 등록 실패 시 버튼을 다시 활성화해 재시도할 수 있게 합니다.
       _isSubmitting = false;

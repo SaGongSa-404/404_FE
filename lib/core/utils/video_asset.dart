@@ -1,15 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 
 Iterable<String> _assetPathsForBaseName(String baseName) {
-  final webmPath = 'assets/videos/$baseName.WebM';
-  final mp4Path = 'assets/videos/$baseName.mp4';
-  final preferMp4 = defaultTargetPlatform == TargetPlatform.iOS ||
-      defaultTargetPlatform == TargetPlatform.macOS;
-  if (preferMp4) {
-    return [mp4Path, webmPath];
-  }
-  return [webmPath, mp4Path];
+  return ['assets/videos/$baseName.mp4'];
 }
 
 String? videoBaseNameFromDataSource(String dataSource) {

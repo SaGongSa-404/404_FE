@@ -1,7 +1,6 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fe_app/core/platform/io_platform.dart';
 
 /// `.env` 값을 읽는 단일 진입점.
 abstract final class EnvConfig {
@@ -49,8 +48,14 @@ abstract final class EnvConfig {
       throw StateError('BASE_URL or API_BASE_URL is required.');
     }
     // Android 에뮬: 10.0.2.2 유지. iOS 시뮬·macOS: localhost 치환.
-    if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
       value = value.replaceAll('10.0.2.2', '127.0.0.1');
+    }
+    // 웹: 브라우저는 안드로이드 에뮬 주소(10.0.2.2)에 접근 불가 → localhost로 치환.
+    if (kIsWeb) {
+      value = value.replaceAll('10.0.2.2', 'localhost');
     }
     // iOS·Android 실기기: localhost → API_LAN_HOST
     final lanHost = apiLanHost;
@@ -63,14 +68,14 @@ abstract final class EnvConfig {
   }
 
   static bool get _isIosSimulator {
-    if (kIsWeb || !Platform.isIOS) return false;
-    return Platform.environment['SIMULATOR_DEVICE_NAME'] != null;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return false;
+    return platformEnv('SIMULATOR_DEVICE_NAME') != null;
   }
 
   static bool get _useLanHostOnDevice {
     if (kIsWeb) return false;
-    if (Platform.isIOS) return !_isIosSimulator;
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) return !_isIosSimulator;
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final raw = dotenv.env['API_BASE_URL']?.trim() ?? '';
       return !raw.contains('10.0.2.2');
     }

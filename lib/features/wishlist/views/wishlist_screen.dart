@@ -5,6 +5,7 @@ import 'package:fe_app/core/utils/responsive_scale.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
+import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 import 'package:fe_app/shared/widgets/bottom_navigation_bar.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
@@ -380,7 +381,18 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
             isSubmitting: state.isSubmitting,
           ),
         if (state.isImportingLink)
-          const Positioned.fill(child: NugulLoadingScreen()),
+          Positioned.fill(
+            child: PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) {
+                if (!didPop) {
+                  AppExitBackHandler.markBackHandledByChild();
+                  viewModel.closeEditPanel();
+                }
+              },
+              child: const NugulLoadingScreen(),
+            ),
+          ),
       ],
     );
   }

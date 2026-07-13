@@ -21,30 +21,19 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
   final ConsiderCaseType caseType;
 
   Widget _caseImage(double scale) {
-    switch (caseType) {
-      case ConsiderCaseType.caseA:
-      case ConsiderCaseType.caseC:
-        return Image.asset(
-          'assets/images/wishlist_consider_case_A.png',
-          width: 121 * scale,
-          height: 111 * scale,
-          fit: BoxFit.contain,
-        );
-      case ConsiderCaseType.caseB:
-        return Image.asset(
-          'assets/images/wishlist_consider_case_B.png',
-          width: 121 * scale,
-          height: 111 * scale,
-          fit: BoxFit.contain,
-        );
-      case ConsiderCaseType.caseD:
-        return Image.asset(
-          'assets/images/wishlist_consider_case_D.png',
-          width: 121 * scale,
-          height: 111 * scale,
-          fit: BoxFit.contain,
-        );
-    }
+    final assetPath = switch (caseType) {
+      ConsiderCaseType.caseA || ConsiderCaseType.caseC =>
+        'assets/images/wishlist_consider_case_A.png',
+      ConsiderCaseType.caseB => 'assets/images/wishlist_consider_case_B.png',
+      ConsiderCaseType.caseD => 'assets/images/wishlist_consider_case_D.png',
+    };
+
+    return Image.asset(
+      assetPath,
+      width: 121 * scale,
+      height: 111 * scale,
+      fit: BoxFit.contain,
+    );
   }
 
   String _title() {
@@ -160,7 +149,7 @@ class WishlistConsiderResultScreen extends ConsumerWidget {
                     children: [
                       SizedBox(height: 200 * scale),
                       _caseImage(scale),
-                      SizedBox(height: 12 * scale),
+                      SizedBox(height: 20 * scale),
                       Text(
                         _title(),
                         textAlign: TextAlign.center,
