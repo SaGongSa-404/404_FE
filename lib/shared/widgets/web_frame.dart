@@ -29,7 +29,7 @@ class WebFrame extends StatelessWidget {
 
     return ColoredBox(
       // 폰 프레임 양옆 배경 (앱 배경 #F1F1F1보다 약간 어둡게).
-      color: const Color(0xFFE2E2E2),
+      color: const Color(0xFFFFFFFF),
       child: Center(
         child: ClipRect(
           child: SizedBox(
