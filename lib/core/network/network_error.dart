@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
+import 'package:fe_app/core/platform/io_platform.dart';
 
 const String kNetworkErrorMessage = '인터넷 연결을 확인해 주세요';
 
@@ -8,7 +7,7 @@ bool isNetworkError(Object? error) {
   if (error is DioException) {
     return _isDioNetworkError(error);
   }
-  if (error is SocketException) {
+  if (isSocketException(error)) {
     return true;
   }
   return false;
@@ -22,7 +21,7 @@ bool _isDioNetworkError(DioException error) {
     case DioExceptionType.receiveTimeout:
       return true;
     case DioExceptionType.unknown:
-      return error.error is SocketException;
+      return isSocketException(error.error);
     default:
       return false;
   }

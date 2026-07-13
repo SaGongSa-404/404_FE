@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -90,9 +88,15 @@ class FeedService {
   }
 
   /// 멀티파트로 이미지 업로드 후 서버 저장 경로(URL)을 반환합니다.
-  Future<String> uploadImage(File file) async {
+  ///
+  /// 웹/네이티브 공통으로 동작하도록 파일 경로 대신 바이트로 전송합니다.
+  /// (모바일은 `XFile.readAsBytes()`, 웹은 picker가 제공하는 바이트를 그대로 전달)
+  Future<String> uploadImage(
+    List<int> bytes, {
+    required String filename,
+  }) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path),
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
     });
     final res = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.socialPostUploads,

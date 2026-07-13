@@ -1,4 +1,5 @@
 import 'package:fe_app/core/config/env_config.dart';
+import 'package:fe_app/core/firebase/firebase_bootstrap.dart';
 import 'package:fe_app/features/auth/models/user.dart';
 import 'package:fe_app/features/auth/providers/auth_provider.dart';
 import 'package:fe_app/features/auth/views/login_screen.dart';
@@ -35,6 +36,7 @@ import 'package:fe_app/features/wishlist/views/wishlist_screen.dart';
 import 'package:fe_app/shared/widgets/app_exit_modal.dart';
 import 'package:fe_app/shared/widgets/my_page_tab_shell.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +82,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     observers: [
-      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      // 웹은 Firebase(JS SDK) 미초기화 상태라 FirebaseAnalytics.instance 접근 시
+      // 네비게이션마다 에러가 난다. Firebase가 초기화된 네이티브에서만 등록한다.
+      if (!kIsWeb && FirebaseBootstrap.isInitialized)
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
     ],
     routes: [
       GoRoute(

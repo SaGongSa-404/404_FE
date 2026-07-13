@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -63,6 +62,7 @@ class FcmService {
   String? get cachedToken => _cachedToken;
 
   Future<void> start() async {
+    if (kIsWeb) return; // 웹은 FCM/로컬 알림 미지원
     if (_started || !FirebaseBootstrap.isInitialized) return;
     // 동시 호출 재진입 방지를 위해 먼저 표시하고, 실패 시 롤백한다.
     _started = true;
@@ -108,6 +108,7 @@ class FcmService {
   }
 
   Future<void> syncForAuthenticatedUser() async {
+    if (kIsWeb) return; // 웹은 FCM 미지원
     if (!FirebaseBootstrap.isInitialized) return;
 
     final auth = _ref.read(authProvider);
@@ -243,7 +244,7 @@ abstract final class LocalNotificationPresenter {
       },
     );
 
-    if (!kIsWeb && Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       // BE FCM 메시지의 channelId와 일치해야 채널별 알림 관리가 동작합니다.
       // (social_activity / consumption_management / service_notice)
       const channels = [
@@ -348,7 +349,7 @@ abstract final class LocalNotificationPresenter {
       return false;
     }
 
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final enabled = await androidPlugin?.areNotificationsEnabled();
@@ -405,7 +406,7 @@ abstract final class DeviceIdResolver {
     }
 
     try {
-      if (!kIsWeb && Platform.isIOS) {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         final plugin = DeviceInfoPlugin();
         final info = await plugin.iosInfo;
         _cached = info.identifierForVendor;

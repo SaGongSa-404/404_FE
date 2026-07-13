@@ -22,6 +22,7 @@ class NotificationPermissionService {
 
   /// 아직 권한이 없고, 이번 세션에서 요청하지 않았을 때만 true.
   static Future<bool> shouldPrompt() async {
+    if (kIsWeb) return false;
     await _clearLegacyPromptedFlag();
     if (_requestedThisSession) return false;
 
@@ -34,6 +35,7 @@ class NotificationPermissionService {
 
   /// OS 알림 권한 다이얼로그를 띄웁니다.
   static Future<void> request() async {
+    if (kIsWeb) return;
     if (_requestedThisSession) return;
 
     final status = await Permission.notification.status;
@@ -62,16 +64,20 @@ class NotificationPermissionService {
     }
   }
 
-  static Future<PermissionStatus> get status => Permission.notification.status;
+  static Future<PermissionStatus> get status async {
+    if (kIsWeb) return PermissionStatus.denied;
+    return Permission.notification.status;
+  }
 
   static Future<bool> get isGranted async =>
-      (await Permission.notification.status).isGranted;
+      !kIsWeb && (await Permission.notification.status).isGranted;
 
   static Future<bool> get isPermanentlyDenied async =>
-      (await Permission.notification.status).isPermanentlyDenied;
+      !kIsWeb && (await Permission.notification.status).isPermanentlyDenied;
 
   /// 유저가 명시적으로 알림 설정을 켤 때 OS 권한 다이얼로그를 띄우고 결과를 반환합니다.
   static Future<PermissionStatus> requestPermission() async {
+    if (kIsWeb) return PermissionStatus.denied;
     if (kDebugMode) {
       debugPrint('[notification] requesting OS permission (explicit)...');
     }
@@ -92,5 +98,8 @@ class NotificationPermissionService {
   }
 
   /// 기기 설정 앱의 앱 알림 권한 화면으로 이동합니다.
-  static Future<bool> openSettings() => openAppSettings();
+  static Future<bool> openSettings() async {
+    if (kIsWeb) return false;
+    return openAppSettings();
+  }
 }

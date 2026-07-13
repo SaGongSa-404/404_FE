@@ -61,11 +61,17 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     if (state.hasError) resetToLoggedOut();
 
     final url = Uri.parse(
-      '${EnvConfig.apiBaseUrl}${ApiEndpoints.oauthAuthorization(provider, kOAuthRedirectUri)}',
+      '${EnvConfig.apiBaseUrl}${ApiEndpoints.oauthAuthorization(provider, oauthRedirectUri())}',
     );
 
     try {
-      return await launchUrl(url, mode: oauthLaunchMode());
+      // 웹은 같은 탭에서 리다이렉트해야 콜백이 앱으로 돌아온다(_self).
+      // 네이티브에서 webOnlyWindowName은 무시된다.
+      return await launchUrl(
+        url,
+        mode: oauthLaunchMode(),
+        webOnlyWindowName: '_self',
+      );
     } catch (_) {
       return false;
     }

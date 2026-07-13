@@ -5,6 +5,7 @@ import 'package:fe_app/features/notification/providers/notification_settings_pro
 import 'package:fe_app/features/notification/providers/push_token_provider.dart';
 import 'package:fe_app/features/notification/views/components/notification_app_shell.dart';
 import 'package:fe_app/features/wishlist/views/components/wishlist_share_intent_app_shell.dart';
+import 'package:fe_app/shared/widgets/web_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,10 +29,12 @@ final class App extends ConsumerWidget {
         fontFamily: 'Pretendard',
       ),
       builder: (context, child) {
-        return WishlistShareIntentAppShell(
-          router: appRouter,
-          child: NotificationAppShell(
-            child: child ?? const SizedBox.shrink(),
+        return WebFrame(
+          child: WishlistShareIntentAppShell(
+            router: appRouter,
+            child: NotificationAppShell(
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         );
       },
