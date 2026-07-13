@@ -143,6 +143,24 @@ Flutter 모바일 앱(위굴)을 웹으로 배포하기 위한 분기 처리 및
 - `web/index.html` / `web/manifest.json`: 플레이스홀더(`fe_app`, "A new Flutter project") →
   **위굴** 타이틀·설명, 테마/배경색 `#F1F1F1`로 갱신.
 
+### 5-5. 반응형(데스크톱 레이아웃) — ✅ 완료
+
+**문제:** 앱 UI는 전체를 `MediaQuery.width / 412`(피그마 기준폭, `responsive_scale.dart`)로 스케일한다.
+넓은 데스크톱 브라우저에선 이 값이 커져 UI가 거대하게 확대·가로로 늘어난다. 전역 max-width 캡도 없었다.
+(온보딩 화면만 `Center` + `ConstrainedBox(maxWidth: 480)` + `LayoutBuilder` 스케일로 개별 대응돼 있었음.)
+
+**조치 — 온보딩 방식을 전역으로 일반화:** 화면마다 고치는 대신 앱 최상단에 프레임을 한 번 씌움.
+
+| 파일 | 변경 |
+|---|---|
+| `lib/shared/widgets/web_frame.dart` (신규) | `WebFrame` — 웹에서 창 폭 > 480이면 콘텐츠를 480px로 중앙정렬(양옆 배경 `#E2E2E2`)하고 **`MediaQuery.size.width`를 480으로 덮어씀** → 하위 전 화면의 `width/412` 스케일이 폰 크기(`480/412 ≈ 1.16`)로 유지 |
+| `lib/app.dart` | `MaterialApp.router`의 `builder`에서 앱 전체를 `WebFrame`으로 감쌈 |
+
+- **효과:** 온보딩·홈·피드·위시·마이페이지 등 **모든 화면**이 데스크톱에서 폰 폭으로 중앙정렬됨.
+- **가드:** 네이티브(`!kIsWeb`)와 좁은 모바일 브라우저(≤480)에선 통과(무영향).
+- 온보딩의 기존 `ConstrainedBox(480)`는 480 프레임 안에서 no-op이 되어 무해, 스케일 기준(412)도 동일해 일관.
+- 프레임 폭(480)·양옆 배경색은 `WebFrame` 상수로 조정 가능.
+
 ---
 
 ## Phase 6. 빌드 & 배포 — ✅ 완료 (Firebase Hosting)
@@ -201,6 +219,7 @@ firebase deploy --only hosting
 - **Phase 1~6 완료** — https://wigul-d9245.web.app 로 배포 라이브, 화면·라우팅·로그인 플로우 동작.
 - 웹 전용 분기의 핵심: `dart:io` 제거(io_platform 래퍼), OAuth 콜백을 `Uri.base`로 수신 +
   path URL 전략, 알림/이미지 업로드는 웹에서 비활성(의도된 범위).
+- **반응형:** 전역 `WebFrame`으로 데스크톱에선 폰 폭(480)으로 중앙정렬, 모든 화면 일괄 적용(5-5).
 - **배포 시 주의 2가지:** `firebase.json` `ignore`의 dotfile 규칙 제거(`.env` 배포),
   재배포 후 서비스워커 캐시 삭제.
 - **외부 의존:** OAuth 로그인·API 호출은 백엔드 CORS 허용 + redirect_uri 화이트리스트 +
