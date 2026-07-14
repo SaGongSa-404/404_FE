@@ -301,6 +301,13 @@ class _RouterNotifier extends ChangeNotifier {
     final splashReady = _ref.read(_splashMinDurationProvider);
     final location = state.matchedLocation;
 
+    // 웹 OAuth 콜백 경로(/auth/callback)는 매칭되는 라우트가 없다.
+    // 토큰은 앱 시작 시 AuthNotifier.build()가 initialUri로 이미 처리하므로 항상
+    // 스플래시로 보낸다. (로그인 완료 후 이 경로에 머물면 라우트 매칭 실패로 예외 발생)
+    if (location.startsWith('/auth/callback')) {
+      return '/';
+    }
+
     // 스플래시(/)는 auth·최소 노출 시간이 끝날 때까지 유지
     if (location == '/' && (authState.isLoading || splashReady.isLoading)) {
       return null;
