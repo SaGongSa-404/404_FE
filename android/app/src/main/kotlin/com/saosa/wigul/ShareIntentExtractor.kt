@@ -19,7 +19,9 @@ object ShareIntentExtractor {
         if (intent == null) return null
 
         return when (intent.action) {
-            Intent.ACTION_SEND -> extractFromSendIntent(intent)
+            Intent.ACTION_SEND,
+            Intent.ACTION_SEND_MULTIPLE,
+            -> extractFromSendIntent(intent)
             Intent.ACTION_VIEW -> extractFromViewIntent(intent)
             else -> null
         }
@@ -36,6 +38,7 @@ object ShareIntentExtractor {
         extractFromHtmlText(intent)?.let { return it }
         extractFromSubject(intent)?.let { return it }
         extractFromStream(intent)?.let { return it }
+        extractFromStreamList(intent)?.let { return it }
         extractFromClipData(intent.clipData)?.let { return it }
 
         val data = intent.data
@@ -66,10 +69,22 @@ object ShareIntentExtractor {
 
     private fun extractFromStream(intent: Intent): String? {
         val streamUri = intent.getStreamUri() ?: return null
-        val uriText = streamUri.toString().trim()
+        return extractFromSharedUri(streamUri)
+    }
+
+    private fun extractFromStreamList(intent: Intent): String? {
+        val uris = intent.getStreamUriList() ?: return null
+        for (uri in uris) {
+            extractFromSharedUri(uri)?.let { return it }
+        }
+        return null
+    }
+
+    private fun extractFromSharedUri(uri: Uri): String? {
+        val uriText = uri.toString().trim()
         if (uriText.isEmpty()) return null
 
-        return when (streamUri.scheme?.lowercase()) {
+        return when (uri.scheme?.lowercase()) {
             "http", "https" -> extractFirstHttpUrl(uriText)
             else -> null
         }
@@ -84,8 +99,12 @@ object ShareIntentExtractor {
             val text = item.text?.toString()?.trim()
             if (!text.isNullOrEmpty()) return text
 
-            val uri = item.uri
-            if (uri != null && isSupportedShoppingUri(uri)) {
+            val htmlText = item.htmlText?.trim()
+            if (!htmlText.isNullOrEmpty()) return htmlText
+
+            val uri = item.uri ?: continue
+            extractFromSharedUri(uri)?.let { return it }
+            if (isSupportedShoppingUri(uri)) {
                 return uri.toString().trim().takeIf { it.isNotEmpty() }
             }
         }
@@ -138,6 +157,15 @@ object ShareIntentExtractor {
         } else {
             @Suppress("DEPRECATION")
             getParcelableExtra(Intent.EXTRA_STREAM)
+        }
+    }
+
+    private fun Intent.getStreamUriList(): ArrayList<Uri>? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableArrayListExtra(Intent.EXTRA_STREAM)
         }
     }
 

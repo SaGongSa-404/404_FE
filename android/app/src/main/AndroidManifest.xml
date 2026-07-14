@@ -34,35 +34,31 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Android 공유 시트: 외부 앱의 텍스트/링크 공유 수신 -->
+            <!-- Android 공유 시트: 외부 앱의 텍스트/링크 공유 수신
+                 지그재그 등은 text/html·이미지 썸네일·SEND_MULTIPLE 조합을 씁니다. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="text/*" />
             </intent-filter>
 
-            <!-- 일부 쇼핑 앱(지그재그 등)은 text/html로 공유합니다. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="text/html" />
+                <data android:mimeType="image/*" />
             </intent-filter>
 
             <!-- MIME 타입이 불명확하거나 이미지+링크 조합으로 공유하는 앱 대응 -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-
             <!-- 지원 쇼핑몰 상품 링크: 무신사·에이블리·지그재그·29CM·올리브영·네이버쇼핑·당근·번개장터 -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
