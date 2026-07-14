@@ -1,44 +1,51 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// 웹에서 앱을 폰 크기(가로·세로)로 중앙 고정하는 전역 프레임.
+/// 웹에서 앱을 폰처럼 중앙에 고정하고, 화면에는 비율을 유지한 채 축소해 보여주는 프레임.
 ///
-/// 이 앱의 UI는 `MediaQuery.width / 412`(피그마 기준폭)로 스케일한다.
-/// 넓은 데스크톱 브라우저에선 이 값이 커져 UI가 거대하게 늘어나므로,
-/// 웹에서 창이 [maxContentWidth]보다 넓을 때 콘텐츠를 폰 크기로 캡·중앙정렬하고
-/// **MediaQuery의 size(width·height)도 함께 덮어써** 하위 화면들의 스케일·레이아웃이
-/// 폰 크기로 유지되게 한다.
+/// 이 앱은 폰 크기(설계폭 412)를 전제로, 일부 화면은 `MediaQuery.width/412` 스케일을,
+/// 일부(로그인 등)는 고정 픽셀을 쓴다. 따라서 논리 크기를 412보다 좁히면 고정 크기 요소가
+/// 상대적으로 커져 레이아웃이 깨진다.
 ///
-/// - 가로: [maxContentWidth]로 고정.
-/// - 세로: [maxContentHeight]로 고정하되, 창이 그보다 낮으면 창 높이에 맞춘다(넘침 방지).
+/// 그래서 여기서는:
+/// 1. 앱을 **설계 논리 크기 [_designWidth] x [_designHeight]** 로 렌더하고(배율 1.0, 비율 정상),
+/// 2. 그 결과를 [FittedBox]로 **[displayWidth] 폭에 맞게 통째로 축소**해 화면에 표시한다.
+///
+/// - 세로 표시 높이는 폰 비율(설계 종횡비)로 자동 계산되며, 창이 더 낮으면 창에 맞춰 더 축소한다.
 /// - 네이티브(모바일)에서는 아무 것도 하지 않는다(`kIsWeb` 가드).
-/// - 웹이라도 창이 [maxContentWidth] 이하면(모바일 브라우저 등) 그대로 통과시킨다.
+/// - 웹이라도 창 폭이 [displayWidth] 이하면(모바일 브라우저 등) 그대로 통과시킨다.
 class WebFrame extends StatelessWidget {
   const WebFrame({
     super.key,
     required this.child,
-    this.maxContentWidth = 480,
-    this.maxContentHeight = 915,
+    this.displayWidth = 290, // 화면에 보이는 폭(비율 유지 축소). 높이는 자동(~645)
   });
 
   final Widget child;
-  final double maxContentWidth;
-  final double maxContentHeight;
+
+  /// 화면에 표시될 폰 프레임의 가로 크기(px). 내부는 [_designWidth]로 렌더 후 이 폭으로 축소.
+  final double displayWidth;
+
+  /// 앱이 설계된 논리 크기(폰). 렌더는 항상 이 크기로 하고 화면엔 축소해 보여준다.
+  static const double _designWidth = 412; // = kFigmaDesignWidth (배율 1.0)
+  static const double _designHeight = 915; // 폰 비율(412 x 915)
 
   @override
   Widget build(BuildContext context) {
     if (!kIsWeb) return child;
 
     final media = MediaQuery.of(context);
-    if (media.size.width <= maxContentWidth) return child;
+    if (media.size.width <= displayWidth) return child;
 
-    // 세로는 폰 높이로 고정하되, 창이 더 낮으면 창 높이에 맞춰 넘침을 막는다.
-    final frameHeight = media.size.height < maxContentHeight
-        ? media.size.height
-        : maxContentHeight;
+    final scale = displayWidth / _designWidth;
+    var displayHeight = _designHeight * scale;
+    // 창이 표시 높이보다 낮으면 창 높이에 맞춰 더 축소(넘침 방지). FittedBox가 비율 유지.
+    if (displayHeight > media.size.height) {
+      displayHeight = media.size.height;
+    }
 
     return ColoredBox(
-      // 폰 프레임 양옆·위아래 배경.
+      // 폰 프레임 바깥 배경.
       color: const Color(0xFFFFFFFF),
       child: Center(
         child: DecoratedBox(
@@ -55,14 +62,22 @@ class WebFrame extends StatelessWidget {
           ),
           child: ClipRect(
             child: SizedBox(
-              width: maxContentWidth,
-              height: frameHeight,
-              child: MediaQuery(
-                // 하위 화면의 MediaQuery.size가 폰 크기를 보게 한다.
-                data: media.copyWith(
-                  size: Size(maxContentWidth, frameHeight),
+              width: displayWidth,
+              height: displayHeight,
+              // 설계 크기(412x915)로 렌더한 앱을 표시 크기에 맞게 비율 유지 축소.
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: _designWidth,
+                  height: _designHeight,
+                  child: MediaQuery(
+                    // 하위 화면은 자신이 폰(412x915)에 있다고 인식 → 스케일·레이아웃 정상.
+                    data: media.copyWith(
+                      size: const Size(_designWidth, _designHeight),
+                    ),
+                    child: child,
+                  ),
                 ),
-                child: child,
               ),
             ),
           ),
