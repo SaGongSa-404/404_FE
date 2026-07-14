@@ -8,6 +8,7 @@ import 'package:fe_app/features/profile/providers/notification_settings_provider
 import 'package:fe_app/shared/widgets/capsule_toast.dart';
 import 'package:fe_app/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:fe_app/shared/widgets/main_tab_header.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -219,9 +220,12 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
     double scale, {
     required NotificationSettingsState notificationSettings,
   }) {
-    final isEnabled = notificationSettings.notificationEnabled;
-    final isInteractive =
-        !notificationSettings.isLoading && !notificationSettings.isUpdating;
+    // 웹은 알림(FCM/로컬 알림) 미지원 — 항상 off로 표시한다.
+    // (서버 설정값은 건드리지 않아 모바일 알림 설정에 영향 없음)
+    // 단, 탭 시 안내 토스트를 띄우기 위해 웹에서도 탭 자체는 활성화한다.
+    final isEnabled = !kIsWeb && notificationSettings.notificationEnabled;
+    final isInteractive = kIsWeb ||
+        (!notificationSettings.isLoading && !notificationSettings.isUpdating);
 
     return Container(
       height: 60 * scale,
@@ -276,6 +280,15 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
   }
 
   Future<void> _onAlarmToggleTap() async {
+    if (kIsWeb) {
+      // 웹은 알림 미지원 — 안내 토스트만 띄우고 상태는 바꾸지 않는다.
+      showCapsuleToast(
+        context,
+        backgroundColor: AppColors.red_600,
+        text: '웹에서는 알림을 지원하지 않습니다',
+      );
+      return;
+    }
     final settings = ref.read(notificationSettingsProvider);
     if (settings.isLoading || settings.isUpdating) return;
 
