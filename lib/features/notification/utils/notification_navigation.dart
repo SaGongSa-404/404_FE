@@ -16,23 +16,16 @@ Future<void> openNotificationsPage(
   _isOpeningNotificationsPage = true;
 
   try {
-    if (!context.mounted) {
-      _isOpeningNotificationsPage = false;
-      return;
-    }
+    if (!context.mounted) return;
 
     final router = GoRouter.of(context);
-    if (router.state.uri.path == '/notifications') {
-      _isOpeningNotificationsPage = false;
-      return;
-    }
+    if (router.state.uri.path == '/notifications') return;
 
-    final routeFuture = context.push('/notifications');
+    unawaited(context.push('/notifications'));
     unawaited(ref.read(notificationSyncProvider).refreshListAndHomeSummary());
-    unawaited(routeFuture.whenComplete(() {
-      _isOpeningNotificationsPage = false;
-    }));
   } catch (_) {
+    // Keep notification entry best-effort; the tap guard is released below.
+  } finally {
     _isOpeningNotificationsPage = false;
   }
 }
