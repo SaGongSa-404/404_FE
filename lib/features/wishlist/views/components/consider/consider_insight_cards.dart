@@ -23,31 +23,33 @@ class ConsiderInsightCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final scale = responsiveScale(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _InsightCard(
-            title: '기회비용',
-            value: opportunityCostValue,
-            description: opportunityCostDescription,
-            scale: scale,
-            borderRadius: _cardBorderRadius,
-            shadowColor: _cardShadowColor,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _InsightCard(
+              title: '기회비용',
+              value: opportunityCostValue,
+              description: opportunityCostDescription,
+              scale: scale,
+              borderRadius: _cardBorderRadius,
+              shadowColor: _cardShadowColor,
+            ),
           ),
-        ),
-        SizedBox(width: 12 * scale),
-        Expanded(
-          child: _InsightCard(
-            title: '소비이력',
-            value: spendingHistoryValue,
-            description: spendingHistoryDescription,
-            scale: scale,
-            borderRadius: _cardBorderRadius,
-            shadowColor: _cardShadowColor,
+          SizedBox(width: 12 * scale),
+          Expanded(
+            child: _InsightCard(
+              title: '소비이력',
+              value: spendingHistoryValue,
+              description: spendingHistoryDescription,
+              scale: scale,
+              borderRadius: _cardBorderRadius,
+              shadowColor: _cardShadowColor,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
