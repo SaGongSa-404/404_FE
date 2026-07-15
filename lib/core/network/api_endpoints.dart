@@ -32,6 +32,9 @@ abstract final class ApiEndpoints {
 
   // ── Item import ──────────────────────────────────────────────────────────
   static const String itemsImportLink = '$v1/items/import-link';
+  static const String itemsImportJobs = '$v1/items/import-jobs';
+
+  static String itemImportJob(String jobId) => '$itemsImportJobs/$jobId';
 
   // ── Wishlist ─────────────────────────────────────────────────────────────
   static const String wishlistItems = '$v1/wishlist/items';

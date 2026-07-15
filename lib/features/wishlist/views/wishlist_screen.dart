@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
 import 'package:fe_app/core/utils/responsive_scale.dart';
+import 'package:fe_app/features/wishlist/models/item_import/shopping_import_job.dart';
 import 'package:fe_app/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:fe_app/features/notification/utils/notification_navigation.dart';
 import 'package:fe_app/shared/widgets/alarm/alarm_panel.dart';
@@ -390,7 +391,11 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                   viewModel.closeEditPanel();
                 }
               },
-              child: const NugulLoadingScreen(),
+              child: NugulLoadingScreen(
+                message: state.importJobStatus == ShoppingImportJobStatus.pending
+                    ? '가져오기 대기 중'
+                    : '잠시만 기다려주세요',
+              ),
             ),
           ),
       ],
