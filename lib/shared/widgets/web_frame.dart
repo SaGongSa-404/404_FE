@@ -48,18 +48,9 @@ class WebFrame extends StatelessWidget {
       // 폰 프레임 바깥 배경.
       color: const Color(0xFFFFFFFF),
       child: Center(
-        child: DecoratedBox(
-          // 흰 배경 위에서 폰 프레임이 구분되도록 옅은 그림자.
-          decoration: const BoxDecoration(
-            color: Color(0xFFF1F1F1),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x1F000000),
-                blurRadius: 24,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
+        child: ColoredBox(
+          // 폰 프레임 배경(콘텐츠 로드 전 깜빡임 방지).
+          color: const Color(0xFFF1F1F1),
           child: ClipRect(
             child: SizedBox(
               width: displayWidth,
