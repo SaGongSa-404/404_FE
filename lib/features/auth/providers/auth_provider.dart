@@ -70,8 +70,14 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 
   Future<void> sessionExpired() async {
-    await ref.read(secureStorageServiceProvider).clearTokens();
-    ref.read(myProfileProvider.notifier).reset();
+    // 인터셉터에서 unawaited로 호출되므로, 여기서 던지면 uncaught 예외가 된다.
+    // 정리 중 오류는 삼키고 최종적으로 로그아웃 상태만 보장한다.
+    try {
+      await ref.read(secureStorageServiceProvider).clearTokens();
+      ref.read(myProfileProvider.notifier).reset();
+    } catch (error, stackTrace) {
+      debugPrint('[auth] sessionExpired cleanup failed: $error\n$stackTrace');
+    }
     state = const AsyncData(null);
   }
 
@@ -163,7 +169,8 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       state = AsyncData(user);
     } catch (e, st) {
       debugPrint('[auth] /api/auth/me failed: $e\n$st');
-      await storage.clearTokens();
+      // 상태를 먼저 확정한다. clearTokens가 (웹 스토리지 동시 접근 등으로) 지연/실패해도
+      // AsyncLoading에 고정되지 않도록 상태 갱신을 스토리지 정리보다 앞에 둔다.
       if (isNetworkError(e)) {
         state = const AsyncData(null);
       } else if (isRestrictedAccountError(e)) {
@@ -171,6 +178,11 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         RestrictedAccountToast.scheduleShow();
       } else {
         state = AsyncError(e, st);
+      }
+      try {
+        await storage.clearTokens();
+      } catch (error, stackTrace) {
+        debugPrint('[auth] clearTokens after failure failed: $error\n$stackTrace');
       }
     }
   }
