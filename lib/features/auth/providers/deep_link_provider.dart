@@ -12,16 +12,9 @@ class DeepLinkHandler extends _$DeepLinkHandler {
   void build() => _init();
 
   Future<void> _init() async {
-    // 웹은 app_links 딥링크 스트림이 동작하지 않는다.
-    // OAuth 콜백은 앱 로드 시점의 현재 URL(Uri.base)에 fragment/query로 실려 온다.
-    // GoRouter가 URL을 바꾸기 전에 동기적으로 읽어야 하므로 await 이전에 처리한다.
-    if (kIsWeb) {
-      final initialUri = Uri.base;
-      if (isOAuthCallbackUri(initialUri)) {
-        _handleUri(initialUri);
-      }
-      return;
-    }
+    // 웹 초기 OAuth 콜백은 AuthNotifier.build()가 단독 처리한다(startup 상태 레이스 방지).
+    // app_links는 웹 딥링크 스트림이 동작하지 않으므로 네이티브 런타임 링크만 담당.
+    if (kIsWeb) return;
 
     final appLinks = AppLinks();
 
