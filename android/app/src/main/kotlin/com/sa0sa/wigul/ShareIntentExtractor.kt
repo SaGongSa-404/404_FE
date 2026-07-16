@@ -1,4 +1,4 @@
-package com.saosa.wigul
+package com.sa0sa.wigul
 
 import android.content.ClipData
 import android.content.Intent
