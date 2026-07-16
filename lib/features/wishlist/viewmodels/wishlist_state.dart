@@ -1,3 +1,4 @@
+import 'package:fe_app/features/wishlist/models/item_import/shopping_import_job.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_item_save_request.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_add_form_prefill.dart';
 import 'package:fe_app/features/wishlist/models/wishlist_placeholder.dart';
@@ -6,6 +7,7 @@ class WishlistState {
   final bool isLoading;
   final bool isSubmitting;
   final bool isImportingLink;
+  final ShoppingImportJobStatus? importJobStatus;
   final String? submitErrorMessage;
   final bool isAlarmOpen;
   final String? editingItemId;
@@ -28,6 +30,7 @@ class WishlistState {
     this.isLoading = false,
     this.isSubmitting = false,
     this.isImportingLink = false,
+    this.importJobStatus,
     this.submitErrorMessage,
     this.isAlarmOpen = false,
     this.editingItemId,
@@ -51,6 +54,8 @@ class WishlistState {
     bool? isLoading,
     bool? isSubmitting,
     bool? isImportingLink,
+    ShoppingImportJobStatus? importJobStatus,
+    bool clearImportJobStatus = false,
     String? submitErrorMessage,
     bool clearSubmitErrorMessage = false,
     bool? isAlarmOpen,
@@ -81,12 +86,16 @@ class WishlistState {
     String? listErrorMessage,
     bool clearListErrorMessage = false,
   }) {
+    final clearImport = clearAddWish || clearImportJobStatus;
     return WishlistState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isImportingLink: clearAddWish
           ? false
           : (isImportingLink ?? this.isImportingLink),
+      importJobStatus: clearImport
+          ? null
+          : (importJobStatus ?? this.importJobStatus),
       submitErrorMessage: clearSubmitErrorMessage
           ? null
           : (submitErrorMessage ?? this.submitErrorMessage),

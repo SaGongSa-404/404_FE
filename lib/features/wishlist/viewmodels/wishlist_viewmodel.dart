@@ -1,8 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/network/api_exception.dart';
 import 'package:fe_app/features/home/services/home_balloon_service.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_link_request.dart';
+import 'package:fe_app/features/wishlist/models/item_import/item_import_link_response.dart';
+import 'package:fe_app/features/wishlist/models/item_import/shopping_import_job.dart';
 import 'package:fe_app/features/wishlist/utils/share_link_url.dart';
 import 'package:fe_app/features/wishlist/models/item_import/item_import_mapper.dart';
 import 'package:fe_app/features/wishlist/models/wishlist/wishlist_category_ui.dart';
@@ -31,10 +34,24 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   WishlistViewModel(this._ref) : super(const WishlistState());
 
   final Ref _ref;
+  CancelToken? _importCancelToken;
+  int _importRunId = 0;
 
   WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
 
   ItemImportService get _itemImportService => _ref.read(itemImportServiceProvider);
+
+  void _cancelImport() {
+    _importRunId++;
+    _importCancelToken?.cancel('shopping import closed');
+    _importCancelToken = null;
+  }
+
+  @override
+  void dispose() {
+    _cancelImport();
+    super.dispose();
+  }
 
   Future<void> initialize() async {
     state = state.copyWith(isLoading: true, clearListErrorMessage: true);
@@ -151,9 +168,11 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   void openAddPanel() {
+    _cancelImport();
     state = state.copyWith(
       isAddWishOpen: true,
       isImportingLink: false,
+      clearImportJobStatus: true,
       clearEditingItemId: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
@@ -184,6 +203,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       addPrefillLink: normalized,
       isAddLinkReadOnly: true,
       isImportingLink: true,
+      clearImportJobStatus: true,
       clearAddFormPrefill: true,
       clearAddImportSaveRequest: true,
       clearSubmitErrorMessage: true,
@@ -192,63 +212,105 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   Future<void> _importShareLink(String url) async {
+    _cancelImport();
+
+    final cancelToken = CancelToken();
+    _importCancelToken = cancelToken;
+    final runId = _importRunId;
+    final startedAt = DateTime.now();
+    var consecutivePollFailures = 0;
+
     try {
-      final response = await _itemImportService.importLink(
+      final accepted = await _itemImportService.submitImportJob(
         ItemImportLinkRequest.share(url),
+        cancelToken: cancelToken,
       );
 
-      if (!_isShareImportFlowActive(url)) {
-        _finalizeImportUnlessActive(url);
-        return;
-      }
+      if (!_isCurrentImport(runId, url, cancelToken)) return;
 
-      final prefill = response.toFormPrefill();
-      final saveRequest = response.resolvedSaveRequest();
+      state = state.copyWith(importJobStatus: accepted.status);
 
-      if (!response.hasPreview || prefill == null) {
-        if (_isShareImportFlowActive(url)) {
-          _handleImportFailure(
-            errorMessage: response.isPartial
-                ? '상품 정보를 일부만 가져왔어요. 직접 입력해 주세요.'
-                : null,
+      while (_isCurrentImport(runId, url, cancelToken)) {
+        if (DateTime.now().difference(startedAt) > const Duration(seconds: 90)) {
+          state = state.copyWith(
+            isImportingLink: false,
+            clearImportJobStatus: true,
+            submitErrorMessage: '가져오기가 오래 걸리고 있어요. 잠시 후 다시 시도해 주세요.',
           );
-        }
-        return;
-      }
-
-      if (!_isShareImportFlowActive(url)) {
-        _finalizeImportUnlessActive(url);
-        return;
-      }
-
-      state = state.copyWith(
-        isImportingLink: false,
-        addFormPrefill: prefill,
-        addImportSaveRequest: saveRequest,
-        addPrefillLink: prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
-        clearSubmitErrorMessage: true,
-      );
-    } on ArgumentError {
-      if (_isShareImportFlowActive(url)) {
-        _handleImportFailure();
-      } else {
-        _finalizeImportUnlessActive(url);
-      }
-    } catch (e) {
-      if (_isShareImportFlowActive(url)) {
-        final api = apiExceptionFrom(e);
-        if (api?.statusCode == 502 || api?.statusCode == 422) {
-          _handleImportFailure();
           return;
         }
-        state = state.copyWith(
-          isImportingLink: false,
-          submitErrorMessage: importLinkErrorMessage(e),
-        );
-      } else {
-        _finalizeImportUnlessActive(url);
+
+        await Future<void>.delayed(const Duration(seconds: 1));
+        if (!_isCurrentImport(runId, url, cancelToken)) return;
+
+        late final ShoppingImportJobResult job;
+        try {
+          job = await _itemImportService.getImportJob(
+            accepted.jobId,
+            cancelToken: cancelToken,
+          );
+          consecutivePollFailures = 0;
+        } catch (error) {
+          final api = apiExceptionFrom(error);
+          if (api?.statusCode == 404) {
+            state = state.copyWith(
+              isImportingLink: false,
+              clearImportJobStatus: true,
+              submitErrorMessage: '가져오기 작업을 찾을 수 없어요. 다시 시도해 주세요.',
+            );
+            return;
+          }
+          consecutivePollFailures++;
+          if (consecutivePollFailures <= 3) continue;
+          rethrow;
+        }
+
+        if (!_isCurrentImport(runId, url, cancelToken)) return;
+
+        state = state.copyWith(importJobStatus: job.status);
+
+        switch (job.status) {
+          case ShoppingImportJobStatus.pending:
+          case ShoppingImportJobStatus.running:
+            continue;
+
+          case ShoppingImportJobStatus.succeeded:
+            final response = job.result;
+            if (response == null) {
+              _handleImportFailure();
+              return;
+            }
+            _applyImportedResponse(url, response);
+            return;
+
+          case ShoppingImportJobStatus.failed:
+            _handleImportJobFailure(job.error);
+            return;
+        }
       }
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) return;
+      if (!_isCurrentImport(runId, url, cancelToken)) return;
+      _handleImportApiError(error);
+    } on ArgumentError {
+      if (!_isCurrentImport(runId, url, cancelToken)) return;
+      _handleImportFailure();
+    } catch (error) {
+      if (!_isCurrentImport(runId, url, cancelToken)) return;
+      _handleImportApiError(error);
     }
+  }
+
+  bool _isCurrentImport(
+    int runId,
+    String url,
+    CancelToken cancelToken,
+  ) {
+    return !cancelToken.isCancelled &&
+        runId == _importRunId &&
+        state.isAddWishOpen &&
+        state.isImportingLink &&
+        state.addPrefillLink == url;
   }
 
   bool _isShareImportFlowActive(String url) {
@@ -257,10 +319,80 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         state.addPrefillLink == url;
   }
 
-  void _finalizeImportUnlessActive(String url) {
-    if (!state.isImportingLink) return;
-    if (state.addPrefillLink != url) return;
-    state = state.copyWith(isImportingLink: false);
+  void _applyImportedResponse(
+    String url,
+    ItemImportLinkResponse response,
+  ) {
+    if (!_isShareImportFlowActive(url)) return;
+
+    final prefill = response.toFormPrefill();
+    final saveRequest = response.resolvedSaveRequest();
+
+    if (!response.hasPreview || prefill == null) {
+      _handleImportFailure(
+        errorMessage: response.isPartial
+            ? '상품 정보를 일부만 가져왔어요. 직접 입력해 주세요.'
+            : null,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isImportingLink: false,
+      clearImportJobStatus: true,
+      addFormPrefill: prefill,
+      addImportSaveRequest: saveRequest,
+      addPrefillLink:
+          prefill.link.isNotEmpty ? prefill.link : state.addPrefillLink,
+      clearSubmitErrorMessage: true,
+    );
+  }
+
+  void _handleImportJobFailure(ShoppingImportJobError? error) {
+    final code = error?.code ?? 'IMPORT_FAILED';
+
+    switch (code) {
+      case 'INVALID_OR_UNSUPPORTED_ITEM':
+        _handleImportFailure(
+          errorMessage: '상품 정보를 확인하기 어려워요. 직접 입력해 주세요.',
+        );
+        return;
+
+      case 'SHOPPING_PAGE_UNAVAILABLE':
+      case 'WORKER_INTERRUPTED':
+        state = state.copyWith(
+          isImportingLink: false,
+          clearImportJobStatus: true,
+          submitErrorMessage: '쇼핑몰 연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.',
+        );
+        return;
+
+      case 'INVALID_JOB_PAYLOAD':
+        state = state.copyWith(
+          isImportingLink: false,
+          clearImportJobStatus: true,
+          submitErrorMessage: '상품 링크 형식을 확인해 주세요.',
+        );
+        return;
+
+      default:
+        state = state.copyWith(
+          isImportingLink: false,
+          clearImportJobStatus: true,
+          submitErrorMessage: error?.message ?? '상품 정보를 가져오지 못했어요.',
+        );
+    }
+  }
+
+  void _handleImportApiError(Object error) {
+    final api = apiExceptionFrom(error);
+    state = state.copyWith(
+      isImportingLink: false,
+      clearImportJobStatus: true,
+      submitErrorMessage: api?.statusCode == 429
+          ? '요청이 많아요. 잠시 후 다시 시도해 주세요.'
+          : api?.message ?? importLinkErrorMessage(error),
+    );
   }
 
   void _handleImportFailure({String? errorMessage}) {
@@ -271,6 +403,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       clearAddFormPrefill: true,
       clearAddImportSaveRequest: true,
       isImportingLink: false,
+      clearImportJobStatus: true,
       pendingImportFailedNavigation: true,
       submitErrorMessage: errorMessage,
     );
@@ -291,10 +424,12 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   void openEditPanel(String itemId) {
+    _cancelImport();
     state = state.copyWith(
       editingItemId: itemId,
       isAddWishOpen: false,
       isImportingLink: false,
+      clearImportJobStatus: true,
       clearAddPrefillLink: true,
       clearAddLinkReadOnly: true,
       clearAddFormPrefill: true,
@@ -304,6 +439,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
   }
 
   void closeEditPanel() {
+    _cancelImport();
     state = state.copyWith(
       clearEditingItemId: true,
       clearAddWish: true,
