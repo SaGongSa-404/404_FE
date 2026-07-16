@@ -195,7 +195,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (controller == null) return;
 
     _detachSpecialListener(controller);
-    ref.read(homeSpecialEffectProvider.notifier).detachController(controller);
+    if (mounted) {
+      ref.read(homeSpecialEffectProvider.notifier).detachController(controller);
+    }
     await controller.dispose();
     _videoController = null;
   }
@@ -211,6 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
+    if (!mounted) return;
     final preloadedController =
         ref.read(homeSpecialEffectProvider.notifier).takePreloadedController();
     if (preloadedController == null) {

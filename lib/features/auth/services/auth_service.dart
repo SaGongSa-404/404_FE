@@ -86,12 +86,22 @@ class AuthService {
 
   /// 앱 심사용 고정 계정 토큰 발급 (POST /api/auth/reviewer-token)
   Future<({String accessToken, String refreshToken})> issueReviewerToken() async {
-    final res = await _dio.post<Map<String, dynamic>>(ApiEndpoints.reviewerToken);
-    final data = res.data!;
-    return (
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-    );
+    final res = await _dio.post<dynamic>(ApiEndpoints.reviewerToken);
+    // data/result/payload 래핑 언랩 + camelCase/snake_case 모두 허용.
+    final data = parseProfileJsonMap(res.data);
+    final accessToken =
+        (data['accessToken'] ?? data['access_token'])?.toString();
+    final refreshToken =
+        (data['refreshToken'] ?? data['refresh_token'])?.toString();
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      throw StateError(
+        'reviewer-token 응답에서 토큰을 찾을 수 없습니다: keys=${data.keys.toList()}',
+      );
+    }
+    return (accessToken: accessToken, refreshToken: refreshToken);
   }
 
   /// 로그아웃 (POST /api/logout)
