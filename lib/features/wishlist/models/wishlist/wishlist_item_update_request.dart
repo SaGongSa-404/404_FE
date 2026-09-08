@@ -26,7 +26,7 @@ class WishlistItemUpdateRequest {
     required String uiCategoryLabel,
     required ItemInputSource inputSource,
     String? link,
-    required int listedPrice,
+    required int? listedPrice,
   }) {
     final trimmedTitle = title.trim();
     if (trimmedTitle.isEmpty) {

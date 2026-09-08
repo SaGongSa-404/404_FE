@@ -42,7 +42,8 @@ abstract final class WishlistItemFormValidation {
     required bool editLinkReadOnly,
   }) {
     final trimmedTitle = title.trim();
-    if (trimmedTitle.isEmpty || trimmedTitle.length > maxTitleLength) return false;
+    if (trimmedTitle.isEmpty || trimmedTitle.length > maxTitleLength)
+      return false;
     if (category == null || category.trim().isEmpty) return false;
     if (isLinkInvalid(
       isAdd: isAdd,
@@ -53,7 +54,8 @@ abstract final class WishlistItemFormValidation {
       return false;
     }
     final parsed = parsePriceDigits(priceText);
-    if (parsed == null || parsed == 0) return false;
+    if (priceText.trim().isNotEmpty &&
+        (parsed == null || parsed <= 0 || parsed > 2147483647)) return false;
     return true;
   }
 
@@ -84,7 +86,8 @@ abstract final class WishlistItemFormValidation {
     return WishlistPlaceholder(
       id: 'w-${DateTime.now().millisecondsSinceEpoch}',
       title: title.trim(),
-      price: parsePriceDigits(priceText)!,
+      price: parsePriceDigits(priceText) ?? 0,
+      priceKnown: priceText.trim().isNotEmpty,
       category: category,
       link: link.trim(),
       imageUrl: imageUrl,
@@ -101,7 +104,8 @@ abstract final class WishlistItemFormValidation {
     return WishlistPlaceholder(
       id: existing.id,
       title: title.trim(),
-      price: parsePriceDigits(priceText)!,
+      price: parsePriceDigits(priceText) ?? 0,
+      priceKnown: priceText.trim().isNotEmpty,
       category: category,
       link: link.trim(),
       imageUrl: existing.imageUrl,

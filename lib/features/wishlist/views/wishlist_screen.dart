@@ -1,3 +1,5 @@
+import 'package:fe_app/features/purchase/purchase_service.dart';
+import 'package:fe_app/features/purchase/purchase_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fe_app/core/theme/app_theme.dart';
@@ -164,12 +166,14 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
     final filteredItems = state.selectedCategories.contains('전체')
         ? state.items
         : state.items
-        .where((item) => state.selectedCategories.contains(item.category))
-        .toList();
+            .where((item) => state.selectedCategories.contains(item.category))
+            .toList();
 
     final editingItem = state.editingItemId == null
         ? null
-        : state.items.where((item) => item.id == state.editingItemId).firstOrNull;
+        : state.items
+            .where((item) => item.id == state.editingItemId)
+            .firstOrNull;
 
     final showInitialLoading =
         state.isLoading && !state.isAddWishOpen && editingItem == null;
@@ -214,6 +218,28 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                 onAlarmPressed: () =>
                                     openNotificationsPage(ref, context),
                               ),
+                              if (ref
+                                      .watch(purchaseAvailabilityProvider)
+                                      .valueOrNull
+                                  case final availability?)
+                                if (availability.enabled ||
+                                    availability.hasRecords)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24),
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.compare_arrows),
+                                      label: const Text('비교·구매 정리'),
+                                      onPressed: () async {
+                                        await Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                                builder: (_) =>
+                                                    const PurchaseScreen()));
+                                        if (context.mounted)
+                                          viewModel.refreshItems();
+                                      },
+                                    ),
+                                  ),
                               Padding(
                                 padding: EdgeInsets.only(bottom: 16 * scale),
                                 child: const CategoryFilter(),
@@ -235,21 +261,28 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               onLearnHow: () =>
                                                   context.push('/tutorial'),
                                             ))
-                                      : NotificationListener<ScrollNotification>(
+                                      : NotificationListener<
+                                          ScrollNotification>(
                                           onNotification: (notification) {
-                                            if (notification.metrics.extentAfter > 200 * scale) {
+                                            if (notification
+                                                    .metrics.extentAfter >
+                                                200 * scale) {
                                               return false;
                                             }
-                                            if (notification is! ScrollUpdateNotification &&
-                                                notification is! ScrollEndNotification) {
+                                            if (notification
+                                                    is! ScrollUpdateNotification &&
+                                                notification
+                                                    is! ScrollEndNotification) {
                                               return false;
                                             }
                                             viewModel.loadMore();
                                             return false;
                                           },
                                           child: ListView.separated(
-                                            physics: const BouncingScrollPhysics(
-                                              parent: AlwaysScrollableScrollPhysics(),
+                                            physics:
+                                                const BouncingScrollPhysics(
+                                              parent:
+                                                  AlwaysScrollableScrollPhysics(),
                                             ),
                                             padding: EdgeInsets.fromLTRB(
                                               24 * scale,
@@ -259,10 +292,12 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                             ),
                                             itemCount: filteredItems.length +
                                                 (state.isLoadingMore ? 1 : 0),
-                                            separatorBuilder: (context, index) =>
+                                            separatorBuilder: (context,
+                                                    index) =>
                                                 SizedBox(height: 12 * scale),
                                             itemBuilder: (context, index) {
-                                              if (index >= filteredItems.length) {
+                                              if (index >=
+                                                  filteredItems.length) {
                                                 return Padding(
                                                   padding: EdgeInsets.symmetric(
                                                       vertical: 16 * scale),
@@ -274,12 +309,42 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                               final item = filteredItems[index];
                                               return WishlistItemCard(
                                                 item: item,
-                                                onTap: () {
-                                                  if (!item.canOpenDeliberation) {
+                                                onTap: () async {
+                                                  final availability = ref
+                                                      .read(
+                                                          purchaseAvailabilityProvider)
+                                                      .valueOrNull;
+                                                  bool usePurchaseFlow = false;
+                                                  try {
+                                                    usePurchaseFlow = await ref.read(purchaseServiceProvider)
+                                                        .usesPurchaseFlow(item.id, availability);
+                                                  } catch (_) {
+                                                    if (context.mounted) {
+                                                      showCapsuleToast(context, backgroundColor: const Color(0xFFD46868),
+                                                          text: '상품 상태를 확인하지 못했어요. 다시 시도해 주세요.');
+                                                    }
+                                                    return;
+                                                  }
+                                                  if (!context.mounted) return;
+                                                  if (usePurchaseFlow) {
+                                                    await Navigator.of(context)
+                                                        .push(MaterialPageRoute<
+                                                                void>(
+                                                            builder: (_) =>
+                                                                PurchaseScreen(
+                                                                    initialItemId:
+                                                                        item.id)));
+                                                    if (context.mounted)
+                                                      viewModel.refreshItems();
+                                                    return;
+                                                  }
+                                                  if (!item
+                                                      .canOpenDeliberation) {
                                                     showCapsuleToast(
                                                       context,
                                                       backgroundColor:
-                                                          const Color(0xFFD46868),
+                                                          const Color(
+                                                              0xFFD46868),
                                                       text:
                                                           '이미 결정된 상품은 숙려 화면을 다시 열 수 없어요.',
                                                     );
@@ -290,14 +355,17 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                                   );
                                                 },
                                                 onLongPress: () => {},
-                                                onEdit: () => viewModel.openEditPanel(item.id),
+                                                onEdit: () => viewModel
+                                                    .openEditPanel(item.id),
                                                 onDelete: () async {
-                                                  final ok =
-                                                      await viewModel.dropItem(item.id);
-                                                  if (!context.mounted || !ok) return;
+                                                  final ok = await viewModel
+                                                      .dropItem(item.id);
+                                                  if (!context.mounted || !ok)
+                                                    return;
                                                   showCapsuleToast(
                                                     context,
-                                                    backgroundColor: const Color(0xFFD46868),
+                                                    backgroundColor:
+                                                        const Color(0xFFD46868),
                                                     text: '삭제되었습니다',
                                                   );
                                                 },
@@ -305,7 +373,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                                   showWishlistShareToFeedModal(
                                                     context,
                                                     onConfirm: () {
-                                                      if (!context.mounted) return;
+                                                      if (!context.mounted)
+                                                        return;
                                                       context.push(
                                                         '/feed/write',
                                                         extra: item,
@@ -324,7 +393,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                         ),
                       ],
                     ),
-                    if (state.isAlarmOpen) AlarmPanel(onClose: viewModel.toggleAlarm),
+                    if (state.isAlarmOpen)
+                      AlarmPanel(onClose: viewModel.toggleAlarm),
                   ],
                 ),
               ),
@@ -392,9 +462,10 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                 }
               },
               child: NugulLoadingScreen(
-                message: state.importJobStatus == ShoppingImportJobStatus.pending
-                    ? '가져오기 대기 중'
-                    : '잠시만 기다려주세요',
+                message:
+                    state.importJobStatus == ShoppingImportJobStatus.pending
+                        ? '가져오기 대기 중'
+                        : '잠시만 기다려주세요',
               ),
             ),
           ),

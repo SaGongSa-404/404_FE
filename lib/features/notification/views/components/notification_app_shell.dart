@@ -29,6 +29,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
     with WidgetsBindingObserver {
   static const _bannerDuration = Duration(seconds: 4);
 
+  late NotificationLiveNotifier _liveNotifier;
   Timer? _dismissTimer;
   String? _visibleBannerId;
   String? _handledDeepLinkKey;
@@ -54,6 +55,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   @override
   void initState() {
     super.initState();
+    _liveNotifier = ref.read(notificationLiveProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,7 +69,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dismissTimer?.cancel();
-    ref.read(notificationLiveProvider.notifier).pause();
+    _liveNotifier.pause();
     super.dispose();
   }
 
@@ -211,6 +213,7 @@ class _NotificationAppShellState extends ConsumerState<NotificationAppShell>
       _syncPollingState(next);
     });
 
+    _liveNotifier = ref.watch(notificationLiveProvider.notifier);
     final liveState = ref.watch(notificationLiveProvider);
     final settings = ref.watch(notificationSettingsProvider);
     final deepLinkIntent = ref.watch(notificationDeepLinkProvider);

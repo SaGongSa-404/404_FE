@@ -1,0 +1,32 @@
+위굴 구매 비교 구현 검증 / 출시 준비
+작업 브랜치: feat/purchase-comparison (FE와 BE 각각)
+도구: Flutter 3.35.7 / Dart 3.9.2, BE Java 21 + Docker
+
+FE 로컬 검증 (해당 Flutter SDK를 PATH 앞에 지정):
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze --no-fatal-infos --no-fatal-warnings
+dart analyze --fatal-infos lib/features/purchase test/purchase test/widget_test.dart
+flutter test --reporter expanded
+
+BE 로컬 검증:
+./gradlew test jacocoTestReport bootJar --console=plain
+
+서버 기본값:
+PURCHASE_COMPARISON_ENABLED=false
+본인 테스트 시 true + PURCHASE_COMPARISON_ALLOWED_USER_IDS=<본인 UUID>
+
+실기기 확인 (아직 미실행):
+[ ] 기존 앱에서 담기·설문·소비 내역 호환
+[ ] 새 앱 로그인 / 공유 메뉴에서 위굴로 링크 전달
+[ ] 자동 추출 실패한 링크도 상품 이름만 넣고 저장 가능
+[ ] 가격 미입력 상태 표시 / 두 상품 비교 / 원문 이동
+[ ] 메모 저장 / 실제 금액·날짜 입력 / 월 예산·소비 통계 갱신
+[ ] 결제 금액·월 정정 / 고민 중 복귀 / 중복 요청에 예산 중복 없음
+[ ] 서버 OFF 때 기존 새 기록 읽기 유지
+[ ] 작은 화면·큰 글씨·뒤로가기 / 앱 종료 및 재시작
+[ ] Firebase 비교/저장 이벤트 수집
+[ ] Play Console 최대 versionCode와 업로드 키 확인
+[ ] 본인 내부 설치 테스트 후 GA 여부 결정
+
+병합, 서버 배포, 서명 AAB 생성과 Play 업로드는 별도 단계다.

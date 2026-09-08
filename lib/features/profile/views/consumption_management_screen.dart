@@ -1,3 +1,5 @@
+import 'package:fe_app/features/purchase/purchase_service.dart';
+import 'package:fe_app/features/purchase/purchase_screen.dart';
 import 'dart:math';
 
 import 'package:fe_app/core/theme/app_theme.dart';
@@ -151,6 +153,15 @@ class _ConsumptionManagementScreenState
             SizedBox(height: 14 * scale),
             _buildCurrentBudgetCard(context, current, format, scale),
             SizedBox(height: 32 * scale),
+            if (ref.watch(purchaseAvailabilityProvider).valueOrNull?.hasRecords == true)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('예산 합계에는 새 구매 기록도 포함돼요. 아래 상세 목록·합리성 평가는 기존 설문 결정 기준이에요.'),
+                  TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PurchaseScreen(initialRecords: true))),
+                    child: const Text('새 구매 기록 확인')),
+                ]),
+              ),
             Text(
               '월별 소비기록',
               style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold, color: Color(0xFF555555)),
