@@ -20,7 +20,7 @@ abstract final class WishlistItemFormHints {
 
   static const String link = 'URL을 붙여넣으세요';
   static const String productName = '상품명을 입력해주세요';
-  static const String price = '가격을 입력해주세요';
+  static const String price = '가격 (선택)';
 }
 
 class WishlistItemFormPanel extends StatefulWidget {
@@ -131,13 +131,13 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       _linkController = TextEditingController(text: widget.initialLink?.trim() ?? '');
       _nameController = TextEditingController();
       _priceController = TextEditingController();
-      _selectedCategory = null;
+      _selectedCategory = '기타';
       _applyFormPrefill(widget.formPrefill);
     } else {
       final i = widget.item!;
       _linkController = TextEditingController(text: i.link);
       _nameController = TextEditingController(text: i.title);
-      _priceController = TextEditingController(text: _formatPrice(i.price));
+      _priceController = TextEditingController(text: i.priceKnown ? _formatPrice(i.price) : '');
       _selectedCategory =
           _categories.contains(i.category) ? i.category : _categories.first;
     }
@@ -184,7 +184,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   void _syncEditFieldsFromItem(WishlistPlaceholder item) {
     _linkController.text = item.link;
     _nameController.text = item.title;
-    _priceController.text = _formatPrice(item.price);
+    _priceController.text = item.priceKnown ? _formatPrice(item.price) : '';
     _selectedCategory =
         _categories.contains(item.category) ? item.category : _categories.first;
     _validationAttempted = false;
@@ -200,7 +200,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
       if (prefill.title.isNotEmpty) {
         _nameController.text = prefill.title;
       }
-      if (prefill.price >= 0) {
+      if (prefill.price > 0) {
         _priceController.text = _formatPrice(prefill.price);
       }
       _selectedCategory = WishlistCategoryUi.resolveFormChipSelection(
@@ -241,6 +241,7 @@ class _WishlistItemFormPanelState extends State<WishlistItemFormPanel>
   bool get _categoryInvalid => _categoryEmpty;
 
   bool get _priceInvalid =>
+      _priceController.text.trim().isNotEmpty &&
       WishlistItemFormValidation.parsePriceDigits(_priceController.text) == null;
 
   bool get _priceIsZero =>

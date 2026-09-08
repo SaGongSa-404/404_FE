@@ -10,12 +10,14 @@ class WishlistPlaceholder {
     this.imageUrl,
     this.inputSource,
     this.status = 'SAVED',
+    this.priceKnown = true,
     this.hasFeedPost = false,
   });
 
   final String id;
   final String title;
   final int price;
+  final bool priceKnown;
   final String category;
   final String link;
   final String? imageUrl;
@@ -34,6 +36,7 @@ class WishlistPlaceholder {
     String? id,
     String? title,
     int? price,
+    bool? priceKnown,
     String? category,
     String? link,
     String? imageUrl,
@@ -46,6 +49,7 @@ class WishlistPlaceholder {
       id: id ?? this.id,
       title: title ?? this.title,
       price: price ?? this.price,
+      priceKnown: priceKnown ?? this.priceKnown,
       category: category ?? this.category,
       link: link ?? this.link,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),

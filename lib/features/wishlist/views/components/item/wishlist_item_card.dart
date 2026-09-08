@@ -165,7 +165,9 @@ class _WishlistItemCardState extends State<WishlistItemCard> {
         ),
         SizedBox(height: 12 * scale),
         Text(
-          '${_formatPrice(widget.item.price)}원',
+          widget.item.priceKnown
+              ? '${_formatPrice(widget.item.price)}원'
+              : '가격 미입력',
           style: TextStyle(
             fontSize: 13 * scale,
             fontWeight: FontWeight.w500,

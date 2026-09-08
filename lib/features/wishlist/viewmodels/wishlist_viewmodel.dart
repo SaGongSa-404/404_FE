@@ -39,7 +39,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
   WishlistService get _wishlistService => _ref.read(wishlistServiceProvider);
 
-  ItemImportService get _itemImportService => _ref.read(itemImportServiceProvider);
+  ItemImportService get _itemImportService =>
+      _ref.read(itemImportServiceProvider);
 
   void _cancelImport() {
     _importRunId++;
@@ -90,9 +91,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
           items: [],
           hasMore: false,
           clearNextCursor: true,
-          listErrorMessage: api.statusCode == 403
-              ? '온보딩을 먼저 완료해 주세요.'
-              : api.message,
+          listErrorMessage:
+              api.statusCode == 403 ? '온보딩을 먼저 완료해 주세요.' : api.message,
         );
         return;
       }
@@ -231,7 +231,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       state = state.copyWith(importJobStatus: accepted.status);
 
       while (_isCurrentImport(runId, url, cancelToken)) {
-        if (DateTime.now().difference(startedAt) > const Duration(seconds: 90)) {
+        if (DateTime.now().difference(startedAt) >
+            const Duration(seconds: 90)) {
           state = state.copyWith(
             isImportingLink: false,
             clearImportJobStatus: true,
@@ -330,9 +331,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
 
     if (!response.hasPreview || prefill == null) {
       _handleImportFailure(
-        errorMessage: response.isPartial
-            ? '상품 정보를 일부만 가져왔어요. 직접 입력해 주세요.'
-            : null,
+        errorMessage:
+            response.isPartial ? '상품 정보를 일부만 가져왔어요. 직접 입력해 주세요.' : null,
       );
       return;
     }
@@ -490,7 +490,8 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     WishlistItem existing,
   ) {
     final sameTitle = draft.title.trim() == existing.title.trim();
-    final samePrice = draft.price == (existing.listedPrice?.round() ?? 0);
+    final samePrice = (draft.priceKnown ? draft.price : null) ==
+        existing.listedPrice?.round();
     final sameCategory =
         WishlistCategoryUi.toApiValue(draft.category) == existing.category;
     final draftImage = draft.imageUrl?.trim() ?? '';
@@ -514,7 +515,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     if (imported != null) {
       return imported.copyWith(
         title: draft.title.trim(),
-        listedPrice: draft.price,
+        listedPrice: draft.priceKnown ? draft.price : null,
         currencyCode: imported.currencyCode ?? 'KRW',
         category: WishlistCategoryUi.toApiValue(draft.category),
         categoryLockedByUser: imported.categoryLockedByUser ?? true,
@@ -611,7 +612,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
           uiCategoryLabel: updatedItem.category,
           inputSource: inputSource,
           link: updatedItem.link,
-          listedPrice: updatedItem.price,
+          listedPrice: updatedItem.priceKnown ? updatedItem.price : null,
         ),
       );
       final placeholder = saved.toPlaceholder();
@@ -630,8 +631,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
         isSubmitting: false,
         submitErrorMessage: api?.statusCode == 409
             ? '이미 등록된 링크예요'
-            : api?.message ??
-                '위시를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
+            : api?.message ?? '위시를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
       return false;
     }
@@ -656,8 +656,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
       final api = apiExceptionFrom(e);
       state = state.copyWith(
         isSubmitting: false,
-        submitErrorMessage: api?.message ??
-            '위시를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+        submitErrorMessage: api?.message ?? '위시를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
       return false;
     }
