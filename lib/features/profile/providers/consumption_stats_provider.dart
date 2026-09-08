@@ -114,6 +114,7 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final monthsResponse = await _profileService.getStatsMonths();
+      if (!mounted) return;
       final currentMonth = monthsResponse.currentMonth;
       final months = monthsResponse.months;
 
@@ -128,6 +129,7 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
         ),
       );
 
+      if (!mounted) return;
       final statsByMonth = <String, MonthlyStats>{
         for (final stats in statsResults) stats.yearMonth: stats,
       };
@@ -140,6 +142,7 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
         isLoading: false,
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: _errorMessage(e),
@@ -157,12 +160,14 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
   Future<MonthlyStats?> refreshMonthStats(String yearMonth) async {
     try {
       final stats = await _profileService.getMonthlyStats(yearMonth: yearMonth);
+      if (!mounted) return null;
       state = state.copyWith(
         statsByMonth: {...state.statsByMonth, yearMonth: stats},
         clearError: true,
       );
       return stats;
     } catch (e) {
+      if (!mounted) return null;
       state = state.copyWith(errorMessage: _errorMessage(e));
       return null;
     }
@@ -208,10 +213,12 @@ class ConsumptionStatsNotifier extends StateNotifier<ConsumptionStatsState> {
     try {
       final confirmed =
           await _profileService.updateBudget(monthlyBudget: monthlyBudget);
+      if (!mounted) return false;
       applyBudgetOverride(confirmed);
       state = state.copyWith(isUpdatingBudget: false);
       return true;
     } catch (e) {
+      if (!mounted) return false;
       state = state.copyWith(
         isUpdatingBudget: false,
         errorMessage: _budgetErrorMessage(e),

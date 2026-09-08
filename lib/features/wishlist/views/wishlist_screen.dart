@@ -314,8 +314,19 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
                                                       .read(
                                                           purchaseAvailabilityProvider)
                                                       .valueOrNull;
-                                                  if (availability?.enabled ==
-                                                      true) {
+                                                  bool usePurchaseFlow = false;
+                                                  try {
+                                                    usePurchaseFlow = await ref.read(purchaseServiceProvider)
+                                                        .usesPurchaseFlow(item.id, availability);
+                                                  } catch (_) {
+                                                    if (context.mounted) {
+                                                      showCapsuleToast(context, backgroundColor: const Color(0xFFD46868),
+                                                          text: '상품 상태를 확인하지 못했어요. 다시 시도해 주세요.');
+                                                    }
+                                                    return;
+                                                  }
+                                                  if (!context.mounted) return;
+                                                  if (usePurchaseFlow) {
                                                     await Navigator.of(context)
                                                         .push(MaterialPageRoute<
                                                                 void>(

@@ -117,6 +117,20 @@ class PurchaseService {
         response.data!['nextOffset'] as int?);
   }
 
+  /// OFF accounts can still open their own new records without entering the legacy survey.
+  Future<bool> usesPurchaseFlow(String id, PurchaseAvailability? cached) async {
+    PurchaseAvailability current;
+    try {
+      current = cached ?? await availability();
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return false;
+      rethrow;
+    }
+    if (current.enabled) return true;
+    if (!current.hasRecords) return false;
+    return (await get(id)).revision > 0;
+  }
+
   Future<PurchaseItem> get(String id) async => PurchaseItem.fromJson(
       (await dio.get<Map<String, dynamic>>('$path/$id')).data!);
   Future<PurchaseItem> change(PurchaseChange change) async =>
